@@ -23,7 +23,7 @@
   <script src="js/supabase.js"></script>
 
   <script>
-    // Authentication Guard: Protect dashboard routes & verify Supabase Auth Session
+    // Open Access & Session Initialization (No mandatory login / sign up blocker)
     (async function() {
       try {
         const hash = window.location.hash || '';
@@ -33,27 +33,13 @@
           return;
         }
 
-        function redirectToLogin() {
-          localStorage.removeItem('smartpantry_token');
-          localStorage.removeItem('smartpantry_user');
-          const target = window.location.pathname.endsWith('.html') ? 'login.html' : 'login';
-          window.location.replace(target);
-        }
-
         if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
           await window.SupabaseConfig.readyPromise;
         }
 
         if (window.supabaseService && window.supabaseService.isReady()) {
           const session = await window.supabaseService.getSession();
-          if (!session || !session.user) {
-            const rawUser = localStorage.getItem('smartpantry_user');
-            const token = localStorage.getItem('smartpantry_token');
-            if (!rawUser || !token || token.startsWith('direct_token_')) {
-              redirectToLogin();
-              return;
-            }
-          } else {
+          if (session && session.user) {
             // Keep localStorage in sync with live Supabase session
             const userObj = {
               id: session.user.id,
@@ -64,23 +50,21 @@
             localStorage.setItem('smartpantry_token', session.access_token);
             localStorage.setItem('smartpantry_user', JSON.stringify(userObj));
           }
+        }
 
-          // Active session listener: If logged out elsewhere or session revoked, redirect to login
-          window.supabaseService.onAuthStateChange((event, newSession) => {
-            if (event === 'SIGNED_OUT' || (!newSession && event !== 'INITIAL_SESSION')) {
-              redirectToLogin();
-            }
-          });
-        } else {
-          // Fallback check if offline or local preview
-          const rawUser = localStorage.getItem('smartpantry_user');
-          const token = localStorage.getItem('smartpantry_token');
-          if (!rawUser || !token || token.startsWith('direct_token_')) {
-            redirectToLogin();
-          }
+        // Initialize default guest profile if no user profile exists
+        if (!localStorage.getItem('smartpantry_user')) {
+          const defaultUser = {
+            id: 'guest_pantry_user',
+            name: 'Pantry Chef',
+            email: 'pantrychef@local.internal',
+            emailVerified: true,
+            isGuest: true
+          };
+          localStorage.setItem('smartpantry_user', JSON.stringify(defaultUser));
         }
       } catch (e) {
-        console.warn("Auth guard exception:", e);
+        console.warn("Session init exception:", e);
       }
     })();
   </script>
@@ -164,7 +148,7 @@
             🗑️ Reset Pantry Items
           </button>
           <button onclick="handleLogout()" style="width:100%; padding:10px 16px; background:none; border:none; color:#f87171; font-size:13px; font-weight:600; text-align:left; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:8px;" onmouseover="this.style.background='#263348'" onmouseout="this.style.background='none'">
-            🚪 Log Out
+            🔄 Switch to Guest / Local Mode
           </button>
         </div>
       </div>
@@ -3406,10 +3390,22 @@ function updateDashboardUserUI(user) {
 
 async function initDashboardAuthAndUser() {
   try {
+    let currentUser = null;
     const raw = localStorage.getItem('smartpantry_user');
     if (raw) {
-      updateDashboardUserUI(JSON.parse(raw));
+      try { currentUser = JSON.parse(raw); } catch (e) {}
     }
+    if (!currentUser) {
+      currentUser = {
+        id: 'guest_pantry_user',
+        name: 'Pantry Chef',
+        email: 'pantrychef@local.internal',
+        emailVerified: true,
+        isGuest: true
+      };
+      localStorage.setItem('smartpantry_user', JSON.stringify(currentUser));
+    }
+    updateDashboardUserUI(currentUser);
 
     if (window.supabaseService && window.supabaseService.isReady()) {
       const params = new URLSearchParams(window.location.search);
@@ -3438,20 +3434,29 @@ async function initDashboardAuthAndUser() {
             await window.store.fetchFromSupabase();
           }
         }
-      } else if (!localStorage.getItem('smartpantry_user')) {
-        // Protect private pages with supabase.auth.getSession() — if no session, redirect to /login
-        const target = window.location.pathname.endsWith('.html') ? 'login.html' : 'login';
-        window.location.replace(target);
-        return;
+      } else {
+        // Local pantry mode
+        if (window.store && (!window.store.userId || window.store.userId === 'guest_pantry_user')) {
+          await window.store.initUser('guest_pantry_user');
+        }
       }
 
       window.supabaseService.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_OUT') {
-          if (window.store) window.store.clearUserSession();
-          localStorage.removeItem('smartpantry_user');
+          const guestUser = {
+            id: 'guest_pantry_user',
+            name: 'Pantry Chef',
+            email: 'pantrychef@local.internal',
+            emailVerified: true,
+            isGuest: true
+          };
+          localStorage.setItem('smartpantry_user', JSON.stringify(guestUser));
           localStorage.removeItem('smartpantry_token');
-          const target = window.location.pathname.endsWith('.html') ? 'login.html' : 'login';
-          window.location.replace(target);
+          updateDashboardUserUI(guestUser);
+          if (window.store) {
+            window.store.clearUserSession();
+            await window.store.initUser('guest_pantry_user');
+          }
         } else if (session && session.user) {
           const userId = session.user.id;
           const profile = await window.supabaseService.getProfile(userId);
@@ -3475,6 +3480,10 @@ async function initDashboardAuthAndUser() {
           }
         }
       });
+    } else {
+      if (window.store && (!window.store.userId || window.store.userId === 'guest_pantry_user')) {
+        await window.store.initUser('guest_pantry_user');
+      }
     }
   } catch (err) {
     console.warn("[Dashboard Auth Init]", err);
@@ -3511,10 +3520,24 @@ async function handleLogout() {
   } catch (err) {
     console.warn("Sign out error:", err);
   } finally {
-    localStorage.removeItem('smartpantry_user');
+    const guestUser = {
+      id: 'guest_pantry_user',
+      name: 'Pantry Chef',
+      email: 'pantrychef@local.internal',
+      emailVerified: true,
+      isGuest: true
+    };
+    localStorage.setItem('smartpantry_user', JSON.stringify(guestUser));
     localStorage.removeItem('smartpantry_token');
-    const target = window.location.pathname.endsWith('.html') ? 'login.html' : 'login';
-    window.location.replace(target);
+    updateDashboardUserUI(guestUser);
+    if (window.store) {
+      await window.store.initUser('guest_pantry_user');
+    }
+    const menu = document.getElementById('userMenu');
+    if (menu) menu.style.display = 'none';
+    if (typeof showToast === 'function') {
+      showToast('Switched to local pantry mode');
+    }
   }
 }
 

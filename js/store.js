@@ -314,7 +314,13 @@ function getCurrentUserInfo() {
       if (parsed && parsed.id) return parsed;
     }
   } catch (e) {}
-  return null;
+  return {
+    id: "guest_pantry_user",
+    name: "Pantry Chef",
+    email: "pantrychef@local.internal",
+    emailVerified: true,
+    isGuest: true
+  };
 }
 
 class PantryStore {
@@ -367,14 +373,7 @@ class PantryStore {
 
   init() {
     const user = getCurrentUserInfo();
-    this.userId = user ? (user.id || null) : null;
-
-    if (!this.userId) {
-      this.items = [];
-      this.activity = [];
-      this.alerts = [];
-      return;
-    }
+    this.userId = user ? (user.id || 'guest_pantry_user') : 'guest_pantry_user';
 
     // 1. Initial cache loads (isolated per user)
     const cached = localStorage.getItem(this.storageKey);
@@ -411,7 +410,7 @@ class PantryStore {
   }
 
   clearUserSession() {
-    this.userId = null;
+    this.userId = 'guest_pantry_user';
     this.items = [];
     this.activity = [];
     this.alerts = [];

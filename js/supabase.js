@@ -53,19 +53,23 @@
       return Boolean(this.client);
     }
 
+    isUUID(str) {
+      return typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    }
+
     // Secure helper: Always extract authenticated user's real Supabase Auth UUID
     async getAuthenticatedUserId(fallbackId = null) {
       if (this.isReady()) {
         try {
           const { data: { session } } = await this.client.auth.getSession();
-          if (session && session.user && session.user.id) {
+          if (session && session.user && session.user.id && this.isUUID(session.user.id)) {
             return session.user.id;
           }
         } catch (e) {}
 
         try {
           const { data: { user } } = await this.client.auth.getUser();
-          if (user && user.id) return user.id;
+          if (user && user.id && this.isUUID(user.id)) return user.id;
         } catch (e) {}
       }
 
@@ -73,11 +77,11 @@
         const raw = localStorage.getItem('smartpantry_user');
         if (raw) {
           const u = JSON.parse(raw);
-          if (u && u.id) return u.id;
+          if (u && u.id && this.isUUID(u.id)) return u.id;
         }
       } catch (e) {}
 
-      if (fallbackId && typeof fallbackId === 'string' && fallbackId.length > 5) {
+      if (fallbackId && typeof fallbackId === 'string' && this.isUUID(fallbackId)) {
         return fallbackId;
       }
 
@@ -525,7 +529,7 @@
     // ==========================================
 
     async getProfile(userId) {
-      if (!userId || !this.isReady()) return null;
+      if (!userId || !this.isUUID(userId) || !this.isReady()) return null;
       try {
         const { data, error } = await this.client
           .from('profiles')
@@ -542,7 +546,7 @@
     }
 
     async ensureProfile(user) {
-      if (!user || !user.id || !this.isReady()) return;
+      if (!user || !user.id || !this.isUUID(user.id) || !this.isReady()) return;
       try {
         await this.client
           .from('profiles')
@@ -558,7 +562,7 @@
     }
 
     async updateProfile(userId, { fullName, avatarUrl }) {
-      if (!userId || !this.isReady()) return false;
+      if (!userId || !this.isUUID(userId) || !this.isReady()) return false;
       try {
         const updates = { updated_at: new Date().toISOString() };
         if (fullName !== undefined) updates.full_name = fullName;
@@ -583,7 +587,7 @@
     // ==========================================
 
     async getProducts(userId) {
-      if (!userId) return null;
+      if (!userId || !this.isUUID(userId)) return null;
       if (!this.isReady()) {
         console.warn("[Supabase DB] Supabase not connected.");
         return null;
@@ -980,7 +984,7 @@
     // ==========================================
 
     async getUserSettings(userId) {
-      if (!userId || !this.isReady()) return null;
+      if (!userId || !this.isUUID(userId) || !this.isReady()) return null;
       try {
         const { data, error } = await this.client
           .from('notification_preferences')
@@ -1039,7 +1043,7 @@
     // ==========================================
 
     async getActivity(userId, limit = 50) {
-      if (!userId || !this.isReady()) return [];
+      if (!userId || !this.isUUID(userId) || !this.isReady()) return [];
       try {
         const { data, error } = await this.client
           .from('activity_logs')
@@ -1100,7 +1104,7 @@
     // ==========================================
 
     async getAlerts(userId) {
-      if (!userId || !this.isReady()) return [];
+      if (!userId || !this.isUUID(userId) || !this.isReady()) return [];
       try {
         const { data, error } = await this.client
           .from('alerts')
@@ -1194,7 +1198,7 @@
     // ==========================================
 
     subscribeToUserProducts(userId, onDataChange) {
-      if (!this.isReady() || !userId) return null;
+      if (!this.isReady() || !userId || !this.isUUID(userId)) return null;
 
       try {
         const channelName = `pantry-products-${userId}`;
@@ -1254,7 +1258,7 @@
     }
 
     subscribeToUserAlerts(userId, onDataChange) {
-      if (!this.isReady() || !userId) return null;
+      if (!this.isReady() || !userId || !this.isUUID(userId)) return null;
 
       try {
         const channelName = `alerts-${userId}`;
@@ -1288,7 +1292,7 @@
     }
 
     subscribeToUserSettings(userId, onDataChange) {
-      if (!this.isReady() || !userId) return null;
+      if (!this.isReady() || !userId || !this.isUUID(userId)) return null;
 
       try {
         const channelName = `settings-${userId}`;
