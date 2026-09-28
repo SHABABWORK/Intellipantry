@@ -311,16 +311,10 @@ function getCurrentUserInfo() {
     const raw = localStorage.getItem("smartpantry_user");
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && parsed.id) return parsed;
+      if (parsed && parsed.id && parsed.id !== 'guest_pantry_user') return parsed;
     }
   } catch (e) {}
-  return {
-    id: "guest_pantry_user",
-    name: "Pantry Chef",
-    email: "pantrychef@local.internal",
-    emailVerified: true,
-    isGuest: true
-  };
+  return null;
 }
 
 class PantryStore {
@@ -373,7 +367,14 @@ class PantryStore {
 
   init() {
     const user = getCurrentUserInfo();
-    this.userId = user ? (user.id || 'guest_pantry_user') : 'guest_pantry_user';
+    if (!user || !user.id || user.id === 'guest_pantry_user') {
+      this.userId = null;
+      this.items = [];
+      this.activity = [];
+      this.alerts = [];
+      return;
+    }
+    this.userId = user.id;
 
     // 1. Initial cache loads (isolated per user)
     const cached = localStorage.getItem(this.storageKey);
@@ -392,25 +393,27 @@ class PantryStore {
     // 2. Initialize default full settings
     this.loadLocalFullSettings();
 
-    // 3. Fetch from Supabase Cloud Database (Permanent Source of Truth)
-    this.fetchFromSupabase();
-    this.fetchSettingsFromSupabase();
-    this.fetchActivityFromSupabase();
-    this.fetchAlertsFromSupabase();
+    // 3. Fetch from Supabase Cloud Database ONLY when authenticated
+    if (window.supabaseService && window.supabaseService.isAuthenticated()) {
+      this.fetchFromSupabase();
+      this.fetchSettingsFromSupabase();
+      this.fetchActivityFromSupabase();
+      this.fetchAlertsFromSupabase();
+      this.setupRealtimeSubscriptions();
+    }
 
-    // 4. Setup Real-Time Subscriptions
-    this.setupRealtimeSubscriptions();
-
-    // 5. Compute dynamic pantry alerts on startup
+    // 4. Compute dynamic pantry alerts on startup
     setTimeout(() => {
-      this.syncAlertsFromPantry();
-      this.checkAndDispatchPantryAlerts();
-      this.updateAlertBadge();
+      if (this.userId) {
+        this.syncAlertsFromPantry();
+        this.checkAndDispatchPantryAlerts();
+        this.updateAlertBadge();
+      }
     }, 1200);
   }
 
   clearUserSession() {
-    this.userId = 'guest_pantry_user';
+    this.userId = null;
     this.items = [];
     this.activity = [];
     this.alerts = [];
@@ -533,7 +536,10 @@ class PantryStore {
   }
 
   async fetchFromSupabase() {
-    if (!this.userId || !window.supabaseService) return;
+    if (!this.userId || this.userId === 'guest_pantry_user' || !window.supabaseService || !window.supabaseService.isAuthenticated()) {
+      this.isLoading = false;
+      return;
+    }
     this.isLoading = true;
     this.notify();
     try {
@@ -596,7 +602,7 @@ class PantryStore {
   }
 
   async fetchSettingsFromSupabase() {
-    if (!this.userId || !window.supabaseService) return;
+    if (!this.userId || this.userId === 'guest_pantry_user' || !window.supabaseService || !window.supabaseService.isAuthenticated()) return;
     try {
       const dbSettings = await window.supabaseService.getUserSettings(this.userId);
       if (dbSettings) {
@@ -613,7 +619,7 @@ class PantryStore {
   }
 
   async fetchActivityFromSupabase() {
-    if (!this.userId || !window.supabaseService) return;
+    if (!this.userId || this.userId === 'guest_pantry_user' || !window.supabaseService || !window.supabaseService.isAuthenticated()) return;
     try {
       const dbActivity = await window.supabaseService.getActivity(this.userId, 50);
       if (Array.isArray(dbActivity) && dbActivity.length > 0) {
@@ -627,7 +633,7 @@ class PantryStore {
   }
 
   async fetchAlertsFromSupabase() {
-    if (!this.userId || !window.supabaseService) return;
+    if (!this.userId || this.userId === 'guest_pantry_user' || !window.supabaseService || !window.supabaseService.isAuthenticated()) return;
     try {
       const dbAlerts = await window.supabaseService.getAlerts(this.userId);
       if (Array.isArray(dbAlerts)) {

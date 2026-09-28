@@ -706,11 +706,9 @@
             Already have an account? <button type="button" class="auth-toggle-link" onclick="setAuthMode('login')">Login</button>
           </div>
 
-          <!-- Shortcuts: Guest Bypass & Magic Link -->
+          <!-- Shortcuts: Magic Link / OTP -->
           <div class="helper-links-row">
-            <button type="button" class="helper-link" onclick="loginAsGuest()">⚡ Continue as Guest</button>
-            <span style="color:#d5cfc2;">•</span>
-            <button type="button" class="helper-link" onclick="triggerMagicLinkPrompt()">✉️ Magic Link / OTP</button>
+            <button type="button" class="helper-link" onclick="triggerMagicLinkPrompt()">✉️ Email me a Magic Link / 6-digit Code (OTP)</button>
           </div>
         </div>
       </div>
@@ -914,20 +912,6 @@
     function navigateToDashboard() {
       const isHtml = window.location.pathname.endsWith('.html');
       window.location.replace(isHtml ? 'dashboard.html' : 'dashboard');
-    }
-
-    // 1-Click Guest Access Bypass
-    function loginAsGuest() {
-      const defaultUser = {
-        id: 'guest_pantry_user',
-        name: 'Pantry Chef',
-        email: 'pantrychef@local.internal',
-        emailVerified: true,
-        isGuest: true
-      };
-      localStorage.setItem('smartpantry_user', JSON.stringify(defaultUser));
-      localStorage.setItem('smartpantry_token', 'guest_access_token');
-      navigateToDashboard();
     }
 
     // Main Form Submit Handler

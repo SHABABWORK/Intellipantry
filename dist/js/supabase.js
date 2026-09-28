@@ -279,6 +279,19 @@
       }
     }
 
+    isAuthenticated() {
+      if (!this.isReady()) return false;
+      const token = localStorage.getItem('smartpantry_token');
+      const userRaw = localStorage.getItem('smartpantry_user');
+      if (!token || !userRaw || token === 'guest_access_token') return false;
+      try {
+        const u = JSON.parse(userRaw);
+        return Boolean(u && u.id && u.id !== 'guest_pantry_user');
+      } catch (e) {
+        return false;
+      }
+    }
+
     async getCurrentUser() {
       if (this.isReady()) {
         try {

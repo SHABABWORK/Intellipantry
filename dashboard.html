@@ -23,48 +23,66 @@
   <script src="js/supabase.js"></script>
 
   <script>
-    // Open Access & Session Initialization (No mandatory login / sign up blocker)
-    (async function() {
+    // STRICT SUPABASE AUTHENTICATION GATE
+    // Immediately hide page content to guarantee zero flash of protected data
+    document.documentElement.style.visibility = 'hidden';
+
+    (async function enforceAuthGate() {
       try {
         const hash = window.location.hash || '';
         const search = window.location.search || '';
-        // If arriving from Supabase email verification or password reset, allow Supabase SDK to parse token
-        if (hash.includes('access_token') || hash.includes('refresh_token') || search.includes('code=')) {
-          return;
-        }
+
+        // If arriving from Supabase email confirmation, password reset or OAuth callback:
+        const hasAuthParams = hash.includes('access_token') || hash.includes('refresh_token') ||
+                              hash.includes('type=recovery') || search.includes('code=');
 
         if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
           await window.SupabaseConfig.readyPromise;
         }
 
-        if (window.supabaseService && window.supabaseService.isReady()) {
-          const session = await window.supabaseService.getSession();
-          if (session && session.user) {
-            // Keep localStorage in sync with live Supabase session
-            const userObj = {
-              id: session.user.id,
-              email: session.user.email,
-              name: session.user.user_metadata?.full_name || session.user.email.split('@')[0] || 'Pantry Chef',
-              emailVerified: Boolean(session.user.email_confirmed_at || session.user.confirmed_at)
-            };
-            localStorage.setItem('smartpantry_token', session.access_token);
-            localStorage.setItem('smartpantry_user', JSON.stringify(userObj));
-          }
+        if (!window.supabaseService || !window.supabaseService.isReady()) {
+          // Supabase service unavailable or unconfigured: redirect to login
+          localStorage.removeItem('smartpantry_token');
+          localStorage.removeItem('smartpantry_user');
+          window.location.replace('login.html');
+          return;
         }
 
-        // Initialize default guest profile if no user profile exists
-        if (!localStorage.getItem('smartpantry_user')) {
-          const defaultUser = {
-            id: 'guest_pantry_user',
-            name: 'Pantry Chef',
-            email: 'pantrychef@local.internal',
-            emailVerified: true,
-            isGuest: true
-          };
-          localStorage.setItem('smartpantry_user', JSON.stringify(defaultUser));
+        // If OAuth/magic code is in URL, exchange for session
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        if (code) {
+          await window.supabaseService.exchangeCodeForSession(code);
+          window.history.replaceState({}, document.title, window.location.pathname);
         }
-      } catch (e) {
-        console.warn("Session init exception:", e);
+
+        // Query Supabase session as the single source of truth
+        const session = await window.supabaseService.getSession();
+        if (!session || !session.user) {
+          // Unauthenticated visitor:
+          localStorage.removeItem('smartpantry_token');
+          localStorage.removeItem('smartpantry_user');
+          window.location.replace('login.html');
+          return;
+        }
+
+        // Authenticated: Keep localStorage in sync with live Supabase session
+        const userObj = {
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.user_metadata?.full_name || session.user.email.split('@')[0] || 'Pantry Chef',
+          emailVerified: Boolean(session.user.email_confirmed_at || session.user.confirmed_at)
+        };
+        localStorage.setItem('smartpantry_token', session.access_token);
+        localStorage.setItem('smartpantry_user', JSON.stringify(userObj));
+
+        // Make page visible now that authentication is verified
+        document.documentElement.style.visibility = 'visible';
+      } catch (err) {
+        console.error("[Auth Gate Error]", err);
+        localStorage.removeItem('smartpantry_token');
+        localStorage.removeItem('smartpantry_user');
+        window.location.replace('login.html');
       }
     })();
   </script>
@@ -151,7 +169,7 @@
             🗑️ Reset Pantry Items
           </button>
           <button onclick="handleLogout()" style="width:100%; padding:10px 16px; background:none; border:none; color:#f87171; font-size:13px; font-weight:600; text-align:left; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:8px;" onmouseover="this.style.background='#263348'" onmouseout="this.style.background='none'">
-            🔄 Switch to Guest / Local Mode
+            🚪 Sign Out
           </button>
         </div>
       </div>
@@ -3426,103 +3444,108 @@ function updateDashboardUserUI(user) {
 
 async function initDashboardAuthAndUser() {
   try {
-    let currentUser = null;
-    const raw = localStorage.getItem('smartpantry_user');
-    if (raw) {
-      try { currentUser = JSON.parse(raw); } catch (e) {}
+    if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
+      await window.SupabaseConfig.readyPromise;
     }
-    if (!currentUser) {
-      currentUser = {
-        id: 'guest_pantry_user',
-        name: 'Pantry Chef',
-        email: 'pantrychef@local.internal',
-        emailVerified: true,
-        isGuest: true
-      };
-      localStorage.setItem('smartpantry_user', JSON.stringify(currentUser));
+
+    if (!window.supabaseService || !window.supabaseService.isReady()) {
+      window.location.replace('login.html');
+      return;
     }
-    updateDashboardUserUI(currentUser);
 
-    if (window.supabaseService && window.supabaseService.isReady()) {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get('code');
-      if (code) {
-        await window.supabaseService.exchangeCodeForSession(code);
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-      const session = await window.supabaseService.getSession();
-      if (session && session.user) {
-        const userId = session.user.id;
-        const profile = await window.supabaseService.getProfile(userId);
-        const mergedUser = {
-          id: userId,
-          email: session.user.email,
-          name: (profile && profile.full_name) || (session.user.user_metadata && session.user.user_metadata.full_name) || formatNameFromEmail(session.user.email),
-          avatar_url: (profile && profile.avatar_url) || null
-        };
-        localStorage.setItem('smartpantry_user', JSON.stringify(mergedUser));
-        updateDashboardUserUI(mergedUser);
+    // Exchange OAuth code if present
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (code) {
+      await window.supabaseService.exchangeCodeForSession(code);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
 
+    // Supabase Session is the SINGLE source of truth
+    const session = await window.supabaseService.getSession();
+    if (!session || !session.user) {
+      localStorage.removeItem('smartpantry_user');
+      localStorage.removeItem('smartpantry_token');
+      window.location.replace('login.html');
+      return;
+    }
+
+    const userId = session.user.id;
+    const profile = await window.supabaseService.getProfile(userId);
+    const authUser = {
+      id: userId,
+      email: session.user.email,
+      name: (profile && profile.full_name) || (session.user.user_metadata && session.user.user_metadata.full_name) || formatNameFromEmail(session.user.email),
+      avatar_url: (profile && profile.avatar_url) || null,
+      emailVerified: Boolean(session.user.email_confirmed_at || session.user.confirmed_at)
+    };
+    localStorage.setItem('smartpantry_user', JSON.stringify(authUser));
+    if (session.access_token) {
+      localStorage.setItem('smartpantry_token', session.access_token);
+    }
+    updateDashboardUserUI(authUser);
+
+    // Initialize authenticated user's store
+    if (window.store) {
+      await window.store.initUser(userId);
+    }
+
+    // Reveal the dashboard
+    document.documentElement.style.visibility = 'visible';
+
+    // Subscribe to auth state changes: SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED, USER_UPDATED
+    window.supabaseService.onAuthStateChange(async (event, currentSession) => {
+      console.log(`[Supabase Auth Event] ${event}`);
+      if (event === 'SIGNED_OUT') {
+        localStorage.removeItem('smartpantry_user');
+        localStorage.removeItem('smartpantry_token');
         if (window.store) {
-          if (window.store.userId !== userId) {
-            await window.store.initUser(userId);
-          } else {
-            await window.store.fetchFromSupabase();
-          }
+          window.store.clearUserSession();
         }
-      } else {
-        // Local pantry mode
-        if (window.store && (!window.store.userId || window.store.userId === 'guest_pantry_user')) {
-          await window.store.initUser('guest_pantry_user');
-        }
-      }
-
-      window.supabaseService.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_OUT') {
-          const guestUser = {
-            id: 'guest_pantry_user',
-            name: 'Pantry Chef',
-            email: 'pantrychef@local.internal',
-            emailVerified: true,
-            isGuest: true
-          };
-          localStorage.setItem('smartpantry_user', JSON.stringify(guestUser));
-          localStorage.removeItem('smartpantry_token');
-          updateDashboardUserUI(guestUser);
-          if (window.store) {
-            window.store.clearUserSession();
-            await window.store.initUser('guest_pantry_user');
-          }
-        } else if (session && session.user) {
-          const userId = session.user.id;
-          const profile = await window.supabaseService.getProfile(userId);
+        window.location.replace('login.html');
+      } else if (event === 'SIGNED_IN') {
+        if (currentSession && currentSession.user) {
+          const uId = currentSession.user.id;
+          const prof = await window.supabaseService.getProfile(uId);
           const activeUser = {
-            id: userId,
-            email: session.user.email,
-            name: (profile && profile.full_name) || (session.user.user_metadata && session.user.user_metadata.full_name) || formatNameFromEmail(session.user.email),
-            avatar_url: (profile && profile.avatar_url) || null
+            id: uId,
+            email: currentSession.user.email,
+            name: (prof && prof.full_name) || (currentSession.user.user_metadata && currentSession.user.user_metadata.full_name) || formatNameFromEmail(currentSession.user.email),
+            avatar_url: (prof && prof.avatar_url) || null,
+            emailVerified: Boolean(currentSession.user.email_confirmed_at || currentSession.user.confirmed_at)
           };
           localStorage.setItem('smartpantry_user', JSON.stringify(activeUser));
-          if (session.access_token) {
-            localStorage.setItem('smartpantry_token', session.access_token);
+          if (currentSession.access_token) {
+            localStorage.setItem('smartpantry_token', currentSession.access_token);
           }
           updateDashboardUserUI(activeUser);
           if (window.store) {
-            if (window.store.userId !== userId) {
-              await window.store.initUser(userId);
-            } else {
-              await window.store.fetchFromSupabase();
-            }
+            await window.store.initUser(uId);
           }
+          document.documentElement.style.visibility = 'visible';
         }
-      });
-    } else {
-      if (window.store && (!window.store.userId || window.store.userId === 'guest_pantry_user')) {
-        await window.store.initUser('guest_pantry_user');
+      } else if (event === 'TOKEN_REFRESHED') {
+        if (currentSession && currentSession.access_token) {
+          localStorage.setItem('smartpantry_token', currentSession.access_token);
+        }
+      } else if (event === 'USER_UPDATED') {
+        if (currentSession && currentSession.user) {
+          const prof = await window.supabaseService.getProfile(currentSession.user.id);
+          const updatedUser = {
+            id: currentSession.user.id,
+            email: currentSession.user.email,
+            name: (prof && prof.full_name) || (currentSession.user.user_metadata && currentSession.user.user_metadata.full_name) || formatNameFromEmail(currentSession.user.email),
+            avatar_url: (prof && prof.avatar_url) || null
+          };
+          localStorage.setItem('smartpantry_user', JSON.stringify(updatedUser));
+          updateDashboardUserUI(updatedUser);
+        }
       }
-    }
+    });
+
   } catch (err) {
-    console.warn("[Dashboard Auth Init]", err);
+    console.error("[Dashboard Auth Init]", err);
+    window.location.replace('login.html');
   }
 }
 
@@ -3556,24 +3579,9 @@ async function handleLogout() {
   } catch (err) {
     console.warn("Sign out error:", err);
   } finally {
-    const guestUser = {
-      id: 'guest_pantry_user',
-      name: 'Pantry Chef',
-      email: 'pantrychef@local.internal',
-      emailVerified: true,
-      isGuest: true
-    };
-    localStorage.setItem('smartpantry_user', JSON.stringify(guestUser));
+    localStorage.removeItem('smartpantry_user');
     localStorage.removeItem('smartpantry_token');
-    updateDashboardUserUI(guestUser);
-    if (window.store) {
-      await window.store.initUser('guest_pantry_user');
-    }
-    const menu = document.getElementById('userMenu');
-    if (menu) menu.style.display = 'none';
-    if (typeof showToast === 'function') {
-      showToast('Switched to local pantry mode');
-    }
+    window.location.replace('login.html');
   }
 }
 
