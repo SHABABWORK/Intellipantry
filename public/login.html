@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Welcome to Smart Pantry — Fresh, Organized & Zero Waste</title>
+  <title>Smart Pantry — Account Access & Verification</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
   
-  <!-- Supabase Production JS Client SDK & Service (For optional cloud sync) -->
+  <!-- Supabase Production JS Client SDK & Services -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-config.js"></script>
   <script src="js/supabase.js"></script>
@@ -24,29 +24,37 @@
 
     :root {
       --bg-warm: #fbfaf5;
+      --surface: #ffffff;
       --forest: #1e392a;
       --forest-hover: #15291e;
       --forest-light: #eef6f0;
-      --forest-glow: rgba(46, 158, 91, 0.35);
+      --border: #e6e3da;
+      --text-main: #1f2823;
+      --text-muted: #6b756e;
       --accent-green: #2e9e5b;
       --accent-gold: #c28829;
-      --glass-bg: rgba(255, 255, 255, 0.88);
-      --glass-border: rgba(255, 255, 255, 0.4);
+      --error-bg: #fef2f2;
+      --error-text: #991b1b;
+      --error-border: #fca5a5;
+      --success-bg: #f0fdf4;
+      --success-text: #166534;
+      --success-border: #bbf7d0;
     }
 
     body {
       background-color: #0f1d15;
-      color: #1f2823;
+      color: var(--text-main);
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
       min-height: 100vh;
-      overflow-x: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 24px 16px;
       position: relative;
+      overflow-x: hidden;
     }
 
-    /* Full-screen minimalist pantry video background */
+    /* Ambient Looping Pantry Background Video */
     .video-background-container {
       position: fixed;
       top: 0;
@@ -69,238 +77,298 @@
       transform: translate(-50%, -50%);
       object-fit: cover;
       opacity: 0.85;
-      transition: opacity 0.8s ease-in;
     }
 
-    /* Aesthetic ambient dark gradient overlay */
     .video-overlay {
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at center, rgba(15, 29, 21, 0.55) 0%, rgba(10, 20, 14, 0.82) 100%);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
+      background: radial-gradient(circle at center, rgba(15, 29, 21, 0.6) 0%, rgba(10, 20, 14, 0.86) 100%);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
     }
 
-    /* Center floating welcome card */
-    .welcome-container {
+    /* Glassmorphism Auth Card */
+    .auth-container {
       position: relative;
       z-index: 10;
       width: 100%;
-      max-width: 580px;
-      margin: 24px 16px;
-      background: var(--glass-bg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 32px;
-      border: 1px solid var(--glass-border);
-      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35), 0 0 40px var(--forest-glow);
-      padding: 44px 40px;
-      text-align: center;
-      animation: cardFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      max-width: 480px;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
+      padding: 38px 36px;
+      animation: fadeIn 0.35s ease-out;
     }
 
-    @keyframes cardFadeUp {
-      from {
-        opacity: 0;
-        transform: translateY(24px) scale(0.98);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     /* Brand Header */
-    .brand-badge {
-      display: inline-flex;
+    .brand-header {
+      display: flex;
       align-items: center;
+      justify-content: center;
       gap: 10px;
-      background: #eef6f0;
-      padding: 8px 18px;
-      border-radius: 999px;
-      border: 1px solid #c2e5cb;
-      margin-bottom: 24px;
+      text-decoration: none;
+      color: var(--forest);
+      margin-bottom: 20px;
     }
 
     .brand-leaf-icon {
-      width: 24px;
-      height: 24px;
+      width: 32px;
+      height: 32px;
+      background: var(--forest-light);
       color: var(--forest);
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
     .brand-name {
-      font-size: 15px;
+      font-size: 20px;
       font-weight: 800;
-      letter-spacing: -0.01em;
+      letter-spacing: -0.02em;
       color: var(--forest);
     }
 
-    .welcome-title {
+    /* Auth Views Switching */
+    .auth-view {
+      display: none;
+    }
+    .auth-view.active {
+      display: block;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    .view-title {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: clamp(32px, 5vw, 42px);
+      font-size: 26px;
       font-weight: 700;
       color: var(--forest);
-      line-height: 1.15;
-      margin-bottom: 14px;
-      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+      text-align: center;
     }
 
-    .welcome-sub {
-      font-size: 15.5px;
-      line-height: 1.6;
-      color: #4b554e;
-      margin-bottom: 28px;
-      max-width: 460px;
-      margin-left: auto;
-      margin-right: auto;
+    .view-sub {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin-bottom: 22px;
+      text-align: center;
+      line-height: 1.5;
     }
 
-    /* Custom Name Input (Optional Personalization) */
-    .name-input-group {
-      margin-bottom: 20px;
-      text-align: left;
+    /* Tabs Nav */
+    .auth-tabs-nav {
+      display: flex;
+      background: #f4f3ec;
+      padding: 4px;
+      border-radius: 12px;
+      margin-bottom: 22px;
+      border: 1px solid #e6e3da;
     }
 
-    .name-input-label {
-      display: block;
+    .auth-tab-btn {
+      flex: 1;
+      padding: 9px 12px;
+      border-radius: 9px;
+      border: none;
+      font-weight: 700;
       font-size: 13px;
+      cursor: pointer;
+      background: transparent;
+      color: #6b756e;
+      transition: all 0.2s;
+    }
+
+    .auth-tab-btn.active {
+      background: #ffffff;
+      color: var(--forest);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    /* Inputs */
+    .input-group {
+      margin-bottom: 15px;
+    }
+
+    .input-label {
+      display: block;
+      font-size: 12px;
       font-weight: 700;
       color: var(--forest);
       margin-bottom: 6px;
     }
 
-    .name-input-wrap {
+    .input-wrap {
       position: relative;
       display: flex;
       align-items: center;
     }
 
-    .name-input-icon {
+    .input-icon {
       position: absolute;
       left: 14px;
-      color: #6b756e;
+      color: #8c968f;
       display: flex;
       align-items: center;
     }
 
-    .name-input {
+    .auth-input {
       width: 100%;
-      padding: 13px 16px 13px 44px;
-      font-size: 15px;
-      font-family: inherit;
-      color: #1f2823;
+      padding: 11px 14px 11px 40px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      font-size: 13.5px;
+      color: var(--text-main);
       background: #ffffff;
-      border: 1.5px solid #d9d6cd;
-      border-radius: 14px;
       outline: none;
       transition: all 0.2s ease;
-    }
-
-    .name-input:focus {
-      border-color: var(--forest);
-      box-shadow: 0 0 0 3px rgba(30, 57, 42, 0.12);
-    }
-
-    /* Primary Enter Pantry CTA Button */
-    .btn-enter-pantry {
-      width: 100%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      padding: 16px 24px;
-      background: var(--forest);
-      color: #ffffff;
-      font-size: 16px;
-      font-weight: 800;
-      border-radius: 16px;
-      border: none;
-      cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 8px 24px rgba(30, 57, 42, 0.35);
-      text-decoration: none;
-    }
-
-    .btn-enter-pantry:hover {
-      background: var(--forest-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 12px 30px rgba(30, 57, 42, 0.45);
-    }
-
-    .btn-enter-pantry:active {
-      transform: translateY(0);
-    }
-
-    /* Value pill tags */
-    .pantry-tags {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 26px;
-      padding-top: 20px;
-      border-top: 1px solid rgba(230, 227, 218, 0.8);
-    }
-
-    .pantry-tag {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--forest);
-      background: rgba(238, 246, 240, 0.8);
-      padding: 6px 14px;
-      border-radius: 999px;
-      border: 1px solid #d1ead7;
-    }
-
-    /* Optional cloud sync toggle */
-    .cloud-sync-toggle {
-      margin-top: 20px;
-      font-size: 12.5px;
-      color: #6b756e;
-    }
-
-    .cloud-sync-btn {
-      background: none;
-      border: none;
-      color: var(--forest);
-      font-weight: 700;
-      font-size: 12.5px;
-      cursor: pointer;
-      text-decoration: underline;
-      text-underline-offset: 3px;
       font-family: inherit;
     }
 
-    .cloud-sync-panel {
+    .auth-input:focus {
+      border-color: var(--forest);
+      box-shadow: 0 0 0 3px rgba(30, 57, 42, 0.08);
+    }
+
+    .input-action-btn {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      color: #8c968f;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 4px;
+    }
+
+    .input-action-btn:hover {
+      color: var(--forest);
+    }
+
+    .form-options-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      font-size: 12px;
+    }
+
+    .remember-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .forgot-link {
+      color: var(--forest);
+      font-weight: 700;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    /* Submit Button */
+    .btn-forest-submit {
+      width: 100%;
+      padding: 13px;
+      background: var(--forest);
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 14px rgba(30, 57, 42, 0.2);
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-forest-submit:hover {
+      background: var(--forest-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(30, 57, 42, 0.28);
+    }
+
+    .btn-guest-access {
+      width: 100%;
+      padding: 11px;
+      background: #eef6f0;
+      color: #1e392a;
+      border: 1px solid #bbf7d0;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: all 0.2s;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-guest-access:hover {
+      background: #e2f2e5;
+    }
+
+    /* Alert Banner */
+    .alert-banner {
       display: none;
-      margin-top: 16px;
-      padding: 16px;
-      background: #ffffff;
-      border-radius: 16px;
-      border: 1px solid #e6e3da;
-      text-align: left;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 12.5px;
+      line-height: 1.4;
+      margin-bottom: 16px;
     }
 
-    .cloud-sync-panel.active {
+    .alert-banner.error {
       display: block;
-      animation: fadeIn 0.25s ease-out;
+      background: var(--error-bg);
+      color: var(--error-text);
+      border: 1px solid var(--error-border);
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
+    .alert-banner.success {
+      display: block;
+      background: var(--success-bg);
+      color: var(--success-text);
+      border: 1px solid var(--success-border);
     }
 
-    @media (max-width: 600px) {
-      .welcome-container {
-        padding: 32px 22px;
-        border-radius: 24px;
+    .auth-toggle-footer {
+      text-align: center;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      margin-top: 18px;
+    }
+
+    .auth-toggle-footer a {
+      color: var(--forest);
+      font-weight: 700;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    @media (max-width: 500px) {
+      .auth-container {
+        padding: 30px 22px;
       }
-      .welcome-title {
-        font-size: 28px;
+      .view-title {
+        font-size: 23px;
       }
     }
   </style>
@@ -312,7 +380,6 @@
        ========================================== -->
   <div class="video-background-container">
     <video class="bg-video" autoplay muted loop playsinline poster="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1920&q=80">
-      <!-- High Quality Minimalist Pantry & Kitchen Video Loops -->
       <source src="https://player.vimeo.com/external/371433846.sd.mp4?s=236da2f3c0fd273d2c6d9a064f3ae35579b2bbdf&profile_id=164&oauth2_token_id=57447761" type="video/mp4">
       <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
     </video>
@@ -320,12 +387,12 @@
   </div>
 
   <!-- ==========================================
-       MINIMALIST WELCOME INTERFACE (NO EMAIL LOGIN)
+       AUTHENTICATION CARD
        ========================================== -->
-  <main class="welcome-container" role="main">
+  <main class="auth-container">
     
-    <!-- Brand Leaf Badge -->
-    <div class="brand-badge">
+    <!-- Brand Logo -->
+    <a href="landing.html" class="brand-header">
       <div class="brand-leaf-icon">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
           <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
@@ -333,128 +400,621 @@
         </svg>
       </div>
       <span class="brand-name">Smart Pantry</span>
-    </div>
+    </a>
 
-    <!-- Welcoming Headline -->
-    <h1 class="welcome-title">Welcome to Your Pantry</h1>
-    <p class="welcome-sub">Good food lasts longer. Keep track of freshness, organize groceries, and prevent food waste effortlessly.</p>
-
-    <!-- Optional Chef Name Personalization -->
-    <form id="welcomeForm" onsubmit="handleEnterPantry(event)">
-      <div class="name-input-group">
-        <label for="userNameInput" class="name-input-label">What should we call you? (Optional)</label>
-        <div class="name-input-wrap">
-          <span class="name-input-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          </span>
-          <input type="text" id="userNameInput" class="name-input" placeholder="e.g. Alex or Pantry Chef" autocomplete="name">
-        </div>
-      </div>
-
-      <!-- Instant 1-Click Access Button -->
-      <button type="submit" id="btnEnter" class="btn-enter-pantry">
-        <span>Enter Your Pantry</span>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+    <!-- Top Tabs: Sign In / Create Account -->
+    <div class="auth-tabs-nav" id="authTabsNav">
+      <button type="button" id="tabBtnLogin" class="auth-tab-btn active" onclick="switchView('viewLogin')">
+        🔑 Sign In
       </button>
-    </form>
-
-    <!-- Feature Pillars -->
-    <div class="pantry-tags">
-      <span class="pantry-tag">🌱 100% Free & Private</span>
-      <span class="pantry-tag">⚡ Instant Access (No Password)</span>
-      <span class="pantry-tag">🔔 Smart Expiry Alerts</span>
+      <button type="button" id="tabBtnSignup" class="auth-tab-btn" onclick="switchView('viewSignup')">
+        ✨ Create Account
+      </button>
     </div>
 
-    <!-- Optional Cloud Supabase Sync (Kept tucked away for advanced users) -->
-    <div class="cloud-sync-toggle">
-      Need to sync with an existing Supabase cloud account? 
-      <button type="button" class="cloud-sync-btn" onclick="toggleCloudSync()">Cloud Sign In ▾</button>
-      
-      <div id="cloudSyncPanel" class="cloud-sync-panel">
-        <div style="font-size:12px; font-weight:700; color:#1e392a; margin-bottom:8px;">Supabase Cloud Account Sync</div>
-        <div style="display:flex; gap:8px; margin-bottom:8px;">
-          <input type="email" id="cloudEmail" placeholder="account@email.com" style="flex:1; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
-          <input type="password" id="cloudPass" placeholder="Password" style="flex:1; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
+    <!-- ==========================================
+         VIEW 1: SIGN IN (Login)
+         ========================================== -->
+    <div class="auth-view active" id="viewLogin">
+      <h1 class="view-title">Welcome Back</h1>
+      <p class="view-sub">Sign in to sync your pantry, alerts, and recipes.</p>
+
+      <div id="loginAlert" class="alert-banner"></div>
+
+      <form id="formLogin" onsubmit="handleRealLogin(event)">
+        <div class="input-group">
+          <label class="input-label">Email Address</label>
+          <div class="input-wrap">
+            <span class="input-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            </span>
+            <input type="email" id="loginEmail" class="auth-input" placeholder="name@example.com" required autocomplete="email">
+          </div>
         </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <button type="button" onclick="handleCloudLogin()" style="background:#1e392a; color:#fff; border:none; padding:8px 14px; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer;">
-            Connect Cloud Account
-          </button>
-          <span id="cloudStatus" style="font-size:12px; color:#64748b;"></span>
+
+        <div class="input-group">
+          <label class="input-label">Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
+            <input type="password" id="loginPassword" class="auth-input" placeholder="Enter your password" required autocomplete="current-password">
+            <button type="button" class="input-action-btn" onclick="togglePasswordVisibility('loginPassword', this)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
         </div>
+
+        <div class="form-options-row">
+          <label class="remember-wrap">
+            <input type="checkbox" id="rememberMe" checked>
+            <span>Remember me</span>
+          </label>
+          <a class="forgot-link" onclick="switchView('viewForgot')">Forgot password?</a>
+        </div>
+
+        <button type="submit" id="btnLoginSubmit" class="btn-forest-submit">
+          Sign In
+        </button>
+
+        <button type="button" onclick="loginAsGuest()" class="btn-guest-access">
+          ⚡ Quick Guest Access (No Account Required)
+        </button>
+
+        <div style="display:flex; align-items:center; margin:14px 0; color:#8c968f; font-size:11px;">
+          <div style="flex:1; height:1px; background:#e6e3da;"></div>
+          <span style="padding:0 10px; font-weight:700; text-transform:uppercase;">or</span>
+          <div style="flex:1; height:1px; background:#e6e3da;"></div>
+        </div>
+
+        <button type="button" onclick="handleGoogleLogin()" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 14px; border-radius:12px; border:1px solid #d9d6cd; background:#ffffff; color:#1e392a; font-weight:700; font-size:13px; cursor:pointer;">
+          <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24Z"/><path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15Z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/></svg>
+          Continue with Google
+        </button>
+
+        <div style="text-align:center; margin-top:12px;">
+          <a onclick="sendMagicLinkFromLogin()" style="font-size:12px; font-weight:700; color:var(--forest); cursor:pointer; text-decoration:underline;">
+            ✉️ Email me a Magic Link / 6-digit Code (OTP)
+          </a>
+        </div>
+      </form>
+
+      <div class="auth-toggle-footer">
+        Don't have an account? <a onclick="switchView('viewSignup')">Create Account</a>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         VIEW 2: SIGN UP (Create Account)
+         ========================================== -->
+    <div class="auth-view" id="viewSignup">
+      <h1 class="view-title">Create Account</h1>
+      <p class="view-sub">Join Smart Pantry to track expiries & prevent waste.</p>
+
+      <div id="signupAlert" class="alert-banner"></div>
+
+      <form id="formSignup" onsubmit="handleRealSignup(event)">
+        <div class="input-group">
+          <label class="input-label">Full Name</label>
+          <div class="input-wrap">
+            <span class="input-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </span>
+            <input type="text" id="signupName" class="auth-input" placeholder="e.g. Alex Johnson" required>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Email Address</label>
+          <div class="input-wrap">
+            <span class="input-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            </span>
+            <input type="email" id="signupEmail" class="auth-input" placeholder="name@example.com" required autocomplete="email">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
+            <input type="password" id="signupPassword" class="auth-input" placeholder="Min 6 characters" required minlength="6">
+            <button type="button" class="input-action-btn" onclick="togglePasswordVisibility('signupPassword', this)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Confirm Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
+            <input type="password" id="signupConfirmPassword" class="auth-input" placeholder="Confirm your password" required minlength="6">
+          </div>
+        </div>
+
+        <button type="submit" id="btnSignupSubmit" class="btn-forest-submit">
+          Create Account
+        </button>
+
+        <button type="button" onclick="loginAsGuest()" class="btn-guest-access">
+          ⚡ Quick Guest Access (No Account Required)
+        </button>
+      </form>
+
+      <div class="auth-toggle-footer">
+        Already have an account? <a onclick="switchView('viewLogin')">Log In</a>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         VIEW 3: RESET PASSWORD (Forgot Password)
+         ========================================== -->
+    <div class="auth-view" id="viewForgot">
+      <h1 class="view-title">Reset Password</h1>
+      <p class="view-sub">Enter your email and we'll send a secure password reset link.</p>
+
+      <div id="forgotAlert" class="alert-banner"></div>
+
+      <form id="formForgot" onsubmit="handleSendPasswordReset(event)">
+        <div class="input-group">
+          <label class="input-label">Registered Email</label>
+          <div class="input-wrap">
+            <span class="input-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            </span>
+            <input type="email" id="forgotEmail" class="auth-input" placeholder="name@example.com" required>
+          </div>
+        </div>
+
+        <button type="submit" id="btnForgotSubmit" class="btn-forest-submit">
+          Send Reset Link & Code
+        </button>
+      </form>
+
+      <div class="auth-toggle-footer">
+        Remembered password? <a onclick="switchView('viewLogin')">Back to Sign In</a>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         VIEW 4: SET NEW PASSWORD (Recovery Mode)
+         ========================================== -->
+    <div class="auth-view" id="viewNewPassword">
+      <h1 class="view-title">Set New Password</h1>
+      <p class="view-sub">Enter your new secure password below.</p>
+
+      <div id="newPassAlert" class="alert-banner"></div>
+
+      <form id="formNewPass" onsubmit="handleUpdateNewPassword(event)">
+        <div class="input-group">
+          <label class="input-label">New Password</label>
+          <div class="input-wrap">
+            <input type="password" id="newPasswordInput" class="auth-input" style="padding-left:14px;" placeholder="Min 6 characters" required minlength="6">
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Confirm New Password</label>
+          <div class="input-wrap">
+            <input type="password" id="newPasswordConfirm" class="auth-input" style="padding-left:14px;" placeholder="Repeat password" required minlength="6">
+          </div>
+        </div>
+
+        <button type="submit" id="btnUpdatePass" class="btn-forest-submit">
+          Save New Password & Enter Pantry
+        </button>
+      </form>
+    </div>
+
+    <!-- ==========================================
+         VIEW 5: OTP / 6-DIGIT VERIFICATION
+         ========================================== -->
+    <div class="auth-view" id="viewOtp">
+      <h1 class="view-title">Verification Code</h1>
+      <p class="view-sub" id="otpSubText">Enter the 6-digit code sent to your email.</p>
+
+      <div id="otpAlert" class="alert-banner"></div>
+
+      <form id="formOtp" onsubmit="handleVerifyOtpCode(event)">
+        <div class="input-group">
+          <label class="input-label">6-Digit Code</label>
+          <div class="input-wrap">
+            <input type="text" id="otpInput" class="auth-input" style="padding-left:14px; text-align:center; font-size:20px; letter-spacing:6px; font-weight:800;" placeholder="000000" maxlength="8" required>
+          </div>
+        </div>
+
+        <button type="submit" id="btnVerifyOtp" class="btn-forest-submit">
+          Verify & Continue
+        </button>
+
+        <button type="button" onclick="handleResendCurrentEmail()" class="btn-guest-access">
+          Resend Verification Email
+        </button>
+      </form>
+
+      <div class="auth-toggle-footer">
+        <a onclick="switchView('viewLogin')">Back to Sign In</a>
       </div>
     </div>
 
   </main>
 
   <script>
-    // Pre-fill existing user name if previously used
-    document.addEventListener("DOMContentLoaded", function() {
-      try {
-        const raw = localStorage.getItem("smartpantry_user");
-        if (raw) {
-          const u = JSON.parse(raw);
-          if (u && u.name && u.name !== 'Pantry Chef' && u.name !== 'User') {
-            const input = document.getElementById("userNameInput");
-            if (input) input.value = u.name;
-          }
-        }
-      } catch (e) {}
-    });
+    let pendingEmail = "";
+    let pendingOtpType = "email"; // 'signup' | 'recovery' | 'email'
 
-    // 1-Click Fast Entry to Pantry Dashboard (No email required)
-    function handleEnterPantry(e) {
-      if (e) e.preventDefault();
-      
-      const input = document.getElementById("userNameInput");
-      const chosenName = (input && input.value.trim()) ? input.value.trim() : "Pantry Chef";
+    function showAlert(id, msg, type = 'error') {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = `alert-banner ${type}`;
+      el.innerHTML = msg;
+    }
 
-      const userObj = {
-        id: "guest_pantry_user",
-        name: chosenName,
-        email: "pantrychef@local.internal",
+    function clearAlert(id) {
+      const el = document.getElementById(id);
+      if (el) el.className = 'alert-banner';
+    }
+
+    function switchView(viewId) {
+      document.querySelectorAll('.auth-view').forEach(v => v.classList.remove('active'));
+      const target = document.getElementById(viewId);
+      if (target) target.classList.add('active');
+
+      const tabsNav = document.getElementById('authTabsNav');
+      if (tabsNav) {
+        tabsNav.style.display = (viewId === 'viewLogin' || viewId === 'viewSignup') ? 'flex' : 'none';
+      }
+
+      const tabLogin = document.getElementById('tabBtnLogin');
+      const tabSignup = document.getElementById('tabBtnSignup');
+      if (tabLogin && tabSignup) {
+        tabLogin.classList.toggle('active', viewId === 'viewLogin');
+        tabSignup.classList.toggle('active', viewId === 'viewSignup');
+      }
+    }
+
+    function togglePasswordVisibility(inputId, btn) {
+      const inp = document.getElementById(inputId);
+      if (!inp) return;
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    }
+
+    function navigateToDashboard() {
+      const isHtml = window.location.pathname.endsWith('.html');
+      const target = isHtml ? 'dashboard.html' : 'dashboard';
+      window.location.replace(target);
+    }
+
+    // 1-Click Guest Bypass
+    function loginAsGuest() {
+      const defaultUser = {
+        id: 'guest_pantry_user',
+        name: 'Pantry Chef',
+        email: 'pantrychef@local.internal',
         emailVerified: true,
         isGuest: true
       };
-
-      localStorage.setItem("smartpantry_user", JSON.stringify(userObj));
-      localStorage.setItem("smartpantry_token", "guest_access_token");
-
-      // Navigate straight to dashboard
-      const target = window.location.pathname.endsWith(".html") ? "dashboard.html" : "dashboard";
-      window.location.href = target;
+      localStorage.setItem('smartpantry_user', JSON.stringify(defaultUser));
+      localStorage.setItem('smartpantry_token', 'guest_access_token');
+      navigateToDashboard();
     }
 
-    function toggleCloudSync() {
-      const panel = document.getElementById("cloudSyncPanel");
-      if (panel) {
-        panel.classList.toggle("active");
-      }
-    }
+    // REAL SUPABASE SIGN IN
+    async function handleRealLogin(e) {
+      e.preventDefault();
+      clearAlert('loginAlert');
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const btn = document.getElementById('btnLoginSubmit');
 
-    async function handleCloudLogin() {
-      const email = document.getElementById("cloudEmail")?.value.trim();
-      const password = document.getElementById("cloudPass")?.value;
-      const status = document.getElementById("cloudStatus");
-      if (!email || !password) {
-        if (status) status.textContent = "Please enter email & password.";
-        return;
-      }
-      if (status) status.textContent = "Authenticating...";
-      if (window.supabaseService && window.supabaseService.isReady()) {
+      btn.textContent = 'Signing in...';
+      btn.disabled = true;
+
+      try {
+        if (!window.supabaseService || !window.supabaseService.isReady()) {
+          showAlert('loginAlert', 'Supabase service is connecting. Please check your network or credentials.');
+          btn.textContent = 'Sign In';
+          btn.disabled = false;
+          return;
+        }
+
         const res = await window.supabaseService.signIn(email, password);
         if (res.success && res.user) {
-          localStorage.setItem("smartpantry_token", res.session?.access_token || "cloud_token");
-          localStorage.setItem("smartpantry_user", JSON.stringify(res.user));
-          const target = window.location.pathname.endsWith(".html") ? "dashboard.html" : "dashboard";
-          window.location.href = target;
+          localStorage.setItem('smartpantry_token', res.session?.access_token || 'cloud_token');
+          localStorage.setItem('smartpantry_user', JSON.stringify(res.user));
+          showAlert('loginAlert', `✓ Welcome back, ${res.user.name || 'Chef'}! Opening pantry...`, 'success');
+          setTimeout(() => navigateToDashboard(), 600);
         } else {
-          if (status) status.textContent = res.error || "Login failed.";
+          btn.textContent = 'Sign In';
+          btn.disabled = false;
+          const errMsg = res.error || 'Invalid email or password.';
+          if (errMsg.toLowerCase().includes('not confirmed') || errMsg.toLowerCase().includes('email_not_confirmed')) {
+            pendingEmail = email;
+            showAlert('loginAlert', `Your email is not verified yet. <a onclick="handleResendConfirmation('${email}', 'loginAlert')" style="text-decoration:underline; font-weight:700; cursor:pointer;">Resend verification email</a> or <a onclick="openOtpView('${email}', 'signup')" style="text-decoration:underline; font-weight:700; cursor:pointer;">enter code</a>.`);
+          } else {
+            showAlert('loginAlert', errMsg);
+          }
         }
-      } else {
-        if (status) status.textContent = "Supabase service offline.";
+      } catch (err) {
+        btn.textContent = 'Sign In';
+        btn.disabled = false;
+        showAlert('loginAlert', err.message || 'Network connection failed.');
       }
     }
+
+    // REAL SUPABASE SIGN UP
+    async function handleRealSignup(e) {
+      e.preventDefault();
+      clearAlert('signupAlert');
+      const fullName = document.getElementById('signupName').value.trim();
+      const email = document.getElementById('signupEmail').value.trim();
+      const password = document.getElementById('signupPassword').value;
+      const confirmPass = document.getElementById('signupConfirmPassword').value;
+      const btn = document.getElementById('btnSignupSubmit');
+
+      if (password !== confirmPass) {
+        showAlert('signupAlert', 'Passwords do not match. Please re-enter.');
+        return;
+      }
+
+      btn.textContent = 'Creating account...';
+      btn.disabled = true;
+
+      try {
+        if (!window.supabaseService || !window.supabaseService.isReady()) {
+          showAlert('signupAlert', 'Supabase service connecting...');
+          btn.textContent = 'Create Account';
+          btn.disabled = false;
+          return;
+        }
+
+        const res = await window.supabaseService.signUp(email, password, fullName);
+        btn.textContent = 'Create Account';
+        btn.disabled = false;
+
+        if (res.success) {
+          pendingEmail = email;
+          if (res.session && res.session.user) {
+            localStorage.setItem('smartpantry_token', res.session.access_token);
+            localStorage.setItem('smartpantry_user', JSON.stringify(res.user));
+            showAlert('signupAlert', '✓ Account created! Opening your pantry...', 'success');
+            setTimeout(() => navigateToDashboard(), 600);
+          } else {
+            openOtpView(email, 'signup');
+            showAlert('otpAlert', `✓ Account created! We sent a confirmation email & 6-digit code to <strong>${email}</strong>.`, 'success');
+          }
+        } else {
+          showAlert('signupAlert', res.error || 'Failed to create account.');
+        }
+      } catch (err) {
+        btn.textContent = 'Create Account';
+        btn.disabled = false;
+        showAlert('signupAlert', err.message || 'Error creating account.');
+      }
+    }
+
+    // SEND PASSWORD RESET
+    async function handleSendPasswordReset(e) {
+      e.preventDefault();
+      clearAlert('forgotAlert');
+      const email = document.getElementById('forgotEmail').value.trim();
+      const btn = document.getElementById('btnForgotSubmit');
+
+      btn.textContent = 'Sending reset link...';
+      btn.disabled = true;
+
+      try {
+        if (window.supabaseService && window.supabaseService.isReady()) {
+          const res = await window.supabaseService.resetPassword(email);
+          btn.textContent = 'Send Reset Link & Code';
+          btn.disabled = false;
+
+          if (res.success) {
+            pendingEmail = email;
+            openOtpView(email, 'recovery');
+            showAlert('otpAlert', `✓ Password reset link & code sent to <strong>${email}</strong>! Check your inbox.`, 'success');
+          } else {
+            showAlert('forgotAlert', res.error || 'Could not send reset link.');
+          }
+        } else {
+          btn.textContent = 'Send Reset Link & Code';
+          btn.disabled = false;
+          showAlert('forgotAlert', 'Supabase service is initializing.');
+        }
+      } catch (err) {
+        btn.textContent = 'Send Reset Link & Code';
+        btn.disabled = false;
+        showAlert('forgotAlert', err.message || 'Error sending reset email.');
+      }
+    }
+
+    // UPDATE NEW PASSWORD
+    async function handleUpdateNewPassword(e) {
+      e.preventDefault();
+      clearAlert('newPassAlert');
+      const pass = document.getElementById('newPasswordInput').value;
+      const passConf = document.getElementById('newPasswordConfirm').value;
+      const btn = document.getElementById('btnUpdatePass');
+
+      if (pass !== passConf) {
+        showAlert('newPassAlert', 'Passwords do not match.');
+        return;
+      }
+
+      btn.textContent = 'Saving password...';
+      btn.disabled = true;
+
+      try {
+        if (window.supabaseService && window.supabaseService.isReady()) {
+          const res = await window.supabaseService.updatePassword(pass);
+          btn.textContent = 'Save New Password & Enter Pantry';
+          btn.disabled = false;
+
+          if (res.success) {
+            showAlert('newPassAlert', '✓ Password updated successfully! Opening pantry...', 'success');
+            setTimeout(() => navigateToDashboard(), 800);
+          } else {
+            showAlert('newPassAlert', res.error || 'Failed to update password.');
+          }
+        }
+      } catch (err) {
+        btn.textContent = 'Save New Password & Enter Pantry';
+        btn.disabled = false;
+        showAlert('newPassAlert', err.message || 'Error updating password.');
+      }
+    }
+
+    // VERIFY OTP / CODE
+    function openOtpView(email, type = 'signup') {
+      pendingEmail = email;
+      pendingOtpType = type;
+      const sub = document.getElementById('otpSubText');
+      if (sub) {
+        sub.innerHTML = `Enter the 6-digit verification code sent to <strong>${email}</strong>`;
+      }
+      switchView('viewOtp');
+    }
+
+    async function handleVerifyOtpCode(e) {
+      e.preventDefault();
+      clearAlert('otpAlert');
+      const code = document.getElementById('otpInput').value.trim();
+      const btn = document.getElementById('btnVerifyOtp');
+
+      if (!pendingEmail) {
+        showAlert('otpAlert', 'Session email missing. Please return to login.');
+        return;
+      }
+
+      btn.textContent = 'Verifying...';
+      btn.disabled = true;
+
+      try {
+        if (window.supabaseService && window.supabaseService.isReady()) {
+          const res = await window.supabaseService.verifyOtp(pendingEmail, code, pendingOtpType);
+          btn.textContent = 'Verify & Continue';
+          btn.disabled = false;
+
+          if (res.success) {
+            if (pendingOtpType === 'recovery') {
+              switchView('viewNewPassword');
+              showAlert('newPassAlert', '✓ Code verified! Please enter your new password below.', 'success');
+            } else {
+              if (res.user) {
+                localStorage.setItem('smartpantry_user', JSON.stringify(res.user));
+              }
+              if (res.session && res.session.access_token) {
+                localStorage.setItem('smartpantry_token', res.session.access_token);
+              }
+              showAlert('otpAlert', '✓ Email verified! Opening your pantry...', 'success');
+              setTimeout(() => navigateToDashboard(), 700);
+            }
+          } else {
+            showAlert('otpAlert', res.error || 'Invalid or expired verification code.');
+          }
+        }
+      } catch (err) {
+        btn.textContent = 'Verify & Continue';
+        btn.disabled = false;
+        showAlert('otpAlert', err.message || 'Error verifying code.');
+      }
+    }
+
+    async function handleResendCurrentEmail() {
+      if (pendingEmail) {
+        handleResendConfirmation(pendingEmail, 'otpAlert');
+      }
+    }
+
+    async function handleResendConfirmation(email, alertId = 'loginAlert') {
+      if (!email) return;
+      showAlert(alertId, 'Sending verification email...', 'success');
+      if (window.supabaseService && window.supabaseService.isReady()) {
+        const res = await window.supabaseService.resendConfirmation(email);
+        if (res.success) {
+          showAlert(alertId, `✓ Verification link sent to <strong>${email}</strong>! Check your inbox or spam folder.`, 'success');
+        } else {
+          showAlert(alertId, res.error || 'Could not resend email.');
+        }
+      }
+    }
+
+    async function sendMagicLinkFromLogin() {
+      clearAlert('loginAlert');
+      const email = document.getElementById('loginEmail').value.trim();
+      if (!email) {
+        showAlert('loginAlert', 'Please enter your email address in the field above first, then click here.');
+        return;
+      }
+      showAlert('loginAlert', 'Sending magic link and OTP code...', 'success');
+      if (window.supabaseService && window.supabaseService.isReady()) {
+        const res = await window.supabaseService.sendMagicLink(email);
+        if (res.success) {
+          openOtpView(email, 'email');
+          showAlert('otpAlert', `✓ Sign-in link and 6-digit code sent to <strong>${email}</strong>!`, 'success');
+        } else {
+          showAlert('loginAlert', res.error || 'Could not send sign-in link.');
+        }
+      }
+    }
+
+    async function handleGoogleLogin() {
+      clearAlert('loginAlert');
+      if (window.supabaseService && window.supabaseService.isReady()) {
+        const res = await window.supabaseService.signInWithOAuth('google');
+        if (!res.success) {
+          showAlert('loginAlert', res.error || 'Failed to start Google sign in.');
+        }
+      }
+    }
+
+    // CHECK FOR SUPABASE RECOVERY / VERIFICATION HASH OR PARAMS ON LOAD
+    document.addEventListener("DOMContentLoaded", async function() {
+      try {
+        const hash = window.location.hash || '';
+        const search = window.location.search || '';
+
+        // Password Recovery Callback: #access_token=...&type=recovery
+        if (hash.includes('type=recovery') || search.includes('type=recovery')) {
+          switchView('viewNewPassword');
+          showAlert('newPassAlert', '✓ Identity verified. Please set your new password below.', 'success');
+          return;
+        }
+
+        // Email Verification Callback
+        if (hash.includes('access_token=') && !hash.includes('type=recovery')) {
+          showAlert('loginAlert', '✓ Email verified successfully! Loading your pantry...', 'success');
+          setTimeout(() => navigateToDashboard(), 1200);
+          return;
+        }
+
+        // Check if user already has active session
+        if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
+          await window.SupabaseConfig.readyPromise;
+        }
+        if (window.supabaseService && window.supabaseService.isReady()) {
+          const session = await window.supabaseService.getSession();
+          if (session && session.user) {
+            const userObj = {
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.user_metadata?.full_name || session.user.email.split('@')[0] || 'Pantry Chef',
+              emailVerified: Boolean(session.user.email_confirmed_at || session.user.confirmed_at)
+            };
+            localStorage.setItem('smartpantry_token', session.access_token);
+            localStorage.setItem('smartpantry_user', JSON.stringify(userObj));
+            navigateToDashboard();
+          }
+        }
+      } catch (e) {
+        console.warn("Auth initialization notice:", e);
+      }
+    });
   </script>
 </body>
 </html>
