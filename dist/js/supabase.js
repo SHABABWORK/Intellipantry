@@ -246,6 +246,25 @@
       }
     }
 
+    async signInWithOAuth(provider = 'google') {
+      if (!this.isReady()) {
+        return { success: false, error: "Supabase connection required." };
+      }
+      try {
+        const redirectTo = `${window.location.origin}/dashboard.html`;
+        const { data, error } = await this.client.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo
+          }
+        });
+        if (error) return { success: false, error: error.message };
+        return { success: true, data };
+      } catch (err) {
+        return { success: false, error: err.message || "Failed to initialize OAuth sign in." };
+      }
+    }
+
     async signOut() {
       try {
         this.unsubscribeAll();
@@ -405,7 +424,25 @@
       }
     }
 
-    async verifyOtp({ email, token, type = 'signup' }) {
+    async resetPassword(email) {
+      return this.resetPasswordForEmail(email);
+    }
+
+    async sendMagicLink(email) {
+      return this.signInWithOtp(email, false);
+    }
+
+    async verifyOtp(param1, tokenArg, typeArg = 'signup') {
+      let email, token, type;
+      if (typeof param1 === 'object' && param1 !== null) {
+        email = param1.email;
+        token = param1.token;
+        type = param1.type || 'signup';
+      } else {
+        email = param1;
+        token = tokenArg;
+        type = typeArg || 'signup';
+      }
       if (!email || !token) {
         return { success: false, error: "Email and verification code are required." };
       }
