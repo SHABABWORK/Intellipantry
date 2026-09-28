@@ -28,11 +28,29 @@ console.log('[Build] Generating Vercel production bundle in ./dist and ./public 
   fs.mkdirSync(path.join(distDir, dir), { recursive: true });
 });
 
-// 2. Copy core HTML entry pages (direct start: pantry dashboard is default)
-fs.copyFileSync(path.join(srcDir, 'dashboard.html'), path.join(distDir, 'index.html'));
-fs.copyFileSync(path.join(srcDir, 'landing.html'), path.join(distDir, 'landing.html'));
-fs.copyFileSync(path.join(srcDir, 'login.html'), path.join(distDir, 'login.html'));
-fs.copyFileSync(path.join(srcDir, 'dashboard.html'), path.join(distDir, 'dashboard.html'));
+function injectPublicEnv(htmlContent) {
+  const pubUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '').trim();
+  const pubKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '').trim();
+
+  if (!pubUrl && !pubKey) return htmlContent;
+
+  const envScript = `<script>window.ENV=window.ENV||{};window.ENV.NEXT_PUBLIC_SUPABASE_URL=${JSON.stringify(pubUrl)};window.ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY=${JSON.stringify(pubKey)};</script>`;
+
+  if (htmlContent.includes('<head>')) {
+    return htmlContent.replace('<head>', `<head>\n  ${envScript}`);
+  }
+  return envScript + '\n' + htmlContent;
+}
+
+// 2. Copy core HTML entry pages (with build-time environment injection if provided)
+const dashboardHtml = fs.readFileSync(path.join(srcDir, 'dashboard.html'), 'utf8');
+const loginHtml = fs.readFileSync(path.join(srcDir, 'login.html'), 'utf8');
+const landingHtml = fs.readFileSync(path.join(srcDir, 'landing.html'), 'utf8');
+
+fs.writeFileSync(path.join(distDir, 'index.html'), injectPublicEnv(dashboardHtml), 'utf8');
+fs.writeFileSync(path.join(distDir, 'landing.html'), injectPublicEnv(landingHtml), 'utf8');
+fs.writeFileSync(path.join(distDir, 'login.html'), injectPublicEnv(loginHtml), 'utf8');
+fs.writeFileSync(path.join(distDir, 'dashboard.html'), injectPublicEnv(dashboardHtml), 'utf8');
 
 // 3. Copy vercel.json, robots.txt & supabase_schema.sql
 if (fs.existsSync(path.join(srcDir, 'vercel.json'))) {

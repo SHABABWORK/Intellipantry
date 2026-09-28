@@ -919,6 +919,18 @@
       e.preventDefault();
       clearAlert('authAlert');
 
+      // Ensure dynamic environment configuration has finished resolving
+      if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
+        try {
+          await window.SupabaseConfig.readyPromise;
+        } catch (e) {}
+      }
+      if (window.supabaseService && !window.supabaseService.isReady()) {
+        try {
+          window.supabaseService.init();
+        } catch (e) {}
+      }
+
       const email = document.getElementById('inputEmail').value.trim();
       const password = document.getElementById('inputPassword').value;
       const btn = document.getElementById('btnSubmitAuth');

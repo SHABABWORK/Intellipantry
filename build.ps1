@@ -16,10 +16,28 @@ New-Item -ItemType Directory -Force -Path (Join-Path $dist "js") | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $dist "assets") | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $dist "api") | Out-Null
 
-Copy-Item (Join-Path $root "dashboard.html") (Join-Path $dist "index.html") -Force
-Copy-Item (Join-Path $root "landing.html") (Join-Path $dist "landing.html") -Force
-Copy-Item (Join-Path $root "login.html") (Join-Path $dist "login.html") -Force
-Copy-Item (Join-Path $root "dashboard.html") (Join-Path $dist "dashboard.html") -Force
+$pubUrl = ($env:NEXT_PUBLIC_SUPABASE_URL, $env:SUPABASE_URL | Where-Object { $_ } | Select-Object -First 1)
+$pubKey = ($env:NEXT_PUBLIC_SUPABASE_ANON_KEY, $env:SUPABASE_ANON_KEY | Where-Object { $_ } | Select-Object -First 1)
+
+function Inject-Env($filePath, $destPath) {
+    $content = Get-Content -Raw -Path $filePath -Encoding UTF8
+    if ($pubUrl -or $pubKey) {
+        $jsonUrl = $pubUrl | ConvertTo-Json
+        $jsonKey = $pubKey | ConvertTo-Json
+        $scriptTag = "<script>window.ENV=window.ENV||{};window.ENV.NEXT_PUBLIC_SUPABASE_URL=$jsonUrl;window.ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY=$jsonKey;</script>"
+        if ($content -match "<head>") {
+            $content = $content -replace "<head>", "<head>`n  $scriptTag"
+        } else {
+            $content = "$scriptTag`n$content"
+        }
+    }
+    Set-Content -Path $destPath -Value $content -Encoding UTF8
+}
+
+Inject-Env (Join-Path $root "dashboard.html") (Join-Path $dist "index.html")
+Inject-Env (Join-Path $root "landing.html") (Join-Path $dist "landing.html")
+Inject-Env (Join-Path $root "login.html") (Join-Path $dist "login.html")
+Inject-Env (Join-Path $root "dashboard.html") (Join-Path $dist "dashboard.html")
 
 if (Test-Path (Join-Path $root "vercel.json")) {
     Copy-Item (Join-Path $root "vercel.json") (Join-Path $dist "vercel.json") -Force
