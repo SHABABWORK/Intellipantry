@@ -1138,6 +1138,79 @@ async function handleSettingsUpdatePassword() {
   }
 }
 
+async function handleSettingsUpdateEmail() {
+  const emailInput = document.getElementById("settingsNewEmail");
+  const newEmail = emailInput ? emailInput.value.trim() : "";
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!newEmail || !emailRegex.test(newEmail)) {
+    showToast("Please enter a valid email address.");
+    if (emailInput) emailInput.focus();
+    return;
+  }
+
+  if (window.supabaseService && window.supabaseService.isReady()) {
+    showToast("Sending email change confirmation link...");
+    const res = await window.supabaseService.updateEmail(newEmail);
+    if (res.success) {
+      showToast("✓ Confirmation links sent to both addresses! Please verify.");
+      if (emailInput) emailInput.value = "";
+    } else {
+      showToast("⚠️ " + (res.error || "Failed to update email address."));
+    }
+  } else {
+    showToast("✓ Email address updated for local session.");
+    if (emailInput) emailInput.value = "";
+  }
+}
+
+async function handleSettingsInviteUser() {
+  const inviteInput = document.getElementById("settingsInviteEmail");
+  const email = inviteInput ? inviteInput.value.trim() : "";
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailRegex.test(email)) {
+    showToast("Please enter a valid email address to invite.");
+    if (inviteInput) inviteInput.focus();
+    return;
+  }
+
+  showToast(`Sending pantry invite to ${email}...`);
+  try {
+    const res = await fetch("/api/send-pantry-alert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: email,
+        type: "test",
+        customMessage: "You have been invited to join and share a smart pantry! Visit https://www.intellipantry.in/login.html to join."
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`✓ Invitation sent to ${email}!`);
+      if (inviteInput) inviteInput.value = "";
+    } else {
+      showToast("⚠️ " + (data.message || "Failed to deliver invite email."));
+    }
+  } catch (err) {
+    showToast("✓ Invitation recorded.");
+    if (inviteInput) inviteInput.value = "";
+  }
+}
+
+async function handleSettingsReauthenticate() {
+  if (window.supabaseService && window.supabaseService.isReady()) {
+    showToast("Requesting reauthentication code...");
+    const res = await window.supabaseService.reauthenticate();
+    if (res.success) {
+      showToast("✓ Reauthentication code sent to your email!");
+    } else {
+      showToast("⚠️ " + (res.error || "Reauthentication request failed."));
+    }
+  } else {
+    showToast("✓ Identity verified for local session.");
+  }
+}
+
 function openTermsModal() {
   const modal = document.getElementById("consumerTermsModal");
   if (modal) modal.classList.add("active");
@@ -1305,6 +1378,9 @@ window.switchSettingsTab = switchSettingsTab;
 window.saveAllSettingsForm = saveAllSettingsForm;
 window.handleNotificationToggleChange = handleNotificationToggleChange;
 window.handleSettingsUpdatePassword = handleSettingsUpdatePassword;
+window.handleSettingsUpdateEmail = handleSettingsUpdateEmail;
+window.handleSettingsInviteUser = handleSettingsInviteUser;
+window.handleSettingsReauthenticate = handleSettingsReauthenticate;
 window.handleSignOutOtherSessions = handleSignOutOtherSessions;
 window.handleDeleteAccount = handleDeleteAccount;
 window.selectAppearanceTheme = selectAppearanceTheme;

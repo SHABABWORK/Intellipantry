@@ -1034,6 +1034,39 @@
                 </div>
               </div>
 
+              <!-- Update Email Address -->
+              <div style="padding-top:14px; border-top:1px solid #f1f5f9;">
+                <h4 style="font-size:13.5px; font-weight:700; color:#1e293b; margin-bottom:6px;">Update Email Address</h4>
+                <p style="font-size:12px; color:#64748b; margin-bottom:10px;">Send a confirmation link to update your primary email address.</p>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                  <input type="email" id="settingsNewEmail" class="flex-1 px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none" placeholder="new.email@example.com">
+                  <button type="button" onclick="handleSettingsUpdateEmail()" class="btn-forest-submit" style="width:auto; padding:10px 18px; border-radius:12px; font-size:13px; font-weight:700;">
+                    Update Email
+                  </button>
+                </div>
+              </div>
+
+              <!-- Invite Member to Pantry -->
+              <div style="padding-top:14px; border-top:1px solid #f1f5f9;">
+                <h4 style="font-size:13.5px; font-weight:700; color:#1e293b; margin-bottom:6px;">Invite Member to Pantry</h4>
+                <p style="font-size:12px; color:#64748b; margin-bottom:10px;">Invite a family member or collaborator to join this pantry via email.</p>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                  <input type="email" id="settingsInviteEmail" class="flex-1 px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none" placeholder="member@example.com">
+                  <button type="button" onclick="handleSettingsInviteUser()" class="btn-forest-submit" style="width:auto; padding:10px 18px; border-radius:12px; font-size:13px; font-weight:700; background:#2e9e5b;">
+                    Send Invite
+                  </button>
+                </div>
+              </div>
+
+              <!-- Reauthenticate Session -->
+              <div style="padding-top:14px; border-top:1px solid #f1f5f9;">
+                <h4 style="font-size:13.5px; font-weight:700; color:#1e293b; margin-bottom:4px;">Reauthenticate Session</h4>
+                <p style="font-size:12px; color:#64748b; margin-bottom:10px;">Send a single-use reauthentication OTP code to verify your active identity.</p>
+                <button type="button" onclick="handleSettingsReauthenticate()" style="background:#ffffff; border:1.5px solid #1e392a; color:#1e392a; padding:9px 18px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer;">
+                  🔑 Send Reauth Code
+                </button>
+              </div>
+
               <!-- Sign out from all devices -->
               <div style="padding-top:16px; border-top:1px solid #f1f5f9;">
                 <h4 style="font-size:13.5px; font-weight:700; color:#1e293b; margin-bottom:4px;">Sign Out From All Devices</h4>
