@@ -375,6 +375,94 @@
       color: var(--forest-hover);
     }
 
+    /* Dedicated 6-Digit Separate OTP Input Grid */
+    .otp-digits-container {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 20px 0 22px;
+    }
+
+    .otp-box {
+      width: 48px;
+      height: 54px;
+      border: 1.5px solid var(--border-input);
+      border-radius: 12px;
+      background: #faf8f5;
+      font-size: 24px;
+      font-weight: 800;
+      text-align: center;
+      color: var(--forest);
+      font-family: 'Plus Jakarta Sans', monospace, sans-serif;
+      outline: none;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      -webkit-appearance: none;
+    }
+
+    .otp-box:focus {
+      background: #ffffff;
+      border-color: var(--forest);
+      box-shadow: 0 0 0 3px rgba(30, 57, 42, 0.12);
+      transform: translateY(-2px);
+    }
+
+    .otp-box.filled {
+      border-color: var(--accent-green);
+      background: #f0fdf4;
+    }
+
+    .otp-box.error {
+      border-color: var(--error-border);
+      background: var(--error-bg);
+      animation: shakeOtp 0.3s ease;
+    }
+
+    @keyframes shakeOtp {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-4px); }
+      40%, 80% { transform: translateX(4px); }
+    }
+
+    .verify-email-display-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #f3efe6;
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: var(--forest);
+      font-weight: 600;
+      margin-bottom: 8px;
+      word-break: break-all;
+    }
+
+    .resend-timer-box {
+      margin-top: 18px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .btn-resend-countdown {
+      background: none;
+      border: none;
+      color: var(--forest);
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: underline;
+      font-family: inherit;
+      font-size: 13px;
+      padding: 4px;
+    }
+
+    .btn-resend-countdown:disabled {
+      color: #9da6a0;
+      cursor: not-allowed;
+      text-decoration: none;
+    }
+
     /* Additional helper links (Guest + Magic Link) */
     .helper-links-row {
       display: flex;
@@ -701,6 +789,53 @@
             </button>
           </form>
 
+          <!-- ==========================================
+               DEDICATED EMAIL OTP VERIFICATION VIEW
+               ========================================== -->
+          <div id="authVerifyView" style="display:none;">
+            <div style="text-align:left; margin-bottom:12px;">
+              <span class="verify-email-display-badge">
+                <span>✉️</span>
+                <span id="verifyTargetEmail">user@example.com</span>
+              </span>
+            </div>
+
+            <!-- Alert Notification Banner for Verification -->
+            <div id="verifyAlert" class="alert-banner" role="alert"></div>
+
+            <form id="verifyOtpForm" onsubmit="handleVerifyOtpSubmit(event)">
+              <!-- 6 Separate OTP Input Boxes -->
+              <div class="otp-digits-container" id="otpDigitsContainer">
+                <input type="text" class="otp-box" data-index="0" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="one-time-code" autofocus>
+                <input type="text" class="otp-box" data-index="1" inputmode="numeric" pattern="[0-9]*" maxlength="1">
+                <input type="text" class="otp-box" data-index="2" inputmode="numeric" pattern="[0-9]*" maxlength="1">
+                <input type="text" class="otp-box" data-index="3" inputmode="numeric" pattern="[0-9]*" maxlength="1">
+                <input type="text" class="otp-box" data-index="4" inputmode="numeric" pattern="[0-9]*" maxlength="1">
+                <input type="text" class="otp-box" data-index="5" inputmode="numeric" pattern="[0-9]*" maxlength="1">
+              </div>
+
+              <!-- Verify Email Button -->
+              <button type="submit" id="btnVerifyEmailSubmit" class="btn-submit-auth">
+                Verify Email
+              </button>
+
+              <!-- Resend Countdown & Action -->
+              <div class="resend-timer-box">
+                Didn't receive the code? 
+                <button type="button" id="btnResendCode" class="btn-resend-countdown" onclick="handleResendCodeClick()" disabled>
+                  Resend Code (<span id="resendTimerSec">60</span>s)
+                </button>
+              </div>
+
+              <!-- Back to Signup / Change Email Link -->
+              <div style="text-align:center; margin-top:18px;">
+                <button type="button" class="auth-toggle-link" onclick="setAuthMode('signup')" style="font-size:13px; color:var(--text-muted); font-weight:600;">
+                  ← Back to Sign Up / Change Email
+                </button>
+              </div>
+            </form>
+          </div>
+
           <!-- Toggle Bottom Link -->
           <div class="auth-footer-toggle" id="authFooterToggle">
             Already have an account? <button type="button" class="auth-toggle-link" onclick="setAuthMode('login')">Login</button>
@@ -844,25 +979,97 @@
        JAVASCRIPT LOGIC & SUPABASE INTEGRATION
        ========================================== -->
   <script>
-    let currentAuthMode = 'signup'; // 'signup' | 'login'
+    let currentAuthMode = 'signup'; // 'signup' | 'login' | 'verify'
     let pendingOtpEmail = '';
     let pendingOtpType = 'signup';
+    let resendTimerInterval = null;
+    let resendSecondsRemaining = 60;
 
-    function setAuthMode(mode) {
+    function resetOtpBoxes() {
+      const boxes = document.querySelectorAll('#otpDigitsContainer .otp-box');
+      boxes.forEach(b => {
+        b.value = '';
+        b.classList.remove('filled');
+        b.classList.remove('error');
+      });
+    }
+
+    function startResendCountdown(seconds = 60) {
+      if (resendTimerInterval) {
+        clearInterval(resendTimerInterval);
+        resendTimerInterval = null;
+      }
+      resendSecondsRemaining = seconds;
+      const btn = document.getElementById('btnResendCode');
+      if (!btn) return;
+      btn.disabled = true;
+      btn.innerHTML = `Resend Code (<span id="resendTimerSec">${resendSecondsRemaining}</span>s)`;
+
+      resendTimerInterval = setInterval(() => {
+        resendSecondsRemaining--;
+        const span = document.getElementById('resendTimerSec');
+        if (span) span.textContent = resendSecondsRemaining;
+
+        if (resendSecondsRemaining <= 0) {
+          clearInterval(resendTimerInterval);
+          resendTimerInterval = null;
+          btn.disabled = false;
+          btn.textContent = 'Resend Code';
+        }
+      }, 1000);
+    }
+
+    function setAuthMode(mode, targetEmail = '') {
       currentAuthMode = mode;
       clearAlert('authAlert');
+      clearAlert('verifyAlert');
 
-      const isSignup = mode === 'signup';
+      const heading = document.getElementById('authHeading');
+      const subtitle = document.getElementById('authSubtitle');
+      const authMainForm = document.getElementById('authMainForm');
+      const authVerifyView = document.getElementById('authVerifyView');
+      const authFooterToggle = document.getElementById('authFooterToggle');
+      const helperRow = document.querySelector('.helper-links-row');
+
       const groupFullName = document.getElementById('groupFullName');
       const groupConfirmPass = document.getElementById('groupConfirmPassword');
       const groupTerms = document.getElementById('groupTermsCheckbox');
       const rowLoginOptions = document.getElementById('rowLoginOptions');
-      const heading = document.getElementById('authHeading');
-      const subtitle = document.getElementById('authSubtitle');
       const btnSubmit = document.getElementById('btnSubmitAuth');
-      const footerToggle = document.getElementById('authFooterToggle');
       const passInput = document.getElementById('inputPassword');
 
+      if (mode === 'verify') {
+        if (targetEmail) pendingOtpEmail = targetEmail;
+        heading.textContent = 'Verify Your Email';
+        subtitle.textContent = "We've sent a 6-digit verification code to your email.";
+        authMainForm.style.display = 'none';
+        authVerifyView.style.display = 'block';
+        if (authFooterToggle) authFooterToggle.style.display = 'none';
+        if (helperRow) helperRow.style.display = 'none';
+
+        const emailBadge = document.getElementById('verifyTargetEmail');
+        if (emailBadge) emailBadge.textContent = pendingOtpEmail || 'your email';
+
+        resetOtpBoxes();
+        startResendCountdown(60);
+        setTimeout(() => {
+          const firstBox = document.querySelector('#otpDigitsContainer .otp-box[data-index="0"]');
+          if (firstBox) firstBox.focus();
+        }, 120);
+        return;
+      }
+
+      // Restore main form when returning to signup or login
+      if (resendTimerInterval) {
+        clearInterval(resendTimerInterval);
+        resendTimerInterval = null;
+      }
+      authVerifyView.style.display = 'none';
+      authMainForm.style.display = 'block';
+      if (authFooterToggle) authFooterToggle.style.display = 'block';
+      if (helperRow) helperRow.style.display = 'flex';
+
+      const isSignup = mode === 'signup';
       if (isSignup) {
         heading.textContent = 'Create Your Account';
         subtitle.textContent = 'Join thousands of users managing their food smarter.';
@@ -872,7 +1079,7 @@
         groupConfirmPass.style.display = 'block';
         groupTerms.style.display = 'block';
         rowLoginOptions.style.display = 'none';
-        footerToggle.innerHTML = `Already have an account? <button type="button" class="auth-toggle-link" onclick="setAuthMode('login')">Login</button>`;
+        authFooterToggle.innerHTML = `Already have an account? <button type="button" class="auth-toggle-link" onclick="setAuthMode('login')">Login</button>`;
       } else {
         heading.textContent = 'Welcome Back';
         subtitle.textContent = 'Continue managing your pantry smarter.';
@@ -882,7 +1089,176 @@
         groupConfirmPass.style.display = 'none';
         groupTerms.style.display = 'none';
         rowLoginOptions.style.display = 'flex';
-        footerToggle.innerHTML = `Don't have an account? <button type="button" class="auth-toggle-link" onclick="setAuthMode('signup')">Sign Up</button>`;
+        authFooterToggle.innerHTML = `Don't have an account? <button type="button" class="auth-toggle-link" onclick="setAuthMode('signup')">Sign Up</button>`;
+      }
+    }
+
+    function initOtpBoxEvents() {
+      const container = document.getElementById('otpDigitsContainer');
+      if (!container) return;
+      const boxes = Array.from(container.querySelectorAll('.otp-box'));
+
+      boxes.forEach((box, index) => {
+        // Auto-advance & filter digits
+        box.addEventListener('input', () => {
+          const raw = box.value || '';
+          const clean = raw.replace(/[^0-9]/g, '');
+          box.value = clean ? clean.slice(-1) : '';
+
+          if (box.value) {
+            box.classList.add('filled');
+            box.classList.remove('error');
+            if (index < boxes.length - 1) {
+              boxes[index + 1].focus();
+              boxes[index + 1].select();
+            } else {
+              const fullCode = boxes.map(b => b.value).join('');
+              if (fullCode.length === 6) {
+                document.getElementById('btnVerifyEmailSubmit').focus();
+              }
+            }
+          } else {
+            box.classList.remove('filled');
+          }
+        });
+
+        // Backspace, navigation & Enter
+        box.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace') {
+            if (!box.value && index > 0) {
+              boxes[index - 1].focus();
+              boxes[index - 1].value = '';
+              boxes[index - 1].classList.remove('filled');
+            } else {
+              box.value = '';
+              box.classList.remove('filled');
+            }
+          } else if (e.key === 'ArrowLeft' && index > 0) {
+            boxes[index - 1].focus();
+          } else if (e.key === 'ArrowRight' && index < boxes.length - 1) {
+            boxes[index + 1].focus();
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            handleVerifyOtpSubmit();
+          }
+        });
+
+        // 6-digit Paste handler
+        box.addEventListener('paste', (e) => {
+          e.preventDefault();
+          const pasteData = (e.clipboardData || window.clipboardData).getData('text') || '';
+          const digits = pasteData.replace(/[^0-9]/g, '').slice(0, 6);
+          if (!digits) return;
+
+          digits.split('').forEach((d, i) => {
+            if (boxes[i]) {
+              boxes[i].value = d;
+              boxes[i].classList.add('filled');
+              boxes[i].classList.remove('error');
+            }
+          });
+
+          if (digits.length === 6) {
+            boxes[5].focus();
+            setTimeout(() => {
+              handleVerifyOtpSubmit();
+            }, 120);
+          } else if (boxes[digits.length]) {
+            boxes[digits.length].focus();
+          }
+        });
+
+        box.addEventListener('focus', () => {
+          box.select();
+        });
+      });
+    }
+
+    async function handleVerifyOtpSubmit(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      clearAlert('verifyAlert');
+      const boxes = Array.from(document.querySelectorAll('#otpDigitsContainer .otp-box'));
+      let code = '';
+      boxes.forEach(b => {
+        code += (b.value || '').trim();
+      });
+
+      if (code.length < 6) {
+        showAlert('verifyAlert', 'Please enter all 6 digits of the verification code.');
+        boxes.forEach(b => {
+          if (!b.value) {
+            b.classList.add('error');
+            setTimeout(() => b.classList.remove('error'), 800);
+          }
+        });
+        return;
+      }
+
+      const btn = document.getElementById('btnVerifyEmailSubmit');
+      btn.textContent = 'Verifying...';
+      btn.disabled = true;
+
+      try {
+        if (!window.supabaseService || !window.supabaseService.isReady()) {
+          showAlert('verifyAlert', 'Supabase is not connected.');
+          btn.textContent = 'Verify Email';
+          btn.disabled = false;
+          return;
+        }
+
+        const res = await window.supabaseService.verifyOtp(pendingOtpEmail, code, 'signup');
+        btn.textContent = 'Verify Email';
+        btn.disabled = false;
+
+        if (res.success) {
+          if (res.user) localStorage.setItem('smartpantry_user', JSON.stringify(res.user));
+          if (res.session?.access_token) localStorage.setItem('smartpantry_token', res.session.access_token);
+          showAlert('verifyAlert', '✓ Email verified successfully! Loading your pantry...', 'success');
+          setTimeout(() => navigateToDashboard(), 600);
+        } else {
+          showAlert('verifyAlert', res.error || 'Invalid or expired verification code.');
+          boxes.forEach(b => {
+            b.classList.add('error');
+            setTimeout(() => b.classList.remove('error'), 800);
+          });
+        }
+      } catch (err) {
+        btn.textContent = 'Verify Email';
+        btn.disabled = false;
+        showAlert('verifyAlert', err.message || 'Verification failed. Please try again.');
+      }
+    }
+
+    async function handleResendCodeClick() {
+      if (!pendingOtpEmail) {
+        showAlert('verifyAlert', 'No email address registered. Please go back to Sign Up.');
+        return;
+      }
+      clearAlert('verifyAlert');
+      const btn = document.getElementById('btnResendCode');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      try {
+        if (window.supabaseService && window.supabaseService.isReady()) {
+          const res = await window.supabaseService.resendConfirmation(pendingOtpEmail);
+          if (res.success) {
+            showAlert('verifyAlert', `✓ A new 6-digit code has been sent to <strong>${pendingOtpEmail}</strong>.`, 'success');
+            startResendCountdown(60);
+          } else {
+            showAlert('verifyAlert', res.error || 'Failed to resend verification code.');
+            btn.disabled = false;
+            btn.textContent = 'Resend Code';
+          }
+        } else {
+          showAlert('verifyAlert', 'Supabase service is offline. Please try again later.');
+          btn.disabled = false;
+          btn.textContent = 'Resend Code';
+        }
+      } catch (err) {
+        showAlert('verifyAlert', err.message || 'Error requesting code resend.');
+        btn.disabled = false;
+        btn.textContent = 'Resend Code';
       }
     }
 
@@ -967,14 +1343,17 @@
 
           if (res.success) {
             pendingOtpEmail = email;
-            if (res.session && res.session.user) {
+            if (res.needsEmailConfirmation || !res.user?.emailVerified) {
+              // Transition smoothly to the dedicated "Verify Your Email" screen
+              setAuthMode('verify', email);
+              showAlert('verifyAlert', `✓ We've sent a 6-digit verification code to <strong>${email}</strong>.`, 'success');
+            } else if (res.session && res.session.user) {
               localStorage.setItem('smartpantry_token', res.session.access_token);
               localStorage.setItem('smartpantry_user', JSON.stringify(res.user));
               showAlert('authAlert', '✓ Account created! Opening your pantry...', 'success');
               setTimeout(() => navigateToDashboard(), 600);
             } else {
-              openOtpModal(email, 'signup');
-              showAlert('otpModalAlert', `✓ Account registered! We sent a confirmation email & 6-digit code to <strong>${email}</strong>.`, 'success');
+              setAuthMode('verify', email);
             }
           } else {
             showAlert('authAlert', res.error || 'Failed to create account.');
@@ -1010,7 +1389,7 @@
             const errMsg = res.error || 'Invalid email or password.';
             if (errMsg.toLowerCase().includes('not confirmed') || errMsg.toLowerCase().includes('email_not_confirmed')) {
               pendingOtpEmail = email;
-              showAlert('authAlert', `Your email is not verified yet. <a onclick="openOtpModal('${email}', 'signup')" style="text-decoration:underline; font-weight:700; cursor:pointer;">Enter verification code</a> or request a new email.`);
+              showAlert('authAlert', `Your email is not verified yet. <a onclick="setAuthMode('verify', '${email}')" style="text-decoration:underline; font-weight:700; cursor:pointer;">Enter your 6-digit verification code</a> or request a new code.`);
             } else {
               showAlert('authAlert', errMsg);
             }
@@ -1201,11 +1580,17 @@
 
     // Initialize Page & Check URL Hash / Params
     document.addEventListener("DOMContentLoaded", async function() {
+      initOtpBoxEvents();
+
       const urlParams = new URLSearchParams(window.location.search);
       const hash = window.location.hash || '';
 
-      // Check mode parameter: ?signup=1 or ?mode=signup
-      if (urlParams.get('signup') === '1' || urlParams.get('mode') === 'signup') {
+      // Check mode parameter: ?verify=1, ?signup=1 or ?login=1
+      if (urlParams.get('verify') === '1' || urlParams.get('mode') === 'verify') {
+        const targetEmail = urlParams.get('email') || '';
+        setAuthMode('verify', targetEmail);
+        showAlert('verifyAlert', "We've sent a 6-digit verification code to your email. Enter it below to activate your account.");
+      } else if (urlParams.get('signup') === '1' || urlParams.get('mode') === 'signup') {
         setAuthMode('signup');
       } else if (urlParams.get('login') === '1' || urlParams.get('mode') === 'login') {
         setAuthMode('login');
@@ -1242,15 +1627,20 @@
         if (window.supabaseService && window.supabaseService.isReady()) {
           const session = await window.supabaseService.getSession();
           if (session && session.user && !hash.includes('type=recovery')) {
+            const isConfirmed = Boolean(session.user.email_confirmed_at || session.user.confirmed_at);
             const userObj = {
               id: session.user.id,
               email: session.user.email,
               name: session.user.user_metadata?.full_name || session.user.email.split('@')[0] || 'Pantry Chef',
-              emailVerified: Boolean(session.user.email_confirmed_at || session.user.confirmed_at)
+              emailVerified: isConfirmed
             };
-            localStorage.setItem('smartpantry_token', session.access_token);
-            localStorage.setItem('smartpantry_user', JSON.stringify(userObj));
-            navigateToDashboard();
+            if (isConfirmed) {
+              localStorage.setItem('smartpantry_token', session.access_token);
+              localStorage.setItem('smartpantry_user', JSON.stringify(userObj));
+              navigateToDashboard();
+            } else if (currentAuthMode !== 'verify') {
+              setAuthMode('verify', session.user.email);
+            }
           }
         }
       } catch (err) {

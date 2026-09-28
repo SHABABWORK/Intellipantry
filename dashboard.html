@@ -84,12 +84,21 @@
           return;
         }
 
-        // Authenticated: Keep localStorage in sync with live Supabase session
+        // Authenticated: Check if email is verified
+        const isEmailConfirmed = Boolean(session.user.email_confirmed_at || session.user.confirmed_at);
+        if (!isEmailConfirmed) {
+          // Unverified user: redirect to dedicated OTP verification screen
+          localStorage.removeItem('smartpantry_token');
+          localStorage.removeItem('smartpantry_user');
+          window.location.replace('login.html?verify=1&email=' + encodeURIComponent(session.user.email || ''));
+          return;
+        }
+
         const userObj = {
           id: session.user.id,
           email: session.user.email,
           name: session.user.user_metadata?.full_name || session.user.email.split('@')[0] || 'Pantry Chef',
-          emailVerified: Boolean(session.user.email_confirmed_at || session.user.confirmed_at)
+          emailVerified: true
         };
         localStorage.setItem('smartpantry_token', session.access_token);
         localStorage.setItem('smartpantry_user', JSON.stringify(userObj));
