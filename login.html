@@ -943,7 +943,7 @@
 
         try {
           if (!window.supabaseService || !window.supabaseService.isReady()) {
-            showAlert('authAlert', 'Supabase service is initializing. Please verify database connection.');
+            showAlert('authAlert', '⚠️ Supabase is not connected. Please set your Supabase Project URL (https://xxxx.supabase.co) in Vercel Environment Variables.');
             btn.textContent = 'Sign Up';
             btn.disabled = false;
             return;
@@ -980,7 +980,7 @@
 
         try {
           if (!window.supabaseService || !window.supabaseService.isReady()) {
-            showAlert('authAlert', 'Supabase service is connecting. Please check your credentials.');
+            showAlert('authAlert', '⚠️ Supabase is not connected. Please set your Supabase Project URL (https://xxxx.supabase.co) in Vercel Environment Variables.');
             btn.textContent = 'Login';
             btn.disabled = false;
             return;

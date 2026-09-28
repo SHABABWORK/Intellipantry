@@ -134,6 +134,8 @@
             friendlyError = "Password must be at least 6 characters long.";
           } else if (msg.includes('rate limit')) {
             friendlyError = "Too many requests. Please wait a few moments before trying again.";
+          } else if (msg.includes('failed to fetch') || msg.includes('network') || msg.includes('load failed')) {
+            friendlyError = "Unable to reach Supabase. Please verify your Supabase Project URL (https://<project-ref>.supabase.co) is correctly configured in Vercel.";
           }
           return { success: false, error: friendlyError, rawError: error.message };
         }
@@ -208,6 +210,8 @@
             friendlyError = "No account found with this email address. Please sign up.";
           } else if (msg.includes('rate limit')) {
             friendlyError = "Too many login attempts. Please wait a few moments before trying again.";
+          } else if (msg.includes('failed to fetch') || msg.includes('network') || msg.includes('load failed')) {
+            friendlyError = "Unable to reach Supabase. Please verify your Supabase Project URL (https://<project-ref>.supabase.co) is correctly configured in Vercel.";
           }
           return { success: false, error: friendlyError, rawError: error.message };
         }
