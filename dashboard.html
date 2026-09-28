@@ -32,9 +32,17 @@
         const hash = window.location.hash || '';
         const search = window.location.search || '';
 
-        // If arriving from Supabase email confirmation, password reset or OAuth callback:
-        const hasAuthParams = hash.includes('access_token') || hash.includes('refresh_token') ||
-                              hash.includes('type=recovery') || search.includes('code=');
+        // If an authentication error occurred (e.g. expired link, invalid OTP):
+        if (hash.includes('error=')) {
+          window.location.replace('login.html' + hash);
+          return;
+        }
+
+        // If arriving from password recovery email:
+        if (hash.includes('type=recovery') || search.includes('type=recovery')) {
+          window.location.replace('login.html' + hash);
+          return;
+        }
 
         if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
           await window.SupabaseConfig.readyPromise;
@@ -53,6 +61,16 @@
         const code = params.get('code');
         if (code) {
           await window.supabaseService.exchangeCodeForSession(code);
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        // If confirmation access token is in the hash, allow Supabase client to parse and store it
+        if (hash.includes('access_token=')) {
+          for (let i = 0; i < 6; i++) {
+            const tempSession = await window.supabaseService.getSession();
+            if (tempSession && tempSession.user) break;
+            await new Promise(r => setTimeout(r, 80));
+          }
           window.history.replaceState({}, document.title, window.location.pathname);
         }
 
@@ -78,6 +96,15 @@
 
         // Make page visible now that authentication is verified
         document.documentElement.style.visibility = 'visible';
+
+        // Welcome toast if newly confirmed via email link
+        if (hash.includes('type=signup') || hash.includes('access_token')) {
+          setTimeout(() => {
+            if (typeof showToast === 'function') {
+              showToast('✓ Email confirmed! Welcome to your Smart Pantry!');
+            }
+          }, 500);
+        }
       } catch (err) {
         console.error("[Auth Gate Error]", err);
         localStorage.removeItem('smartpantry_token');

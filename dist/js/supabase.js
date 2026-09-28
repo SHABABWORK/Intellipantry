@@ -88,6 +88,30 @@
       return null;
     }
 
+    getCanonicalRedirectUrl(path = '/') {
+      // 1. Detect if running in local development
+      const isLocal = typeof window !== 'undefined' && (
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.protocol === 'file:'
+      );
+
+      if (isLocal) {
+        const port = window.location.port ? `:${window.location.port}` : '';
+        const origin = window.location.protocol === 'file:' 
+          ? 'http://localhost:3000' 
+          : `${window.location.protocol}//${window.location.hostname}${port}`;
+        return `${origin}${path.startsWith('/') ? path : '/' + path}`;
+      }
+
+      // 2. Production canonical domain: https://www.intellipantry.in
+      const canonicalBase = 'https://www.intellipantry.in';
+      if (!path || path === '/') {
+        return `${canonicalBase}/`;
+      }
+      return `${canonicalBase}${path.startsWith('/') ? path : '/' + path}`;
+    }
+
     // ==========================================
     // 1. REAL SUPABASE AUTHENTICATION
     // ==========================================
@@ -111,7 +135,8 @@
         const cleanEmail = email.trim().toLowerCase();
         const cleanName = (fullName || cleanEmail.split('@')[0]).trim();
 
-        const redirectUrl = `${window.location.origin}/login.html`;
+        // Canonical production redirect to https://www.intellipantry.in/
+        const redirectUrl = this.getCanonicalRedirectUrl('/');
         const { data, error } = await this.client.auth.signUp({
           email: cleanEmail,
           password,
@@ -255,7 +280,7 @@
         return { success: false, error: "Supabase connection required." };
       }
       try {
-        const redirectTo = `${window.location.origin}/dashboard.html`;
+        const redirectTo = this.getCanonicalRedirectUrl('/');
         const { data, error } = await this.client.auth.signInWithOAuth({
           provider,
           options: {
@@ -353,7 +378,7 @@
     async updateEmail(newEmail) {
       if (!newEmail || !this.isReady()) return { success: false, error: "New email address required." };
       try {
-        const redirectUrl = `${window.location.origin}/dashboard.html`;
+        const redirectUrl = this.getCanonicalRedirectUrl('/');
         const { data, error } = await this.client.auth.updateUser({
           email: newEmail.trim().toLowerCase()
         }, {
@@ -369,7 +394,7 @@
     async resendConfirmation(email) {
       if (!email || !this.isReady()) return { success: false, error: "Email address required." };
       try {
-        const redirectUrl = `${window.location.origin}/login.html`;
+        const redirectUrl = this.getCanonicalRedirectUrl('/');
         const { error } = await this.client.auth.resend({
           type: 'signup',
           email: email.trim().toLowerCase(),
@@ -392,7 +417,7 @@
     async resetPasswordForEmail(email) {
       if (!email || !this.isReady()) return { success: false, error: "Email address required." };
       try {
-        const redirectUrl = `${window.location.origin}/login.html?type=recovery`;
+        const redirectUrl = this.getCanonicalRedirectUrl('/login.html?type=recovery');
         const { error } = await this.client.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
           redirectTo: redirectUrl
         });
@@ -420,7 +445,7 @@
       }
       if (!this.isReady()) return { success: false, error: "Supabase connection required." };
       try {
-        const redirectUrl = `${window.location.origin}/login.html`;
+        const redirectUrl = this.getCanonicalRedirectUrl('/');
         const { data, error } = await this.client.auth.signInWithOtp({
           email: email.trim().toLowerCase(),
           options: {
