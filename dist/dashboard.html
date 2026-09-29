@@ -150,8 +150,8 @@
           </svg>
         </div>
         <div class="brand-info">
-          <h1>Smart Pantry</h1>
-          <p>Fresh Food, Brighter Days</p>
+          <h1>IntelliPantry</h1>
+          <p>Smart Grocery. Less Waste.</p>
         </div>
       </div>
     </div>
@@ -168,30 +168,25 @@
           id="globalSearchInput" 
           placeholder="Search items, recipes, or tips..." 
           autocomplete="off"
+          oninput="if(typeof handleGlobalSearch === 'function') handleGlobalSearch(this.value)"
         >
       </div>
     </div>
 
     <!-- Right User & Alerts & Real-time Live Clock -->
     <div class="topbar-right">
-      <div class="topbar-live-time-badge" style="display:flex; align-items:center; gap:6px; background:#f0fdf4; border:1px solid #bbf7d0; padding:6px 12px; border-radius:20px; font-size:12.5px; font-weight:700; color:#1e392a;" title="Real-time Local Clock">
-        <span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981; box-shadow:0 0 6px #10b981;"></span>
-        <span id="topbarLiveClock">--:--:--</span>
-      </div>
-
       <button class="noti-btn" onclick="toggleAlertCenter(true)" title="Real-Time Alert Center">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
           <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
         </svg>
-        <span class="noti-badge" id="topbarAlertBadge" style="display:none;">0</span>
+        <span class="noti-badge" id="topbarAlertBadge" style="display:none;"></span>
       </button>
 
       <div class="user-profile" id="userProfile" onclick="toggleUserMenu()" style="position:relative;cursor:pointer;">
-        <div class="user-avatar" id="userAvatar">P</div>
+        <div class="user-avatar" id="userAvatar">S</div>
         <div class="user-details">
-          <div class="user-name" id="userName">Pantry Chef</div>
-          <div class="user-role">Home Pantry</div>
+          <div class="user-name" id="userName">Safwan Pallikkal</div>
         </div>
         <span class="user-chevron">▾</span>
         <!-- User dropdown menu -->
@@ -224,7 +219,7 @@
   <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebarDrawer()"></div>
 
   <!-- ==========================================
-       DASHBOARD 3-COLUMN GRID
+       DASHBOARD 2-COLUMN GRID (SaaS LAYOUT)
        ========================================== -->
   <div class="dashboard-grid">
 
@@ -233,6 +228,20 @@
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;" class="md:hidden">
         <div style="font-weight:700; font-size:15px; color:#0f172a;">Menu Navigation</div>
         <button onclick="toggleSidebarDrawer()" style="background:#f1f5f9; border:none; border-radius:8px; padding:6px 10px; cursor:pointer; font-weight:700;">✕</button>
+      </div>
+
+      <!-- Sidebar Desktop Brand Header -->
+      <div class="sidebar-brand">
+        <div class="brand-leaf-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
+            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">IntelliPantry</h1>
+          <div class="brand-subtitle">Smart Grocery. Less Waste.</div>
+        </div>
       </div>
 
       <nav class="nav-group">
@@ -250,16 +259,27 @@
             <path d="m3.3 7 8.7 5 8.7-5"></path>
             <path d="M12 22V12"></path>
           </svg>
-          Inventory
+          My Pantry
         </a>
 
         <a class="nav-link" data-route="add-item" onclick="openAddEditModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
-            <path d="M12 8v8"></path>
-            <path d="M8 12h8"></path>
+            <line x1="12" y1="8" x2="12" y2="16"></line>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
           </svg>
           Add Item
+        </a>
+
+        <a class="nav-link" data-route="scan-barcode" onclick="window.router.navigate('scan-barcode')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+            <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+            <line x1="7" y1="12" x2="17" y2="12"></line>
+          </svg>
+          Scan Barcode
         </a>
 
         <a class="nav-link" data-route="billing-scan" onclick="window.router.navigate('billing-scan')">
@@ -270,27 +290,7 @@
             <line x1="16" y1="17" x2="8" y2="17"></line>
             <polyline points="10 9 9 9 8 9"></polyline>
           </svg>
-          Billing Scan
-        </a>
-
-        <a class="nav-link" data-route="scan-barcode" onclick="openBillScannerModal()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
-            <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
-            <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
-            <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
-          </svg>
-          Scan Barcode
-        </a>
-
-        <a class="nav-link" data-route="expiry" onclick="window.router.navigate('expiry')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>
-            <line x1="16" x2="16" y1="2" y2="6"></line>
-            <line x1="8" x2="8" y1="2" y2="6"></line>
-            <line x1="3" x2="21" y1="10" y2="10"></line>
-          </svg>
-          Expiry Calendar
+          Scan Bill
         </a>
 
         <a class="nav-link" data-route="shopping-list" onclick="window.router.navigate('shopping-list')">
@@ -302,12 +302,22 @@
           Shopping List
         </a>
 
+        <a class="nav-link" data-route="expiry" onclick="window.router.navigate('expiry')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>
+            <line x1="16" x2="16" y1="2" y2="6"></line>
+            <line x1="8" x2="8" y1="2" y2="6"></line>
+            <line x1="3" x2="21" y1="10" y2="10"></line>
+          </svg>
+          Expiry Alerts
+        </a>
+
         <a class="nav-link" data-route="recipes" onclick="window.router.navigate('recipes')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"></path>
             <line x1="6" x2="18" y1="17" y2="17"></line>
           </svg>
-          Recipes
+          Recipe Kitchen
         </a>
 
         <a class="nav-link" data-route="insights" onclick="window.router.navigate('insights')">
@@ -315,15 +325,7 @@
             <path d="M3 3v18h18"></path>
             <path d="m19 9-5 5-4-4-3 3"></path>
           </svg>
-          Insights
-        </a>
-
-        <a class="nav-link" data-route="notifications" onclick="toggleAlertCenter(true)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
-            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
-          </svg>
-          Notifications
+          Statistics
         </a>
 
         <a class="nav-link" data-route="settings" onclick="window.router.navigate('settings')">
@@ -344,26 +346,13 @@
         </a>
       </nav>
 
-      <!-- Recipe Kitchen Card (100% Free) -->
-      <div class="recipe-kitchen-card">
-        <div class="recipe-kitchen-header">
-          <span class="recipe-kitchen-icon">🍳</span>
-          <span class="recipe-kitchen-title">Recipe Kitchen</span>
+      <!-- Small Sustainability/Food-Waste Message at the Bottom -->
+      <div class="sidebar-sustainability-card">
+        <div class="sustainability-icon">🌱</div>
+        <div>
+          <div style="font-weight:700; font-size:12.5px; color:#19251e;">IntelliPantry</div>
+          <p class="sustainability-text">Smart grocery management. Reduce waste & save money.</p>
         </div>
-        <p>Discover recipes using the ingredients you already have.</p>
-        <div class="recipe-kitchen-btns">
-          <button type="button" class="recipe-k-btn primary" onclick="window.RecipeEngine.showPantryMatches()">Find Recipes</button>
-          <button type="button" class="recipe-k-btn secondary" onclick="window.RecipeEngine.setCategory('all'); window.RecipeEngine.scrollToRecipeKitchen();">All Recipes</button>
-        </div>
-      </div>
-
-      <div class="sidebar-footer" style="cursor:pointer;" onclick="openDatabaseSettingsModal()" title="Click to view Supabase Database Connection">
-        <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px; font-size:11.5px; font-weight:700; color:#10b981;">
-          <span style="width:7px; height:7px; border-radius:50%; background:#10b981; display:inline-block; box-shadow:0 0 6px #10b981;"></span>
-          Supabase Cloud DB
-        </div>
-        <p>Smart Pantry v1.0</p>
-        <p>A smarter kitchen for a better tomorrow.</p>
       </div>
     </aside>
 
@@ -373,17 +362,24 @@
       <!-- DASHBOARD HOME VIEW WRAPPER -->
       <div id="dashboardHomeViews">
 
-      <!-- Dynamic Welcome Header (Matches Mockup) -->
-      <div style="margin-bottom: 20px;">
-        <h2 id="welcomeGreeting" style="font-size: 24px; font-weight: 800; color: #1e392a; letter-spacing: -0.02em; display:flex; align-items:center; gap:8px;">
-          Welcome Back, <span id="welcomeUserName">User</span> 🌿
-        </h2>
-        <p id="welcomeSub" style="font-size: 13.5px; color: #6b756e; margin-top: 2px;">
-          Here's your pantry overview today.
-        </p>
+      <!-- Dynamic Welcome Header with Live Date/Time Card (Matches Panel 1) -->
+      <div class="dashboard-header-row">
+        <div class="dashboard-title-stack">
+          <h2 id="welcomeGreeting">
+            <span id="greetingTimeText">Good Evening</span>, <span id="welcomeUserName">User</span> 🌿
+          </h2>
+          <p id="welcomeSub">Here's your pantry overview today.</p>
+        </div>
+        <div class="datetime-card" id="dashboardDateTimeCard" title="Live Local Date & Clock">
+          <span class="datetime-card-icon">📅</span>
+          <div>
+            <div class="datetime-date" id="datetimeDateDisplay">Loading date...</div>
+            <div class="datetime-clock" id="datetimeClockDisplay">--:--:--</div>
+          </div>
+        </div>
       </div>
 
-      <!-- 4 Stat Metric Cards in a Row (Matches Mockup) -->
+      <!-- 4 Stat Metric Cards in a Row (Matches Panel 1) -->
       <div class="metrics-row">
         
         <!-- Total Items -->
@@ -448,80 +444,107 @@
 
       </div>
 
-      <!-- Quick Actions (Matches Mockup) -->
+      <!-- Quick Actions (Matches Panel 1) -->
       <section class="quick-actions-section">
         <h3 class="quick-actions-title">Quick Actions</h3>
         <div class="quick-actions-grid">
           <button class="quick-action-card-btn" onclick="window.router.navigate('billing-scan')">
             <div class="quick-action-icon-circle">🧾</div>
-            <h4>Scan Bill</h4>
-            <p>Add items quickly</p>
+            <div>
+              <h4>Scan Bill</h4>
+              <p>Add items quickly</p>
+            </div>
           </button>
 
           <button class="quick-action-card-btn" onclick="openAddEditModal()">
             <div class="quick-action-icon-circle">✚</div>
-            <h4>Add Item</h4>
-            <p>Manually</p>
+            <div>
+              <h4>Add Item</h4>
+              <p>Manually</p>
+            </div>
           </button>
 
           <button class="quick-action-card-btn" onclick="toggleAlertCenter(true)">
             <div class="quick-action-icon-circle">🔔</div>
-            <h4>View Alerts</h4>
-            <p>Expiring soon</p>
+            <div>
+              <h4>View Alerts</h4>
+              <p>Expiring soon</p>
+            </div>
           </button>
 
           <button class="quick-action-card-btn" onclick="window.router.navigate('recipes')">
             <div class="quick-action-icon-circle">🍴</div>
-            <h4>Get Recipe Ideas</h4>
-            <p>Use what you have</p>
+            <div>
+              <h4>Get Recipe Ideas</h4>
+              <p>Use what you have</p>
+            </div>
           </button>
         </div>
       </section>
 
-      <!-- Less Waste Promo Card (Matches Mockup) -->
-      <div class="less-waste-promo-card">
-        <div class="promo-left-details">
-          <div class="promo-leaf-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
-              <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
-              <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
-            </svg>
+      <!-- Recipe Kitchen Hero Banner (Matches Panel 1) -->
+      <div class="recipe-kitchen-hero-banner">
+        <div class="hero-banner-left">
+          <div class="hero-banner-tag">
+            <span>🍳</span> Less Waste More Good Food
           </div>
-          <div class="promo-text-wrap">
-            <h3>Less Waste More Good Food</h3>
-            <p>Track • Plan • Eat • Live Better</p>
-          </div>
+          <p class="hero-banner-desc">Discover delicious recipes using ingredients already in your pantry. Track, plan, eat, and live better.</p>
+          <button type="button" class="hero-banner-btn" onclick="window.router.navigate('recipes')">
+            Cook With My Pantry ➔
+          </button>
         </div>
-
-        <div class="promo-right-visual">
-          <img src="https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=160&q=80" alt="Fresh Healthy Salad" class="promo-salad-img">
-          <button class="promo-arrow-btn" onclick="window.router.navigate('recipes')">➔</button>
-        </div>
+        <img src="https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=320&q=80" alt="Fresh Salad Bowl" class="hero-banner-img">
       </div>
 
-
-      <!-- Inventory Table Section -->
+      <!-- My Pantry Section (Matches Section 5 & Image 1) -->
       <section class="inventory-section" id="inventorySection">
-        <div class="inventory-header">
-          <h2 class="inventory-title">Your Inventory</h2>
-          <a class="view-all-link" onclick="setCategoryFilter('All'); setStatusFilter('All');">View All ➔</a>
+        <div class="pantry-section-header">
+          <div>
+            <h2 class="pantry-title">My Pantry</h2>
+            <p class="pantry-subtitle">Manage, search, and track all your active ingredients in real time</p>
+          </div>
+          <div class="pantry-header-actions">
+            <button type="button" class="btn-forest-add" onclick="openAddEditModal()">
+              <span>＋</span> Add Item
+            </button>
+            <div class="view-toggle-group">
+              <button type="button" class="view-toggle-btn active" id="viewToggleGrid" onclick="setInventoryViewMode('grid')" title="Grid View">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <rect width="7" height="7" x="3" y="3" rx="1"></rect>
+                  <rect width="7" height="7" x="14" y="3" rx="1"></rect>
+                  <rect width="7" height="7" x="14" y="14" rx="1"></rect>
+                  <rect width="7" height="7" x="3" y="14" rx="1"></rect>
+                </svg>
+              </button>
+              <button type="button" class="view-toggle-btn" id="viewToggleList" onclick="setInventoryViewMode('list')" title="List View">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <!-- Category Filter Chips -->
-        <div class="category-chips">
-          <button class="chip-btn active" data-category="All" onclick="setCategoryFilter('All')">All Categories</button>
-          <button class="chip-btn" data-category="Fruits" onclick="setCategoryFilter('Fruits')">Fruits</button>
-          <button class="chip-btn" data-category="Vegetables" onclick="setCategoryFilter('Vegetables')">Vegetables</button>
-          <button class="chip-btn" data-category="Dairy" onclick="setCategoryFilter('Dairy')">Dairy</button>
-          <button class="chip-btn" data-category="Grains" onclick="setCategoryFilter('Grains')">Grains</button>
-          <button class="chip-btn" data-category="Meat" onclick="setCategoryFilter('Meat')">Meat</button>
-          <button class="chip-btn" data-category="Beverages" onclick="setCategoryFilter('Beverages')">Beverages</button>
-          <button class="chip-btn" data-category="Pantry" onclick="setCategoryFilter('Pantry')">Pantry</button>
-          <button class="chip-btn" data-category="Frozen" onclick="setCategoryFilter('Frozen')">Frozen</button>
+        <!-- Category Filter Chips with Dynamic Counts -->
+        <div class="category-chips" id="inventoryCategoryChips">
+          <button class="chip-btn active" data-category="All" onclick="setCategoryFilter('All')">All (<span id="chipCount_All">0</span>)</button>
+          <button class="chip-btn" data-category="Fruits" onclick="setCategoryFilter('Fruits')">🍎 Fruits (<span id="chipCount_Fruits">0</span>)</button>
+          <button class="chip-btn" data-category="Vegetables" onclick="setCategoryFilter('Vegetables')">🥦 Vegetables (<span id="chipCount_Vegetables">0</span>)</button>
+          <button class="chip-btn" data-category="Dairy" onclick="setCategoryFilter('Dairy')">🥛 Dairy (<span id="chipCount_Dairy">0</span>)</button>
+          <button class="chip-btn" data-category="Grains" onclick="setCategoryFilter('Grains')">🌾 Grains (<span id="chipCount_Grains">0</span>)</button>
+          <button class="chip-btn" data-category="Meat" onclick="setCategoryFilter('Meat')">🥩 Meat (<span id="chipCount_Meat">0</span>)</button>
+          <button class="chip-btn" data-category="Beverages" onclick="setCategoryFilter('Beverages')">🧃 Beverages (<span id="chipCount_Beverages">0</span>)</button>
+          <button class="chip-btn" data-category="Pantry" onclick="setCategoryFilter('Pantry')">🥫 Pantry (<span id="chipCount_Pantry">0</span>)</button>
+          <button class="chip-btn" data-category="Frozen" onclick="setCategoryFilter('Frozen')">❄️ Frozen (<span id="chipCount_Frozen">0</span>)</button>
         </div>
 
         <!-- Status Filter Pills -->
-        <div class="status-filter-row" style="display:flex; align-items:center; gap:8px; margin-top:10px; margin-bottom:14px; flex-wrap:wrap;">
+        <div class="status-filter-row" style="display:flex; align-items:center; gap:8px; margin-top:12px; margin-bottom:18px; flex-wrap:wrap;">
           <span style="font-size:12px; font-weight:700; color:#64748b; margin-right:4px;">Status:</span>
           <button type="button" class="status-filter-btn active" data-status="All" onclick="setStatusFilter('All')">All Statuses</button>
           <button type="button" class="status-filter-btn" data-status="Fresh" onclick="setStatusFilter('Fresh')">🟢 In Stock / Fresh</button>
@@ -530,8 +553,11 @@
           <button type="button" class="status-filter-btn" data-status="Expired" onclick="setStatusFilter('Expired')">🔴 Expired</button>
         </div>
 
-        <!-- Table -->
-        <div class="table-container">
+        <!-- Modern Responsive Grocery Card Grid (Matches Image 1) -->
+        <div id="inventoryCardsGrid" class="pantry-grid"></div>
+
+        <!-- Table View for List Mode -->
+        <div id="inventoryTableWrapper" class="table-container" style="display:none;">
           <table class="inv-table">
             <thead>
               <tr>
@@ -849,6 +875,113 @@
           </div>
         </div>
 
+      </section>
+
+      <!-- ==========================================
+           DEDICATED SCAN / QUICK ACTIONS SECTION (Panel 4)
+           ========================================== -->
+      <section id="scanActionsSection" style="display:none;" class="scan-actions-page">
+        <!-- Top Navigation Bar -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div>
+            <h2 style="font-size:24px; font-weight:800; color:#19251e; margin:0;">Scan & Quick Actions</h2>
+            <p style="font-size:13.5px; color:#6e7870; margin:2px 0 0 0;">Quickly add and manage groceries, scan barcodes, and discover pantry tools.</p>
+          </div>
+          <button type="button" class="billing-back-btn" onclick="window.router.navigate('dashboard')">
+            <span>← Back to Dashboard</span>
+          </button>
+        </div>
+
+        <!-- Green Hero Card: Scan Barcode -->
+        <div class="hero-barcode-card" onclick="openBillScannerModal()">
+          <div class="hero-barcode-left">
+            <div class="hero-barcode-icon-box">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                <line x1="7" y1="12" x2="17" y2="12"></line>
+              </svg>
+            </div>
+            <div>
+              <h3 class="hero-barcode-title">Scan Barcode</h3>
+              <p class="hero-barcode-sub">Add grocery items quickly with live camera detection</p>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:16px;">
+            <img src="https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=200&q=80" alt="Scan Barcode" class="hero-barcode-img">
+            <span style="font-size:22px; color:#ffffff;">➔</span>
+          </div>
+        </div>
+
+        <!-- Quick Add Item Card -->
+        <div class="quick-add-card" onclick="openAddEditModal()">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div style="width:44px; height:44px; border-radius:14px; background:#ecfdf5; color:#059669; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700;">✚</div>
+            <div>
+              <h4 style="font-size:15px; font-weight:800; color:#19251e; margin:0 0 2px 0;">Quick Add Item</h4>
+              <p style="font-size:12.5px; color:#6e7870; margin:0;">Add manually if product has no barcode</p>
+            </div>
+          </div>
+          <span style="font-size:18px; color:#6e7870;">➔</span>
+        </div>
+
+        <!-- Reduce Food Waste Promo Card -->
+        <div class="reduce-waste-card">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <img src="https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&w=160&q=80" alt="Fresh Produce" style="width:52px; height:52px; border-radius:14px; object-fit:cover;">
+            <div>
+              <h4 style="font-size:15px; font-weight:800; color:#19251e; margin:0 0 2px 0;">Reduce Food Waste</h4>
+              <p style="font-size:12.5px; color:#6e7870; margin:0;">Smart tracking for a sustainable tomorrow.</p>
+            </div>
+          </div>
+          <span style="font-size:18px; color:#6e7870;">🌿</span>
+        </div>
+
+        <!-- Today's Tip Card -->
+        <div class="todays-tip-card">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; font-weight:800; font-size:14px; color:#1e392a;">
+            <span>🌿</span> Today's Tip
+          </div>
+          <p style="margin:0; font-size:13px; color:#334139; line-height:1.45;">Store leafy greens with a dry paper towel in a sealed container to absorb excess moisture and keep them crisp up to 2x longer.</p>
+        </div>
+
+        <!-- Horizontal Quick Navigation Cards -->
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-top:8px;">
+          <div class="quick-link-card" onclick="window.router.navigate('expiry')">
+            <div class="quick-link-left">
+              <div class="quick-link-icon">📅</div>
+              <div class="quick-link-text">
+                <h5>Expiry Calendar</h5>
+                <p>Upcoming expiry items</p>
+              </div>
+            </div>
+            <div class="quick-arrow">➔</div>
+          </div>
+
+          <div class="quick-link-card" onclick="window.router.navigate('shopping-list')">
+            <div class="quick-link-left">
+              <div class="quick-link-icon">🛒</div>
+              <div class="quick-link-text">
+                <h5>Shopping List</h5>
+                <p>Manage restocking</p>
+              </div>
+            </div>
+            <div class="quick-arrow">➔</div>
+          </div>
+
+          <div class="quick-link-card" onclick="window.router.navigate('settings')">
+            <div class="quick-link-left">
+              <div class="quick-link-icon">⚙️</div>
+              <div class="quick-link-text">
+                <h5>Settings</h5>
+                <p>Account & alerts</p>
+              </div>
+            </div>
+            <div class="quick-arrow">➔</div>
+          </div>
+        </div>
       </section>
 
       <!-- ==========================================
@@ -1687,183 +1820,198 @@
      MANUAL ADD / EDIT ITEM MODAL
      ========================================== -->
 <div class="modal-overlay" id="itemFormModal" onclick="if(event.target === this) closeAddEditModal()">
-  <div class="modal-dialog">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-bold text-slate-900" id="itemFormTitle">＋ Add Item to Pantry</h3>
-      <button class="action-dots-btn" onclick="closeAddEditModal()">✕</button>
+  <div class="desktop-item-modal">
+    <!-- Modal Header -->
+    <div class="desktop-modal-header">
+      <div class="modal-header-left">
+        <div class="modal-basket-badge">🧺</div>
+        <div>
+          <h3 class="modal-title" id="itemFormTitle">Add Item to Pantry</h3>
+          <p class="modal-subtitle">Track expiry, stock levels, and shelf location</p>
+        </div>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeAddEditModal()" title="Close">✕</button>
     </div>
 
-    <form onsubmit="saveItemForm(event)" class="space-y-3">
-      <div class="space-y-3">
-        <!-- Item Name -->
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Item Name</label>
-          <input 
-            type="text" 
-            id="itemNameInput" 
-            class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none" 
-            placeholder="e.g. Fresh Strawberries" 
-            required
-          >
+    <form onsubmit="saveItemForm(event)">
+      <div class="modal-form-cols">
+        <!-- Left Column: Photo Upload Card -->
+        <div class="modal-photo-col">
+          <label class="form-label" style="margin-bottom:8px;">Item Photo <span class="optional-label">(Optional)</span></label>
+          <div class="photo-upload-box" id="itemPhotoDropArea" onclick="triggerItemPhotoUpload()">
+            <div id="photoPlaceholderContent" style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
+              <div class="photo-cam-icon">📷</div>
+              <div class="photo-upload-label">Upload Photo</div>
+              <span style="font-size:10.5px; color:#94a3b8; margin-top:2px;">PNG, JPG up to 5MB</span>
+            </div>
+            <img id="photoPreviewImg" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:14px;" alt="Item Preview">
+          </div>
+          <input type="file" id="itemPhotoFileInput" style="display:none;" accept="image/*" onchange="handleItemPhotoSelect(event)">
+          <input type="hidden" id="itemPhotoUrlInput">
+          <button type="button" id="photoRemoveBtn" style="display:none; margin-top:8px; width:100%; padding:6px; font-size:11px; font-weight:700; color:#ef4444; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; cursor:pointer;" onclick="removeItemPhoto()">✕ Remove Photo</button>
         </div>
 
-        <!-- Category Picker - Full width matching user Image 1 -->
-        <div class="category-picker-wrapper" id="categoryPickerWrapper">
-          <label class="block text-xs font-bold text-slate-700 mb-1">Category</label>
-          
-          <!-- Custom Trigger Button -->
-          <button type="button" id="categorySelectTrigger" class="category-select-trigger" onclick="toggleCategoryDropdown(event)">
-            <div class="category-trigger-left">
-              <img id="categoryTriggerImg" src="assets/categories/fruits.png" alt="Fruits" class="category-thumb-img">
-              <span id="categoryTriggerLabel">Fruits</span>
-            </div>
-            <span class="category-chevron">▾</span>
-          </button>
-
-          <!-- Hidden input for form integration -->
-          <input type="hidden" id="itemCategoryInput" value="Fruits">
-
-          <!-- Custom Animated Dropdown (Matches user Image 1) -->
-          <div id="categoryDropdownList" class="category-dropdown-card">
-            <div id="categorySlidingHighlight" class="category-sliding-highlight"></div>
-            <div class="category-options-container" id="categoryOptionsContainer">
-              <div class="category-row-option selected" data-value="Fruits" onclick="selectCategory('Fruits', event)">
-                <img src="assets/categories/fruits.png" alt="Fruits" class="category-row-img">
-                <span class="category-row-text">Fruits</span>
-              </div>
-              <div class="category-row-option" data-value="Vegetables" onclick="selectCategory('Vegetables', event)">
-                <img src="assets/categories/vegetables.png" alt="Vegetables" class="category-row-img">
-                <span class="category-row-text">Vegetables</span>
-              </div>
-              <div class="category-row-option" data-value="Dairy" onclick="selectCategory('Dairy', event)">
-                <img src="assets/categories/dairy.png" alt="Dairy" class="category-row-img">
-                <span class="category-row-text">Dairy</span>
-              </div>
-              <div class="category-row-option" data-value="Grains" onclick="selectCategory('Grains', event)">
-                <img src="assets/categories/grains.png" alt="Grains" class="category-row-img">
-                <span class="category-row-text">Grains</span>
-              </div>
-              <div class="category-row-option" data-value="Meat" onclick="selectCategory('Meat', event)">
-                <img src="assets/categories/meat.png" alt="Meat" class="category-row-img">
-                <span class="category-row-text">Meat</span>
-              </div>
-              <div class="category-row-option" data-value="Beverages" onclick="selectCategory('Beverages', event)">
-                <img src="assets/categories/beverages.png" alt="Beverages" class="category-row-img">
-                <span class="category-row-text">Beverages</span>
-              </div>
-              <div class="category-row-option" data-value="Pantry" onclick="selectCategory('Pantry', event)">
-                <img src="assets/categories/pantry.png" alt="Pantry" class="category-row-img">
-                <span class="category-row-text">Pantry</span>
-              </div>
-              <div class="category-row-option" data-value="Frozen" onclick="selectCategory('Frozen', event)">
-                <img src="assets/categories/frozen.png" alt="Frozen" class="category-row-img">
-                <span class="category-row-text">Frozen</span>
-              </div>
+        <!-- Right Column: Inputs -->
+        <div class="modal-inputs-col">
+          <!-- Item Name -->
+          <div class="form-field-group">
+            <label class="form-label">Item Name <span class="required-star">*</span></label>
+            <div class="input-with-icon">
+              <span class="input-icon">🏷️</span>
+              <input type="text" id="itemNameInput" placeholder="e.g. Fresh Strawberries, Organic Milk" required autocomplete="off">
             </div>
           </div>
-        </div>
 
-        <!-- Quantity & Unit Grid -->
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Quantity</label>
-            <input 
-              type="number" 
-              id="itemQuantityInput" 
-              class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-white outline-none" 
-              min="0.1" 
-              step="any" 
-              value="1" 
-              required
-            >
+          <!-- Category Picker - Custom Animated Dropdown (Matches user Image 1) -->
+          <div class="category-picker-wrapper" id="categoryPickerWrapper">
+            <label class="form-label">Category <span class="required-star">*</span></label>
+            <button type="button" id="categorySelectTrigger" class="category-select-trigger" onclick="toggleCategoryDropdown(event)">
+              <div class="category-trigger-left">
+                <img id="categoryTriggerImg" src="assets/categories/fruits.png" alt="Fruits" class="category-thumb-img">
+                <span id="categoryTriggerLabel">Fruits</span>
+              </div>
+              <span class="category-chevron">▾</span>
+            </button>
+            <input type="hidden" id="itemCategoryInput" value="Fruits">
+            <div id="categoryDropdownList" class="category-dropdown-card">
+              <div id="categorySlidingHighlight" class="category-sliding-highlight"></div>
+              <div class="category-options-container" id="categoryOptionsContainer">
+                <div class="category-row-option selected" data-value="Fruits" onclick="selectCategory('Fruits', event)">
+                  <img src="assets/categories/fruits.png" alt="Fruits" class="category-row-img">
+                  <span class="category-row-text">Fruits</span>
+                </div>
+                <div class="category-row-option" data-value="Vegetables" onclick="selectCategory('Vegetables', event)">
+                  <img src="assets/categories/vegetables.png" alt="Vegetables" class="category-row-img">
+                  <span class="category-row-text">Vegetables</span>
+                </div>
+                <div class="category-row-option" data-value="Dairy" onclick="selectCategory('Dairy', event)">
+                  <img src="assets/categories/dairy.png" alt="Dairy" class="category-row-img">
+                  <span class="category-row-text">Dairy</span>
+                </div>
+                <div class="category-row-option" data-value="Grains" onclick="selectCategory('Grains', event)">
+                  <img src="assets/categories/grains.png" alt="Grains" class="category-row-img">
+                  <span class="category-row-text">Grains</span>
+                </div>
+                <div class="category-row-option" data-value="Meat" onclick="selectCategory('Meat', event)">
+                  <img src="assets/categories/meat.png" alt="Meat" class="category-row-img">
+                  <span class="category-row-text">Meat</span>
+                </div>
+                <div class="category-row-option" data-value="Beverages" onclick="selectCategory('Beverages', event)">
+                  <img src="assets/categories/beverages.png" alt="Beverages" class="category-row-img">
+                  <span class="category-row-text">Beverages</span>
+                </div>
+                <div class="category-row-option" data-value="Pantry" onclick="selectCategory('Pantry', event)">
+                  <img src="assets/categories/pantry.png" alt="Pantry" class="category-row-img">
+                  <span class="category-row-text">Pantry</span>
+                </div>
+                <div class="category-row-option" data-value="Frozen" onclick="selectCategory('Frozen', event)">
+                  <img src="assets/categories/frozen.png" alt="Frozen" class="category-row-img">
+                  <span class="category-row-text">Frozen</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Unit</label>
-            <select id="itemUnitInput" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-white outline-none">
-              <option value="pcs">Pieces (pcs)</option>
-              <option value="kg">Kilograms (kg)</option>
-              <option value="g">Grams (g)</option>
-              <option value="L">Liters (L)</option>
-              <option value="ml">Milliliters (ml)</option>
-              <option value="pack">Pack</option>
-              <option value="box">Box</option>
-            </select>
-          </div>
-        </div>
+          <!-- Quantity with Stepper [− 1 ＋] & Unit Dropdown -->
+          <div class="form-row-2">
+            <div class="form-field-group">
+              <label class="form-label">Quantity <span class="required-star">*</span></label>
+              <div class="stepper-box">
+                <button type="button" class="stepper-btn" onclick="stepItemQuantity(-1)" title="Decrease">−</button>
+                <input type="number" id="itemQuantityInput" class="stepper-input" min="0.1" step="any" value="1" required>
+                <button type="button" class="stepper-btn" onclick="stepItemQuantity(1)" title="Increase">＋</button>
+              </div>
+            </div>
 
-        <!-- Expiry Date & Purchase Date -->
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Expiry Date</label>
-            <input 
-              type="date" 
-              id="itemExpiryInput" 
-              class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-white outline-none"
-            >
+            <div class="form-field-group">
+              <label class="form-label">Unit <span class="required-star">*</span></label>
+              <div class="select-with-chevron">
+                <select id="itemUnitInput">
+                  <option value="pcs">Pieces (pcs)</option>
+                  <option value="kg">Kilograms (kg)</option>
+                  <option value="g">Grams (g)</option>
+                  <option value="L">Liters (L)</option>
+                  <option value="ml">Milliliters (ml)</option>
+                  <option value="pack">Pack</option>
+                  <option value="box">Box</option>
+                </select>
+                <span class="select-chevron">▾</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Purchase Date</label>
-            <input 
-              type="date" 
-              id="itemPurchaseInput" 
-              class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-white outline-none"
-            >
-          </div>
-        </div>
 
-        <!-- Brand & Barcode -->
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Brand</label>
-            <input 
-              type="text" 
-              id="itemBrandInput" 
-              class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-white outline-none" 
-              placeholder="e.g. Amul, Organic Valley"
-            >
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Barcode (Optional)</label>
-            <input 
-              type="text" 
-              id="itemBarcodeInput" 
-              class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-white outline-none font-mono" 
-              placeholder="e.g. 890123456789"
-            >
-          </div>
-        </div>
+          <!-- Expiry Date & Purchase Date -->
+          <div class="form-row-2">
+            <div class="form-field-group">
+              <label class="form-label">Expiry Date</label>
+              <div class="input-with-icon">
+                <span class="input-icon">📅</span>
+                <input type="date" id="itemExpiryInput">
+              </div>
+            </div>
 
-        <!-- Storage Location & Minimum Stock -->
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Storage Location</label>
-            <select id="itemLocationInput" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-white outline-none">
-              <option value="Pantry">Pantry Shelf</option>
-              <option value="Fridge">Refrigerator</option>
-              <option value="Freezer">Freezer</option>
-            </select>
+            <div class="form-field-group">
+              <label class="form-label">Purchase Date</label>
+              <div class="input-with-icon">
+                <span class="input-icon">🛒</span>
+                <input type="date" id="itemPurchaseInput">
+              </div>
+            </div>
           </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Min Stock Threshold</label>
-            <input 
-              type="number" 
-              id="itemMinStockInput" 
-              class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-white outline-none" 
-              min="0" 
-              value="2"
-            >
+
+          <!-- Brand & Barcode with [⛶ Scan] button -->
+          <div class="form-row-2">
+            <div class="form-field-group">
+              <label class="form-label">Brand <span class="optional-label">(Optional)</span></label>
+              <div class="input-with-icon">
+                <span class="input-icon">🏢</span>
+                <input type="text" id="itemBrandInput" placeholder="e.g. Amul, Nestle">
+              </div>
+            </div>
+
+            <div class="form-field-group">
+              <label class="form-label">Barcode <span class="optional-label">(Optional)</span></label>
+              <div class="barcode-input-row">
+                <div class="input-with-icon" style="flex:1;">
+                  <span class="input-icon">⛶</span>
+                  <input type="text" id="itemBarcodeInput" placeholder="890123..." class="font-mono">
+                </div>
+                <button type="button" class="barcode-scan-btn" onclick="openBillScannerModal()" title="Scan barcode with camera">
+                  <span>⛶</span> Scan
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Storage Location & Minimum Stock Threshold -->
+          <div class="form-row-2">
+            <div class="form-field-group">
+              <label class="form-label">Storage Location</label>
+              <div class="select-with-chevron">
+                <select id="itemLocationInput">
+                  <option value="Pantry">Pantry Shelf</option>
+                  <option value="Fridge">Refrigerator</option>
+                  <option value="Freezer">Freezer</option>
+                </select>
+                <span class="select-chevron">▾</span>
+              </div>
+            </div>
+
+            <div class="form-field-group">
+              <label class="form-label">Low Stock Threshold</label>
+              <div class="input-with-icon">
+                <span class="input-icon">⚠️</span>
+                <input type="number" id="itemMinStockInput" min="0" value="2">
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-2 pt-4">
-        <button type="button" class="py-2.5 rounded-xl bg-slate-100 text-slate-700 font-semibold text-xs cursor-pointer hover:bg-slate-200" onclick="closeAddEditModal()">
-          Cancel
-        </button>
-        <button type="submit" id="saveItemButton" class="py-2.5 rounded-xl bg-emerald-600 text-white font-semibold text-xs cursor-pointer hover:bg-emerald-700">
-          Save Item
-        </button>
+      <!-- Modal Footer Actions -->
+      <div class="modal-footer-actions">
+        <button type="button" class="modal-cancel-btn" onclick="closeAddEditModal()">Cancel</button>
+        <button type="submit" id="saveItemButton" class="modal-submit-btn">＋ Add to Pantry</button>
       </div>
     </form>
   </div>

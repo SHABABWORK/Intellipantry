@@ -9,7 +9,7 @@ class AppRouter {
       dashboard: () => this.showDashboard(),
       inventory: () => this.showInventory(),
       "add-item": () => openAddEditModal(),
-      "scan-barcode": () => openBillScannerModal(),
+      "scan-barcode": () => this.showScanActions(),
       "billing-scan": () => this.showBillingScan(),
       "scan": () => this.showBillingScan(),
       "scan-bill": () => this.showBillingScan(),
@@ -52,10 +52,12 @@ class AppRouter {
     const insights = document.getElementById("insightsSection");
     const settings = document.getElementById("settingsSection");
     const billing = document.getElementById("billingScanSection");
+    const scanActions = document.getElementById("scanActionsSection");
     if (home) home.style.display = "block";
     if (insights) insights.style.display = "none";
     if (settings) settings.style.display = "none";
     if (billing) billing.style.display = "none";
+    if (scanActions) scanActions.style.display = "none";
     setCategoryFilter("All");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -65,10 +67,12 @@ class AppRouter {
     const insights = document.getElementById("insightsSection");
     const settings = document.getElementById("settingsSection");
     const billing = document.getElementById("billingScanSection");
+    const scanActions = document.getElementById("scanActionsSection");
     if (home) home.style.display = "block";
     if (insights) insights.style.display = "none";
     if (settings) settings.style.display = "none";
     if (billing) billing.style.display = "none";
+    if (scanActions) scanActions.style.display = "none";
     const tableSection = document.getElementById("inventorySection");
     if (tableSection) {
       tableSection.scrollIntoView({ behavior: "smooth" });
@@ -80,10 +84,12 @@ class AppRouter {
     const insights = document.getElementById("insightsSection");
     const settings = document.getElementById("settingsSection");
     const billing = document.getElementById("billingScanSection");
+    const scanActions = document.getElementById("scanActionsSection");
     if (home) home.style.display = "none";
     if (insights) insights.style.display = "flex";
     if (settings) settings.style.display = "none";
     if (billing) billing.style.display = "none";
+    if (scanActions) scanActions.style.display = "none";
     if (typeof window.renderInsightsView === "function") {
       window.renderInsightsView();
     }
@@ -95,10 +101,12 @@ class AppRouter {
     const insights = document.getElementById("insightsSection");
     const settings = document.getElementById("settingsSection");
     const billing = document.getElementById("billingScanSection");
+    const scanActions = document.getElementById("scanActionsSection");
     if (home) home.style.display = "none";
     if (insights) insights.style.display = "none";
     if (settings) settings.style.display = "flex";
     if (billing) billing.style.display = "none";
+    if (scanActions) scanActions.style.display = "none";
     if (typeof window.renderSettingsView === "function") {
       window.renderSettingsView();
     }
@@ -110,13 +118,29 @@ class AppRouter {
     const insights = document.getElementById("insightsSection");
     const settings = document.getElementById("settingsSection");
     const billing = document.getElementById("billingScanSection");
+    const scanActions = document.getElementById("scanActionsSection");
     if (home) home.style.display = "none";
     if (insights) insights.style.display = "none";
     if (settings) settings.style.display = "none";
     if (billing) billing.style.display = "block";
+    if (scanActions) scanActions.style.display = "none";
     if (window.BillingScan && typeof window.BillingScan.init === "function") {
       window.BillingScan.init();
     }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  showScanActions() {
+    const home = document.getElementById("dashboardHomeViews");
+    const insights = document.getElementById("insightsSection");
+    const settings = document.getElementById("settingsSection");
+    const billing = document.getElementById("billingScanSection");
+    const scanActions = document.getElementById("scanActionsSection");
+    if (home) home.style.display = "none";
+    if (insights) insights.style.display = "none";
+    if (settings) settings.style.display = "none";
+    if (billing) billing.style.display = "none";
+    if (scanActions) scanActions.style.display = "block";
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -148,9 +172,13 @@ class AppRouter {
     const home = document.getElementById("dashboardHomeViews");
     const insights = document.getElementById("insightsSection");
     const settings = document.getElementById("settingsSection");
+    const billing = document.getElementById("billingScanSection");
+    const scanActions = document.getElementById("scanActionsSection");
     if (home) home.style.display = "block";
     if (insights) insights.style.display = "none";
     if (settings) settings.style.display = "none";
+    if (billing) billing.style.display = "none";
+    if (scanActions) scanActions.style.display = "none";
     if (window.RecipeEngine && typeof window.RecipeEngine.scrollToRecipeKitchen === "function") {
       window.RecipeEngine.scrollToRecipeKitchen();
     }
@@ -239,8 +267,19 @@ function updateRealTimeClockAndDate() {
   const topbarClockEl = document.getElementById("topbarLiveClock");
   if (topbarClockEl) topbarClockEl.textContent = timeStr;
 
+  const dtDateEl = document.getElementById("datetimeDateDisplay");
+  if (dtDateEl) dtDateEl.textContent = now.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  const dtClockEl = document.getElementById("datetimeClockDisplay");
+  if (dtClockEl) dtClockEl.textContent = timeStr;
+
   // 4. Dynamic Time of Day Quote / Greeting
   const hour = now.getHours();
+  const greetingEl = document.getElementById("greetingTimeText");
+  if (greetingEl) {
+    if (hour < 12) greetingEl.textContent = "Good Morning";
+    else if (hour < 17) greetingEl.textContent = "Good Afternoon";
+    else greetingEl.textContent = "Good Evening";
+  }
   const quoteEl = document.getElementById("dynamicTimeQuote");
   if (quoteEl) {
     if (hour < 12) {

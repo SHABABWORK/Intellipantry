@@ -47,19 +47,62 @@ function setStatusFilter(status) {
 }
 
 // Render Inventory Table based on active filters
+let currentInventoryViewMode = "grid";
+try {
+  currentInventoryViewMode = localStorage.getItem("smartpantry_view_mode") || "grid";
+} catch(e) {}
+
+function setInventoryViewMode(mode) {
+  currentInventoryViewMode = mode;
+  try {
+    localStorage.setItem("smartpantry_view_mode", mode);
+  } catch(e) {}
+
+  const gridWrap = document.getElementById("inventoryCardsGrid");
+  const tableWrap = document.getElementById("inventoryTableWrapper");
+  const btnGrid = document.getElementById("viewToggleGrid");
+  const btnList = document.getElementById("viewToggleList");
+
+  if (mode === "list") {
+    if (gridWrap) gridWrap.style.display = "none";
+    if (tableWrap) tableWrap.style.display = "block";
+    if (btnGrid) btnGrid.classList.remove("active");
+    if (btnList) btnList.classList.add("active");
+  } else {
+    if (gridWrap) gridWrap.style.display = "grid";
+    if (tableWrap) tableWrap.style.display = "none";
+    if (btnGrid) btnGrid.classList.add("active");
+    if (btnList) btnList.classList.remove("active");
+  }
+}
+
+// Render Inventory Cards Grid & Table based on active filters
 function renderInventoryTable() {
   const tbody = document.getElementById("inventoryTableBody");
-  if (!tbody) return;
+  const cardsGrid = document.getElementById("inventoryCardsGrid");
+  if (!tbody && !cardsGrid) return;
+
+  updateCategoryPillCounts();
+  updateLiveDateTimeGreeting();
 
   if (window.store && window.store.isLoading) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="6" style="text-align:center; padding: 48px 16px; color: #64748b;">
-          <div style="display:inline-block; width: 32px; height: 32px; border: 3px solid rgba(16,185,129,0.2); border-top-color: #10b981; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px;"></div>
-          <p style="font-size: 14.5px; font-weight: 600; color: #1e392a; margin: 0;">Loading pantry items from Supabase...</p>
-        </td>
-      </tr>
+    const loadingHtml = `
+      <div style="grid-column: 1 / -1; text-align:center; padding: 48px 16px; color: #64748b;">
+        <div style="display:inline-block; width: 32px; height: 32px; border: 3px solid rgba(30,57,42,0.2); border-top-color: #1e392a; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px;"></div>
+        <p style="font-size: 14.5px; font-weight: 600; color: #1e392a; margin: 0;">Loading pantry items from Supabase...</p>
+      </div>
     `;
+    if (cardsGrid) cardsGrid.innerHTML = loadingHtml;
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align:center; padding: 48px 16px; color: #64748b;">
+            <div style="display:inline-block; width: 32px; height: 32px; border: 3px solid rgba(30,57,42,0.2); border-top-color: #1e392a; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px;"></div>
+            <p style="font-size: 14.5px; font-weight: 600; color: #1e392a; margin: 0;">Loading pantry items from Supabase...</p>
+          </td>
+        </tr>
+      `;
+    }
     return;
   }
 
@@ -96,103 +139,354 @@ function renderInventoryTable() {
   });
 
   if (allItems.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="6" style="text-align:center; padding: 48px 16px; color: #64748b;">
-          <div style="font-size: 44px; margin-bottom: 12px;">🥣</div>
-          <p style="font-size: 16.5px; font-weight: 700; color: #1e392a; margin-bottom: 6px;">Your pantry is empty. Add your first product to get started.</p>
-          <p style="font-size: 13px; color: #94a3b8; margin-bottom: 20px;">Track shelf-life, scan receipts, and unlock recipes with the ingredients you have.</p>
-          <button type="button" class="btn-forest-submit" onclick="openAddEditModal()" style="display:inline-flex; align-items:center; gap:8px; padding:10px 22px; font-size:13.5px; border-radius:12px; width:auto; margin:0 auto; cursor:pointer;">
-            <span>+</span> Add Your First Product
-          </button>
-        </td>
-      </tr>
+    const emptyAllHtml = `
+      <div style="grid-column: 1 / -1; text-align:center; padding: 56px 20px; background: #ffffff; border-radius: 22px; border: 1.5px dashed #eae6dc; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+        <div style="font-size: 48px; margin-bottom: 12px;">🥣</div>
+        <h3 style="font-size: 19px; font-weight: 800; color: #1e392a; margin-bottom: 6px;">Your pantry is empty. Add your first product to get started.</h3>
+        <p style="font-size: 13.5px; color: #6e7870; margin-bottom: 22px; max-width: 460px; margin-left: auto; margin-right: auto;">Track shelf-life, scan receipts, and unlock recipes with the ingredients you have.</p>
+        <button type="button" class="btn-add-pantry" onclick="openAddEditModal()" style="margin: 0 auto;">
+          <span>+</span> Add Your First Product
+        </button>
+      </div>
     `;
+    if (cardsGrid) cardsGrid.innerHTML = emptyAllHtml;
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align:center; padding: 48px 16px; color: #64748b;">
+            <div style="font-size: 44px; margin-bottom: 12px;">🥣</div>
+            <p style="font-size: 16.5px; font-weight: 700; color: #1e392a; margin-bottom: 6px;">Your pantry is empty. Add your first product to get started.</p>
+            <p style="font-size: 13px; color: #94a3b8; margin-bottom: 20px;">Track shelf-life, scan receipts, and unlock recipes with the ingredients you have.</p>
+            <button type="button" class="btn-forest-submit" onclick="openAddEditModal()" style="display:inline-flex; align-items:center; gap:8px; padding:10px 22px; font-size:13.5px; border-radius:12px; width:auto; margin:0 auto; cursor:pointer;">
+              <span>+</span> Add Your First Product
+            </button>
+          </td>
+        </tr>
+      `;
+    }
     return;
   }
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="6" style="text-align:center; padding: 36px 16px; color: #94a3b8;">
-          <div style="font-size: 32px; margin-bottom: 8px;">🔍</div>
-          <p style="font-weight: 600; color: #64748b;">No items match your filter criteria</p>
-          <small>Try selecting "All" or clearing your search query</small>
-        </td>
-      </tr>
+    const emptyFilteredHtml = `
+      <div style="grid-column: 1 / -1; text-align:center; padding: 44px 16px; background: #ffffff; border-radius: 20px; border: 1.5px dashed #eae6dc;">
+        <div style="font-size: 36px; margin-bottom: 8px;">🔍</div>
+        <p style="font-size: 15px; font-weight: 700; color: #19251e; margin-bottom: 4px;">No items match your filter criteria</p>
+        <p style="font-size: 13px; color: #6e7870; margin: 0;">Try selecting "All" or clearing your search query</p>
+      </div>
     `;
+    if (cardsGrid) cardsGrid.innerHTML = emptyFilteredHtml;
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align:center; padding: 36px 16px; color: #94a3b8;">
+            <div style="font-size: 32px; margin-bottom: 8px;">🔍</div>
+            <p style="font-weight: 600; color: #64748b;">No items match your filter criteria</p>
+            <small>Try selecting "All" or clearing your search query</small>
+          </td>
+        </tr>
+      `;
+    }
     return;
   }
 
-  tbody.innerHTML = filtered.map(item => {
-    const computedStatus = window.store.calculateStatus(item.expiryDate, item.quantity, item.minStock, warnDays);
-    const rel = window.formatRelativeExpiry ? window.formatRelativeExpiry(item.expiryDate, warnDays) : { text: item.expiryDate || "—", urgent: false, days: null };
+  // 1. Render Grocery Cards Grid (Matches Screenshot Image 1)
+  if (cardsGrid) {
+    cardsGrid.innerHTML = filtered.map(item => {
+      const computedStatus = window.store.calculateStatus(item.expiryDate, item.quantity, item.minStock, warnDays);
+      const rel = window.formatRelativeExpiry ? window.formatRelativeExpiry(item.expiryDate, warnDays) : { text: item.expiryDate || "—", urgent: false, days: null };
 
-    let statusClass = "status-fresh";
-    let statusLabel = "Fresh";
+      let statusDotClass = "dot-fresh";
+      let statusTextClass = "status-label-fresh";
+      let statusLabel = "Fresh";
 
-    if (computedStatus === "Expired" || (rel.days !== null && rel.days < 0)) {
-      statusClass = "status-expired";
-      statusLabel = "Expired";
-    } else if (computedStatus === "Expiring Soon" || (rel.days !== null && rel.days <= warnDays)) {
-      statusClass = "status-expiring";
-      statusLabel = "Expiring Soon";
-    } else if (computedStatus === "Low Stock" || Number(item.quantity) <= (item.minStock !== undefined ? Number(item.minStock) : 2)) {
-      statusClass = "status-low";
-      statusLabel = "Low Stock";
-    }
+      if (computedStatus === "Expired" || (rel.days !== null && rel.days < 0)) {
+        statusDotClass = "dot-expired";
+        statusTextClass = "status-label-expired";
+        statusLabel = "Expired";
+      } else if (computedStatus === "Expiring Soon" || (rel.days !== null && rel.days <= warnDays)) {
+        statusDotClass = "dot-usesoon";
+        statusTextClass = "status-label-usesoon";
+        statusLabel = "Use Soon";
+      } else if (computedStatus === "Low Stock" || Number(item.quantity) <= (item.minStock !== undefined ? Number(item.minStock) : 2)) {
+        statusDotClass = "dot-usesoon";
+        statusTextClass = "status-label-usesoon";
+        statusLabel = "Low Stock";
+      }
 
-    const isUrgent = rel.urgent || statusLabel === "Expiring Soon" || statusLabel === "Expired";
-    const dateFormatted = formatDate(item.expiryDate);
-    const catName = item.category || "Pantry";
+      const dateFormatted = formatDate(item.expiryDate);
+      const catName = item.category || "Pantry";
+      const catLower = catName.toLowerCase();
 
-    return `
-      <tr data-id="${item.id}">
-        <td>
-          <div class="item-cell">
-            <div class="item-thumb">${item.imageUrl ? `<img src="${escapeHTML(item.imageUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" onerror="this.outerHTML='${item.emoji || "📦"}'">` : (item.emoji || "📦")}</div>
-            <div>
-              <span style="font-weight: 700; color: #0f172a;">${escapeHTML(item.name)}</span>
-              ${item.brand ? `<div style="font-size:11px; color:#64748b; font-weight:500;">${escapeHTML(item.brand)}</div>` : ''}
-              ${item.barcode ? `<div style="font-size:10px; color:#94a3b8; font-family:monospace;">${escapeHTML(item.barcode)}</div>` : ''}
+      let imgHtml = "";
+      if (item.imageUrl) {
+        imgHtml = `<img src="${escapeHTML(item.imageUrl)}" alt="${escapeHTML(item.name)}" class="grocery-card-img" onerror="this.onerror=null; this.src='assets/categories/${catLower}.png';">`;
+      } else {
+        imgHtml = `<img src="assets/categories/${catLower}.png" alt="${escapeHTML(item.name)}" class="grocery-card-img" onerror="this.onerror=null; this.outerHTML='<span style=\\'font-size:44px;\\'>${item.emoji || "📦"}</span>';">`;
+      }
+
+      return `
+        <div class="grocery-card" data-id="${item.id}">
+          <div class="grocery-card-top">
+            <div style="position:relative;">
+              <button type="button" class="grocery-menu-btn" onclick="toggleGroceryCardMenu('${item.id}', event)" title="Item Actions">⋮</button>
+              <div id="cardMenu_${item.id}" class="grocery-card-dropdown" style="display:none;">
+                <button type="button" onclick="openAddEditModal('${item.id}')">✏️ Edit Item</button>
+                <button type="button" onclick="consumePantryItem('${item.id}')">🍴 Use / Consume</button>
+                <button type="button" onclick="addItemToShoppingList('${escapeHTML(item.name)}')">🛒 Add to Shopping List</button>
+                <button type="button" style="color:#ef4444;" onclick="deletePantryItem('${item.id}')">🗑️ Delete</button>
+              </div>
             </div>
           </div>
-        </td>
-        <td style="color: #64748b;">
-          <span style="display:inline-flex; align-items:center; gap:6px;">
-            <img src="assets/categories/${catName.toLowerCase()}.png" alt="" style="width:20px; height:18px; object-fit:contain;" onerror="this.style.display='none'">
-            <span>${escapeHTML(catName)}</span>
-          </span>
-          ${item.storageLocation ? `<div style="font-size:10.5px; color:#94a3b8; margin-top:2px;">📍 ${escapeHTML(item.storageLocation)}</div>` : ''}
-        </td>
-        <td style="font-weight: 600;">
-          ${item.quantity} ${escapeHTML(item.unit || "pcs")}
-          ${item.minStock !== undefined ? `<div style="font-size:10.5px; color:#94a3b8; font-weight:400;">Min: ${item.minStock}</div>` : ''}
-        </td>
-        <td class="${isUrgent ? "expiry-urgent" : ""}">
-          <div style="display:flex; flex-direction:column; gap:2px;">
-            <span style="font-weight: 600;">${dateFormatted}</span>
-            ${item.expiryDate ? `<span style="font-size: 11px; font-weight: 700; color: ${rel.days < 0 ? '#ef4444' : (rel.days <= 7 ? '#d97706' : '#10b981')};">${rel.text}</span>` : `<span style="font-size: 11px; color:#94a3b8;">No expiry set</span>`}
+          <div class="grocery-img-wrap">
+            ${imgHtml}
           </div>
-        </td>
-        <td>
-          <span class="badge-status ${statusClass}">
-            ${escapeHTML(statusLabel)}
-          </span>
-        </td>
-        <td style="text-align: right;">
-          <div style="display: flex; justify-content: flex-end; gap: 4px;">
-            <button class="action-dots-btn" onclick="openAddEditModal('${item.id}')" title="Edit Item">
-              ✏️
-            </button>
-            <button class="action-dots-btn" onclick="deletePantryItem('${item.id}')" title="Delete Item">
-              🗑️
-            </button>
+          <div class="grocery-card-body">
+            <h4 class="grocery-name">${escapeHTML(item.name)}</h4>
+            <div class="grocery-qty">${item.quantity} ${escapeHTML(item.unit || "pieces")}</div>
+            <div class="grocery-status-row">
+              <span class="grocery-status-dot ${statusDotClass}"></span>
+              <span class="${statusTextClass}">${escapeHTML(statusLabel)}</span>
+            </div>
+            <div class="grocery-exp-date">Exp: ${dateFormatted}</div>
           </div>
-        </td>
-      </tr>
-    `;
-  }).join("");
+        </div>
+      `;
+    }).join("");
+  }
+
+  // 2. Render Table Rows for List View
+  if (tbody) {
+    tbody.innerHTML = filtered.map(item => {
+      const computedStatus = window.store.calculateStatus(item.expiryDate, item.quantity, item.minStock, warnDays);
+      const rel = window.formatRelativeExpiry ? window.formatRelativeExpiry(item.expiryDate, warnDays) : { text: item.expiryDate || "—", urgent: false, days: null };
+
+      let statusClass = "status-fresh";
+      let statusLabel = "Fresh";
+
+      if (computedStatus === "Expired" || (rel.days !== null && rel.days < 0)) {
+        statusClass = "status-expired";
+        statusLabel = "Expired";
+      } else if (computedStatus === "Expiring Soon" || (rel.days !== null && rel.days <= warnDays)) {
+        statusClass = "status-expiring";
+        statusLabel = "Expiring Soon";
+      } else if (computedStatus === "Low Stock" || Number(item.quantity) <= (item.minStock !== undefined ? Number(item.minStock) : 2)) {
+        statusClass = "status-low";
+        statusLabel = "Low Stock";
+      }
+
+      const isUrgent = rel.urgent || statusLabel === "Expiring Soon" || statusLabel === "Expired";
+      const dateFormatted = formatDate(item.expiryDate);
+      const catName = item.category || "Pantry";
+
+      return `
+        <tr data-id="${item.id}">
+          <td>
+            <div class="item-cell">
+              <div class="item-thumb">${item.imageUrl ? `<img src="${escapeHTML(item.imageUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" onerror="this.outerHTML='${item.emoji || "📦"}'">` : (item.emoji || "📦")}</div>
+              <div>
+                <span style="font-weight: 700; color: #0f172a;">${escapeHTML(item.name)}</span>
+                ${item.brand ? `<div style="font-size:11px; color:#64748b; font-weight:500;">${escapeHTML(item.brand)}</div>` : ''}
+                ${item.barcode ? `<div style="font-size:10px; color:#94a3b8; font-family:monospace;">${escapeHTML(item.barcode)}</div>` : ''}
+              </div>
+            </div>
+          </td>
+          <td style="color: #64748b;">
+            <span style="display:inline-flex; align-items:center; gap:6px;">
+              <img src="assets/categories/${catName.toLowerCase()}.png" alt="" style="width:20px; height:18px; object-fit:contain;" onerror="this.style.display='none'">
+              <span>${escapeHTML(catName)}</span>
+            </span>
+            ${item.storageLocation ? `<div style="font-size:10.5px; color:#94a3b8; margin-top:2px;">📍 ${escapeHTML(item.storageLocation)}</div>` : ''}
+          </td>
+          <td style="font-weight: 600;">
+            ${item.quantity} ${escapeHTML(item.unit || "pcs")}
+            ${item.minStock !== undefined ? `<div style="font-size:10.5px; color:#94a3b8; font-weight:400;">Min: ${item.minStock}</div>` : ''}
+          </td>
+          <td class="${isUrgent ? "expiry-urgent" : ""}">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-weight: 600;">${dateFormatted}</span>
+              ${item.expiryDate ? `<span style="font-size: 11px; font-weight: 700; color: ${rel.days < 0 ? '#ef4444' : (rel.days <= 7 ? '#d97706' : '#10b981')};">${rel.text}</span>` : `<span style="font-size: 11px; color:#94a3b8;">No expiry set</span>`}
+            </div>
+          </td>
+          <td>
+            <span class="badge-status ${statusClass}">
+              ${escapeHTML(statusLabel)}
+            </span>
+          </td>
+          <td style="text-align: right;">
+            <div style="display: flex; justify-content: flex-end; gap: 4px;">
+              <button class="action-dots-btn" onclick="openAddEditModal('${item.id}')" title="Edit Item">
+                ✏️
+              </button>
+              <button class="action-dots-btn" onclick="deletePantryItem('${item.id}')" title="Delete Item">
+                🗑️
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  // Ensure active view mode is respected
+  setInventoryViewMode(currentInventoryViewMode);
+}
+
+// Category filter chip handling with real-time count updating
+function updateCategoryPillCounts() {
+  const all = window.store ? window.store.getItems() : [];
+  const counts = { All: all.length };
+  all.forEach(i => {
+    const cat = i.category || "Pantry";
+    counts[cat] = (counts[cat] || 0) + 1;
+  });
+  document.querySelectorAll(".pantry-pill, .chip-btn").forEach(btn => {
+    const cat = btn.getAttribute("data-category");
+    if (!cat) return;
+    const count = counts[cat] || 0;
+    const countEl = btn.querySelector(".pill-count");
+    if (countEl) {
+      countEl.textContent = `(${count})`;
+    } else {
+      const base = btn.getAttribute("data-base-name") || btn.innerText.replace(/\(\d+\)/g, "").trim();
+      btn.setAttribute("data-base-name", base);
+      btn.innerHTML = `${base} <span class="pill-count" style="opacity:0.8; font-size:12px;">(${count})</span>`;
+    }
+  });
+}
+
+// Dynamic Time Greeting & Live Date/Clock
+function updateLiveDateTimeGreeting() {
+  const now = new Date();
+  const hours = now.getHours();
+  let timeGreeting = "Good Evening";
+  if (hours < 12) {
+    timeGreeting = "Good Morning";
+  } else if (hours < 17) {
+    timeGreeting = "Good Afternoon";
+  }
+
+  const greetingEl = document.getElementById("greetingTimeText");
+  if (greetingEl) {
+    greetingEl.textContent = timeGreeting;
+  }
+
+  const user = (typeof getCurrentUserInfo === "function" ? getCurrentUserInfo() : null) || {};
+  let userName = user.name || user.fullName || "Shabab";
+  if (userName.includes("@")) userName = userName.split("@")[0];
+  const welcomeUserEl = document.getElementById("welcomeUserName");
+  if (welcomeUserEl && (!welcomeUserEl.textContent || welcomeUserEl.textContent === "User")) {
+    welcomeUserEl.textContent = userName;
+  }
+
+  const timeStr = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
+  const clockEl = document.getElementById("datetimeClockDisplay");
+  if (clockEl) clockEl.textContent = timeStr;
+  const topClock = document.getElementById("topbarLiveClock");
+  if (topClock) topClock.textContent = timeStr;
+
+  const dateStr = now.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  const dateEl = document.getElementById("datetimeDateDisplay");
+  if (dateEl) dateEl.textContent = dateStr;
+}
+
+// Stepper for Add/Edit Modal
+function stepItemQuantity(delta) {
+  const input = document.getElementById("itemQuantityInput");
+  if (!input) return;
+  let val = parseFloat(input.value) || 1;
+  val = Math.max(0.1, Math.round((val + delta) * 10) / 10);
+  input.value = val;
+}
+
+// Photo Upload Helpers for Add/Edit Modal
+function triggerItemPhotoUpload() {
+  const input = document.getElementById("itemPhotoFileInput");
+  if (input) input.click();
+}
+
+function handleItemPhotoSelect(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    const preview = document.getElementById("photoPreviewImg");
+    const placeholder = document.getElementById("photoPlaceholderContent");
+    const removeBtn = document.getElementById("photoRemoveBtn");
+    const urlInput = document.getElementById("itemPhotoUrlInput");
+    if (preview) {
+      preview.src = dataUrl;
+      preview.style.display = "block";
+    }
+    if (placeholder) placeholder.style.display = "none";
+    if (removeBtn) removeBtn.style.display = "inline-block";
+    if (urlInput) urlInput.value = dataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeItemPhoto() {
+  const fileInput = document.getElementById("itemPhotoFileInput");
+  if (fileInput) fileInput.value = "";
+  const preview = document.getElementById("photoPreviewImg");
+  const placeholder = document.getElementById("photoPlaceholderContent");
+  const removeBtn = document.getElementById("photoRemoveBtn");
+  const urlInput = document.getElementById("itemPhotoUrlInput");
+  if (preview) {
+    preview.src = "";
+    preview.style.display = "none";
+  }
+  if (placeholder) placeholder.style.display = "flex";
+  if (removeBtn) removeBtn.style.display = "none";
+  if (urlInput) urlInput.value = "";
+}
+
+// Grocery card 3-dot dropdown menu toggling
+function toggleGroceryCardMenu(id, e) {
+  if (e) e.stopPropagation();
+  const menu = document.getElementById(`cardMenu_${id}`);
+  const allMenus = document.querySelectorAll(".grocery-card-dropdown");
+  allMenus.forEach(m => {
+    if (m !== menu) m.style.display = "none";
+  });
+  if (menu) {
+    menu.style.display = menu.style.display === "block" ? "none" : "block";
+  }
+}
+
+document.addEventListener("click", () => {
+  document.querySelectorAll(".grocery-card-dropdown").forEach(m => m.style.display = "none");
+});
+
+// Grocery card consume helper
+async function consumePantryItem(id) {
+  const item = window.store.getItemById(id);
+  if (!item) return;
+  const currentQty = parseFloat(item.quantity) || 1;
+  if (currentQty <= 1) {
+    if (confirm(`You have 1 ${item.unit || "unit"} left of "${item.name}". Mark as completely consumed?`)) {
+      await window.store.deleteItem(id);
+      showToast(`Consumed all "${item.name}"`);
+      renderInventoryTable();
+      updateMetricsDisplay();
+    }
+  } else {
+    await window.store.updateItem(id, { quantity: currentQty - 1 });
+    showToast(`Consumed 1 ${item.unit || "unit"} of "${item.name}" (${currentQty - 1} left)`);
+    renderInventoryTable();
+    updateMetricsDisplay();
+  }
+}
+
+// Grocery card add to shopping list helper
+function addItemToShoppingList(name) {
+  if (window.RecipeEngine && typeof window.RecipeEngine.addToShoppingList === "function") {
+    window.RecipeEngine.addToShoppingList(name, 1, "item");
+    showToast(`Added "${name}" to shopping list!`);
+  } else {
+    showToast(`Added "${name}" to shopping list!`);
+  }
 }
 
 // Category filter chip handling
@@ -270,6 +564,19 @@ function openAddEditModal(id = null) {
       if (barcodeInput) barcodeInput.value = item.barcode || "";
       if (locationInput) locationInput.value = item.storageLocation || item.location || "Pantry";
       if (minStockInput) minStockInput.value = item.minStock !== undefined ? item.minStock : 2;
+
+      const preview = document.getElementById("photoPreviewImg");
+      const placeholder = document.getElementById("photoPlaceholderContent");
+      const removeBtn = document.getElementById("photoRemoveBtn");
+      const urlInput = document.getElementById("itemPhotoUrlInput");
+      if (item.imageUrl) {
+        if (preview) { preview.src = item.imageUrl; preview.style.display = "block"; }
+        if (placeholder) placeholder.style.display = "none";
+        if (removeBtn) removeBtn.style.display = "inline-block";
+        if (urlInput) urlInput.value = item.imageUrl;
+      } else {
+        if (typeof removeItemPhoto === "function") removeItemPhoto();
+      }
     }
   } else {
     if (title) title.textContent = "＋ Add Item to Pantry";
@@ -283,6 +590,7 @@ function openAddEditModal(id = null) {
     if (barcodeInput) barcodeInput.value = "";
     if (locationInput) locationInput.value = "Pantry";
     if (minStockInput) minStockInput.value = "2";
+    if (typeof removeItemPhoto === "function") removeItemPhoto();
   }
 
   setTimeout(() => {
@@ -313,6 +621,8 @@ async function saveItemForm(e) {
   const barcodeInput = document.getElementById("itemBarcodeInput");
   const locationInput = document.getElementById("itemLocationInput");
   const minStockInput = document.getElementById("itemMinStockInput");
+  const photoInput = document.getElementById("itemPhotoUrlInput");
+  const imageUrl = photoInput ? photoInput.value : "";
 
   const name = nameInput ? nameInput.value.trim() : "";
   const category = catInput ? catInput.value : "Fruits";
@@ -332,41 +642,33 @@ async function saveItemForm(e) {
   }
 
   const submitBtn = document.querySelector("#itemFormModal button[type='submit']") || 
-                    document.querySelector("#itemFormModal .btn-forest-submit");
-  const origBtnText = submitBtn ? submitBtn.innerText : "Save Product";
+                    document.querySelector("#itemFormModal .modal-submit-btn");
+  const origBtnText = submitBtn ? submitBtn.innerText : "＋ Add to Pantry";
   if (submitBtn) {
     submitBtn.disabled = true;
     submitBtn.innerText = editingItemId ? "Updating..." : "Saving to database...";
   }
 
   try {
+    const itemData = {
+      name,
+      category,
+      quantity,
+      unit,
+      expiryDate,
+      purchaseDate,
+      brand,
+      barcode,
+      storageLocation,
+      minStock,
+      ...(imageUrl ? { imageUrl } : {})
+    };
+
     if (editingItemId) {
-      await window.store.updateItem(editingItemId, {
-        name,
-        category,
-        quantity,
-        unit,
-        expiryDate,
-        purchaseDate,
-        brand,
-        barcode,
-        storageLocation,
-        minStock
-      });
+      await window.store.updateItem(editingItemId, itemData);
       showToast(`Updated "${name}"`);
     } else {
-      await window.store.addItem({
-        name,
-        category,
-        quantity,
-        unit,
-        expiryDate,
-        purchaseDate,
-        brand,
-        barcode,
-        storageLocation,
-        minStock
-      });
+      await window.store.addItem(itemData);
       showToast(`Added "${name}" to pantry!`);
     }
 
