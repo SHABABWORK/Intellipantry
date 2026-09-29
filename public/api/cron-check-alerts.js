@@ -1,0 +1,766 @@
+/**
+ * Vercel Serverless Function: api/cron-check-alerts.js
+ * Automated Pantry Email Alert & Deduplication System
+ * 
+ * Capabilities:
+ * 1. Automatic Vercel Cron scheduled checks (e.g. daily at 08:00 UTC) via GET /api/cron-check-alerts
+ * 2. Authenticated user-triggered checks via POST /api/cron-check-alerts with user JWT
+ * 3. Detects expired products, products approaching expiry, and low-stock products
+ * 4. Strictly respects user email notification preferences (alert_expiry, alert_expired, alert_low_stock)
+ * 5. Robust 24-hour deduplication window per (user_id, product_id, alert_type) stored in Supabase
+ * 6. Records all triggered alerts into public.alerts linked to the user's ID
+ * 7. Records email deliveries into public.email_notifications audit log
+ * 8. Zero frontend secrets: all Resend and Supabase keys read strictly server-side
+ */
+
+function cleanString(val) {
+  if (!val || typeof val !== "string") return "";
+  let s = val.trim();
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    s = s.substring(1, s.length - 1).trim();
+  }
+  return s;
+}
+
+// Resolve Supabase Project URL safely
+function getSupabaseUrl() {
+  const candidates = [
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_PROJECT_URL,
+    process.env.SUPABASE_PROJECT_URL,
+    process.env.NEXT_PUBLIC_PROJECT_URL,
+    process.env.PROJECT_URL
+  ];
+
+  for (const c of candidates) {
+    const raw = cleanString(c);
+    if (!raw) continue;
+    if (raw.startsWith("sb_publishable_") || raw.startsWith("sb_secret_") || raw.startsWith("eyJ")) continue;
+    if (raw.startsWith("https://") && !raw.includes("your-project")) {
+      return raw.replace(/\/+$/, "");
+    }
+    if (/^[a-z0-9-]+\.supabase\.co/i.test(raw)) {
+      return `https://${raw.replace(/\/+$/, "")}`;
+    }
+  }
+
+  // Fallback scan
+  for (const [k, v] of Object.entries(process.env)) {
+    if (typeof v !== "string" || !v.includes(".supabase.co")) continue;
+    const raw = cleanString(v);
+    if (raw.startsWith("https://") && !raw.includes("your-project")) {
+      return raw.replace(/\/+$/, "");
+    }
+  }
+
+  return "https://wzszikfgxquqezsmlvcr.supabase.co";
+}
+
+// Resolve Supabase Keys (Public Anon & Service Role)
+function getSupabaseKeys() {
+  const serviceCandidates = [
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    process.env.SUPABASE_SERVICE_KEY,
+    process.env.SERVICE_ROLE_KEY
+  ];
+  let serviceRoleKey = null;
+  for (const k of serviceCandidates) {
+    const raw = cleanString(k);
+    if (raw && (raw.startsWith("sb_secret_") || raw.startsWith("eyJ")) && raw.length > 20) {
+      serviceRoleKey = raw;
+      break;
+    }
+  }
+
+  const anonCandidates = [
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    process.env.SUPABASE_ANON_KEY,
+    process.env.NEXT_PUBLIC_SUPABASE_KEY,
+    process.env.SUPABASE_KEY,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  ];
+  let anonKey = null;
+  for (const k of anonCandidates) {
+    const raw = cleanString(k);
+    if (!raw) continue;
+    if (raw.startsWith("sb_secret_")) continue;
+    if ((raw.startsWith("sb_publishable_") || raw.startsWith("eyJ")) && raw.length > 20) {
+      anonKey = raw;
+      break;
+    }
+    if (raw.length > 20 && !raw.includes("your-anon-key")) {
+      anonKey = raw;
+      break;
+    }
+  }
+
+  return { serviceRoleKey, anonKey };
+}
+
+// Format Date YYYY-MM-DD
+function parseDateString(dateVal) {
+  if (!dateVal) return null;
+  if (typeof dateVal === "string") {
+    // If YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateVal.trim())) {
+      return dateVal.trim();
+    }
+    // If DD/MM/YYYY
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateVal.trim())) {
+      const parts = dateVal.trim().split("/");
+      return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+    }
+  }
+  try {
+    const d = new Date(dateVal);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().split("T")[0];
+    }
+  } catch (e) {}
+  return null;
+}
+
+// Helper to make authenticated Supabase REST calls
+async function supabaseFetch(url, authHeaderKey, token = null, method = "GET", body = null) {
+  const headers = {
+    "apikey": authHeaderKey,
+    "Authorization": `Bearer ${token || authHeaderKey}`,
+    "Content-Type": "application/json"
+  };
+
+  const options = { method, headers };
+  if (body) {
+    options.body = JSON.stringify(body);
+  }
+
+  const resp = await fetch(url, options);
+  let json = null;
+  try {
+    json = await resp.json();
+  } catch (e) {
+    json = null;
+  }
+  return { ok: resp.ok, status: resp.status, data: json };
+}
+
+// HTML Email Generator
+function buildAlertEmailHtml(userName, alertsData) {
+  const { expired = [], expiring = [], lowStock = [] } = alertsData;
+
+  const appBaseUrl = (process.env.SITE_URL || "https://www.intellipantry.in").replace(/\/+$/, "");
+
+  let sectionsHtml = "";
+
+  // 1. Expired Items Section
+  if (expired.length > 0) {
+    sectionsHtml += `
+      <div style="background:#fff5f5; border:1px solid #fed7d7; border-radius:14px; padding:18px 20px; margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <span style="font-size:18px;">⚠️</span>
+          <h3 style="margin:0; font-size:15px; font-weight:700; color:#c53030;">Expired Products (${expired.length})</h3>
+        </div>
+        <p style="margin:0 0 12px; font-size:13px; color:#742a2a; line-height:1.5;">
+          These items have passed their expiration date and should be inspected or safely discarded:
+        </p>
+        <ul style="margin:0; padding-left:20px; font-size:13.5px; color:#4a1515;">
+          ${expired.map(i => `
+            <li style="padding:4px 0;">
+              <strong>${i.name}</strong> — ${i.quantity} ${i.unit}
+              <span style="color:#e53e3e; font-weight:600; font-size:12px; background:#fff; padding:2px 6px; border-radius:6px; border:1px solid #feb2b2; margin-left:6px;">
+                Expired: ${i.expiryDate || "Past date"}
+              </span>
+              ${i.location ? `<span style="color:#718096; font-size:12px;"> • Location: ${i.location}</span>` : ""}
+            </li>
+          `).join("")}
+        </ul>
+      </div>
+    `;
+  }
+
+  // 2. Expiring Soon Section
+  if (expiring.length > 0) {
+    sectionsHtml += `
+      <div style="background:#fffaf0; border:1px solid #feebc8; border-radius:14px; padding:18px 20px; margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <span style="font-size:18px;">⏰</span>
+          <h3 style="margin:0; font-size:15px; font-weight:700; color:#c05621;">Approaching Expiry (${expiring.length})</h3>
+        </div>
+        <p style="margin:0 0 12px; font-size:13px; color:#7b341e; line-height:1.5;">
+          These products will expire soon. Plan your meals to use them before they go to waste:
+        </p>
+        <ul style="margin:0; padding-left:20px; font-size:13.5px; color:#552817;">
+          ${expiring.map(i => `
+            <li style="padding:4px 0;">
+              <strong>${i.name}</strong> — ${i.quantity} ${i.unit}
+              <span style="color:#d69e2e; font-weight:600; font-size:12px; background:#fff; padding:2px 6px; border-radius:6px; border:1px solid #fbd38d; margin-left:6px;">
+                ${i.daysLeft <= 0 ? "Expires today!" : `Expires in ${i.daysLeft} day${i.daysLeft > 1 ? "s" : ""}`} (${i.expiryDate})
+              </span>
+              ${i.location ? `<span style="color:#718096; font-size:12px;"> • Location: ${i.location}</span>` : ""}
+            </li>
+          `).join("")}
+        </ul>
+      </div>
+    `;
+  }
+
+  // 3. Low Stock Section
+  if (lowStock.length > 0) {
+    sectionsHtml += `
+      <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:14px; padding:18px 20px; margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <span style="font-size:18px;">🛒</span>
+          <h3 style="margin:0; font-size:15px; font-weight:700; color:#166534;">Low-Stock Products (${lowStock.length})</h3>
+        </div>
+        <p style="margin:0 0 12px; font-size:13px; color:#14532d; line-height:1.5;">
+          These pantry staples are running low and should be restocked:
+        </p>
+        <ul style="margin:0; padding-left:20px; font-size:13.5px; color:#14532d;">
+          ${lowStock.map(i => `
+            <li style="padding:4px 0;">
+              <strong>${i.name}</strong> — Remaining: <strong>${i.quantity} ${i.unit}</strong>
+              <span style="color:#2f855a; font-weight:600; font-size:12px; background:#fff; padding:2px 6px; border-radius:6px; border:1px solid #86efac; margin-left:6px;">
+                Threshold: ${i.threshold} ${i.unit}
+              </span>
+              ${i.location ? `<span style="color:#718096; font-size:12px;"> • Location: ${i.location}</span>` : ""}
+            </li>
+          `).join("")}
+        </ul>
+      </div>
+    `;
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IntelliPantry Daily Inventory Alert</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #fbfaf5; margin: 0; padding: 24px 12px; color: #1f2823; -webkit-font-smoothing: antialiased; }
+    .wrapper { max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 1px solid #e6e3da; overflow: hidden; box-shadow: 0 4px 24px rgba(30, 57, 42, 0.05); }
+    .header { background: #1e392a; padding: 26px 32px; color: #ffffff; text-align: center; }
+    .header h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+    .header p { margin: 6px 0 0; font-size: 13px; color: #bbf7d0; }
+    .content { padding: 30px; }
+    .greeting { font-size: 16px; font-weight: 700; color: #1e392a; margin-bottom: 12px; }
+    .cta-btn { display: inline-block; background: #1e392a; color: #ffffff !important; text-decoration: none; padding: 13px 28px; border-radius: 12px; font-size: 14px; font-weight: 700; margin: 10px 0 20px; text-align: center; }
+    .footer { text-align: center; padding: 22px 24px; background: #faf9f5; border-top: 1px solid #e6e3da; font-size: 12px; color: #8c968f; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <h1>🍃 IntelliPantry</h1>
+      <p>Automated Pantry & Inventory Alert</p>
+    </div>
+    <div class="content">
+      <div class="greeting">Hello ${userName || "Pantry Chef"},</div>
+      <p style="font-size:14px; color:#4a5568; line-height:1.6; margin-top:0; margin-bottom:20px;">
+        Here is your automated inventory update. We detected items in your pantry that need attention to keep your food fresh and prevent waste:
+      </p>
+
+      ${sectionsHtml}
+
+      <div style="text-align:center; margin-top:24px;">
+        <a href="${appBaseUrl}/" class="cta-btn" target="_blank">
+          Open IntelliPantry Dashboard →
+        </a>
+      </div>
+
+      <p style="font-size:12.5px; color:#718096; line-height:1.5; margin-top:20px; border-top:1px dashed #e2e8f0; padding-top:14px;">
+        💡 <strong>Tip:</strong> You can manage your alert preferences, notification thresholds, and warning days anytime in your
+        <a href="${appBaseUrl}/settings" style="color:#2e9e5b; text-decoration:none; font-weight:600;">Settings &gt; Notifications</a>.
+      </p>
+    </div>
+    <div class="footer">
+      © 2026 IntelliPantry • Fresh Food, Zero Waste.<br>
+      You are receiving this automated alert based on your notification settings.<br>
+      Need help? Reach out to support at <a href="mailto:intellipantrynotify@gmail.com" style="color:#2e9e5b; text-decoration:none; font-weight:600;">intellipantrynotify@gmail.com</a>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+// Plain Text Email Generator
+function buildAlertEmailText(userName, alertsData) {
+  const { expired = [], expiring = [], lowStock = [] } = alertsData;
+  const appBaseUrl = (process.env.SITE_URL || "https://www.intellipantry.in").replace(/\/+$/, "");
+
+  let text = `Hello ${userName || "Pantry Chef"},\n\nHere is your automated IntelliPantry inventory update:\n\n`;
+
+  if (expired.length > 0) {
+    text += `⚠️ EXPIRED PRODUCTS (${expired.length}):\n`;
+    expired.forEach(i => {
+      text += `- ${i.name}: ${i.quantity} ${i.unit} (Expired: ${i.expiryDate || "Past date"})\n`;
+    });
+    text += "\n";
+  }
+
+  if (expiring.length > 0) {
+    text += `⏰ PRODUCTS APPROACHING EXPIRY (${expiring.length}):\n`;
+    expiring.forEach(i => {
+      text += `- ${i.name}: ${i.quantity} ${i.unit} (${i.daysLeft <= 0 ? "Expires today" : `Expires in ${i.daysLeft} days`} on ${i.expiryDate})\n`;
+    });
+    text += "\n";
+  }
+
+  if (lowStock.length > 0) {
+    text += `🛒 LOW STOCK PRODUCTS (${lowStock.length}):\n`;
+    lowStock.forEach(i => {
+      text += `- ${i.name}: ${i.quantity} ${i.unit} remaining (Threshold: ${i.threshold} ${i.unit})\n`;
+    });
+    text += "\n";
+  }
+
+  text += `Manage your pantry online anytime at: ${appBaseUrl}/\n\n`;
+  text += `You can adjust or disable email alerts in your Settings > Notifications.\n\n`;
+  text += `IntelliPantry — Fresh Food, Zero Waste.\n`;
+
+  return text;
+}
+
+module.exports = async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, x-vercel-cron");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).json({ ok: true });
+  }
+
+  const supabaseUrl = getSupabaseUrl();
+  const { serviceRoleKey, anonKey } = getSupabaseKeys();
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "IntelliPantry <onboarding@resend.dev>";
+  const replyTo = process.env.RESEND_REPLY_TO || "intellipantrynotify@gmail.com";
+
+  // Authorization resolution:
+  // 1. Vercel Cron header 'x-vercel-cron: 1'
+  // 2. Bearer CRON_SECRET or query ?secret=CRON_SECRET
+  // 3. User JWT in 'Authorization: Bearer <user_token>'
+  const isVercelCron = Boolean(req.headers["x-vercel-cron"]);
+  const authHeader = req.headers["authorization"] || "";
+  let userToken = null;
+
+  if (authHeader.startsWith("Bearer ")) {
+    const candidate = authHeader.substring(7).trim();
+    if (process.env.CRON_SECRET && candidate === process.env.CRON_SECRET) {
+      // Authorized via CRON_SECRET
+    } else {
+      userToken = candidate;
+    }
+  }
+
+  const querySecret = req.query && req.query.secret ? cleanString(req.query.secret) : null;
+  const isSecretAuthorized = process.env.CRON_SECRET && querySecret === process.env.CRON_SECRET;
+
+  try {
+    const todayStr = new Date().toISOString().split("T")[0];
+    const todayDate = new Date(todayStr);
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    let targetUsers = [];
+
+    // Mode A: Individual Authenticated User (called from browser session)
+    if (userToken && userToken !== serviceRoleKey && userToken !== anonKey) {
+      const userResp = await supabaseFetch(`${supabaseUrl}/auth/v1/user`, anonKey || serviceRoleKey, userToken);
+      if (userResp.ok && userResp.data && userResp.data.id) {
+        const u = userResp.data;
+        targetUsers.push({
+          id: u.id,
+          email: u.email,
+          fullName: u.user_metadata?.full_name || u.email?.split("@")[0] || "Pantry Chef",
+          isEmailVerified: Boolean(u.email_confirmed_at || u.confirmed_at),
+          userToken: userToken
+        });
+      }
+    }
+
+    // Mode B: Scheduled Cron or Service Scan (All Users)
+    if (targetUsers.length === 0 && (isVercelCron || isSecretAuthorized || !userToken)) {
+      if (serviceRoleKey) {
+        // Query all profiles with service role key
+        const profilesResp = await supabaseFetch(
+          `${supabaseUrl}/rest/v1/profiles?select=id,email,full_name`,
+          serviceRoleKey
+        );
+
+        if (profilesResp.ok && Array.isArray(profilesResp.data) && profilesResp.data.length > 0) {
+          targetUsers = profilesResp.data.map(p => ({
+            id: p.id,
+            email: p.email,
+            fullName: p.full_name || p.email?.split("@")[0] || "Pantry Chef",
+            isEmailVerified: true,
+            userToken: null
+          }));
+        } else {
+          // Fallback to auth admin users endpoint
+          const adminResp = await supabaseFetch(
+            `${supabaseUrl}/auth/v1/admin/users?per_page=500`,
+            serviceRoleKey
+          );
+          if (adminResp.ok && adminResp.data && Array.isArray(adminResp.data.users)) {
+            targetUsers = adminResp.data.users.map(u => ({
+              id: u.id,
+              email: u.email,
+              fullName: u.user_metadata?.full_name || u.email?.split("@")[0] || "Pantry Chef",
+              isEmailVerified: Boolean(u.email_confirmed_at || u.confirmed_at),
+              userToken: null
+            }));
+          }
+        }
+      }
+    }
+
+    // If still no users detected and no service key
+    if (targetUsers.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No active users found for scheduled alert check. Set SUPABASE_SERVICE_ROLE_KEY in Vercel to enable automated multi-tenant background scanning, or pass user Bearer token to inspect individual session.",
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const results = {
+      usersScanned: targetUsers.length,
+      emailsSent: 0,
+      alertsRecorded: 0,
+      userSummaries: []
+    };
+
+    // Process each target user
+    for (const user of targetUsers) {
+      if (!user.email || !user.email.includes("@")) continue;
+
+      const activeKey = user.userToken ? (anonKey || serviceRoleKey) : serviceRoleKey;
+      const activeToken = user.userToken || serviceRoleKey;
+
+      if (!activeKey || !activeToken) continue;
+
+      // 1. Fetch User Notification Preferences
+      let prefs = {
+        alert_expiry: true,
+        alert_expired: true,
+        alert_low_stock: true,
+        expiry_warning_days: 7,
+        low_stock_threshold: 2
+      };
+
+      const prefResp = await supabaseFetch(
+        `${supabaseUrl}/rest/v1/notification_preferences?user_id=eq.${user.id}&select=*`,
+        activeKey,
+        activeToken
+      );
+
+      if (prefResp.ok && Array.isArray(prefResp.data) && prefResp.data.length > 0) {
+        const row = prefResp.data[0];
+        const p = row.preferences || {};
+        const ps = row.pantry_settings || {};
+        prefs.alert_expiry = p.alert_expiry !== false;
+        prefs.alert_expired = p.alert_expired !== false;
+        prefs.alert_low_stock = p.alert_low_stock !== false;
+        prefs.expiry_warning_days = Number(ps.expiry_warning_days) || 7;
+        prefs.low_stock_threshold = Number(ps.low_stock_threshold) || 2;
+      }
+
+      // If user disabled all 3 pantry alert types, skip completely
+      if (!prefs.alert_expiry && !prefs.alert_expired && !prefs.alert_low_stock) {
+        results.userSummaries.push({ userId: user.id, email: user.email, status: "alerts_disabled_by_user" });
+        continue;
+      }
+
+      // 2. Fetch User Pantry Items
+      const itemsResp = await supabaseFetch(
+        `${supabaseUrl}/rest/v1/pantry_items?user_id=eq.${user.id}&select=*`,
+        activeKey,
+        activeToken
+      );
+
+      let items = (itemsResp.ok && Array.isArray(itemsResp.data)) ? itemsResp.data : [];
+
+      // Fallback check pantry_products for backwards compatibility
+      if (items.length === 0) {
+        const legacyResp = await supabaseFetch(
+          `${supabaseUrl}/rest/v1/pantry_products?user_id=eq.${user.id}&select=*`,
+          activeKey,
+          activeToken
+        );
+        if (legacyResp.ok && Array.isArray(legacyResp.data)) {
+          items = legacyResp.data;
+        }
+      }
+
+      if (items.length === 0) {
+        results.userSummaries.push({ userId: user.id, email: user.email, status: "no_items" });
+        continue;
+      }
+
+      // 3. Fetch Deduplication Records (Alerts sent with email in the last 24 hours)
+      const dedupResp = await supabaseFetch(
+        `${supabaseUrl}/rest/v1/alerts?user_id=eq.${user.id}&email_sent=eq.true&email_sent_at=gte.${twentyFourHoursAgo}&select=product_id,type,email_sent_at`,
+        activeKey,
+        activeToken
+      );
+
+      const sentAlertsSet = new Set();
+      if (dedupResp.ok && Array.isArray(dedupResp.data)) {
+        dedupResp.data.forEach(a => {
+          if (a.product_id && a.type) {
+            sentAlertsSet.add(`${a.type}:${a.product_id}`);
+          }
+        });
+      }
+
+      // 4. Identify Alert Candidates
+      const warningDays = prefs.expiry_warning_days || 7;
+      const warningLimitDate = new Date(todayDate.getTime() + warningDays * 86400000);
+
+      const candidateExpired = [];
+      const candidateExpiring = [];
+      const candidateLowStock = [];
+
+      for (const item of items) {
+        const itemId = String(item.id || item.product_id || "");
+        const itemName = item.product_name || item.name || "Pantry Item";
+        const itemQty = Number(item.quantity) || 0;
+        const itemUnit = item.quantity_unit || item.unit || "pcs";
+        const itemLocation = item.storage_location || item.location || "Pantry";
+        const itemThreshold = (item.low_stock_threshold !== null && item.low_stock_threshold !== undefined && !isNaN(Number(item.low_stock_threshold)))
+          ? Number(item.low_stock_threshold)
+          : ((item.minimum_stock !== null && item.minimum_stock !== undefined && !isNaN(Number(item.minimum_stock)))
+            ? Number(item.minimum_stock)
+            : prefs.low_stock_threshold);
+
+        const expStr = parseDateString(item.expiry_date);
+
+        // A. Expired Check
+        if (expStr && prefs.alert_expired) {
+          const itemExpDate = new Date(expStr);
+          if (itemExpDate < todayDate) {
+            const dedupKey = `expired:${itemId}`;
+            if (!sentAlertsSet.has(dedupKey)) {
+              candidateExpired.push({
+                id: itemId,
+                name: itemName,
+                quantity: itemQty,
+                unit: itemUnit,
+                expiryDate: expStr,
+                location: itemLocation
+              });
+            }
+          }
+        }
+
+        // B. Approaching Expiry Check
+        if (expStr && prefs.alert_expiry) {
+          const itemExpDate = new Date(expStr);
+          if (itemExpDate >= todayDate && itemExpDate <= warningLimitDate) {
+            const dedupKey = `expiry:${itemId}`;
+            if (!sentAlertsSet.has(dedupKey)) {
+              const diffMs = itemExpDate.getTime() - todayDate.getTime();
+              const daysLeft = Math.round(diffMs / 86400000);
+              candidateExpiring.push({
+                id: itemId,
+                name: itemName,
+                quantity: itemQty,
+                unit: itemUnit,
+                expiryDate: expStr,
+                daysLeft: Math.max(0, daysLeft),
+                location: itemLocation
+              });
+            }
+          }
+        }
+
+        // C. Low-Stock Check
+        if (prefs.alert_low_stock && itemQty <= itemThreshold) {
+          const dedupKey = `low_stock:${itemId}`;
+          if (!sentAlertsSet.has(dedupKey)) {
+            candidateLowStock.push({
+              id: itemId,
+              name: itemName,
+              quantity: itemQty,
+              unit: itemUnit,
+              threshold: itemThreshold,
+              location: itemLocation
+            });
+          }
+        }
+      }
+
+      const totalAlertsCount = candidateExpired.length + candidateExpiring.length + candidateLowStock.length;
+
+      if (totalAlertsCount === 0) {
+        results.userSummaries.push({ userId: user.id, email: user.email, status: "clean_or_recently_alerted" });
+        continue;
+      }
+
+      // 5. Send Alert Email via Resend
+      let emailSuccess = false;
+      let emailId = null;
+
+      // Subject line generation
+      let subject = "IntelliPantry Daily Inventory Alert";
+      if (candidateExpired.length > 0 && candidateExpiring.length === 0 && candidateLowStock.length === 0) {
+        subject = `⚠️ Expired Products Notice (${candidateExpired.length} item${candidateExpired.length > 1 ? "s" : ""}) — IntelliPantry`;
+      } else if (candidateExpiring.length > 0 && candidateExpired.length === 0 && candidateLowStock.length === 0) {
+        subject = `⏰ Items Expiring Soon (${candidateExpiring.length} item${candidateExpiring.length > 1 ? "s" : ""}) — IntelliPantry`;
+      } else if (candidateLowStock.length > 0 && candidateExpired.length === 0 && candidateExpiring.length === 0) {
+        subject = `🛒 Low Stock Alert: Restock Needed (${candidateLowStock.length} item${candidateLowStock.length > 1 ? "s" : ""}) — IntelliPantry`;
+      } else {
+        subject = `🍃 Pantry Update: ${totalAlertsCount} item(s) need your attention — IntelliPantry`;
+      }
+
+      const htmlContent = buildAlertEmailHtml(user.fullName, {
+        expired: candidateExpired,
+        expiring: candidateExpiring,
+        lowStock: candidateLowStock
+      });
+
+      const textContent = buildAlertEmailText(user.fullName, {
+        expired: candidateExpired,
+        expiring: candidateExpiring,
+        lowStock: candidateLowStock
+      });
+
+      if (resendApiKey) {
+        try {
+          const resendResp = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${resendApiKey}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              from: fromEmail,
+              to: [user.email],
+              reply_to: replyTo,
+              subject: subject,
+              text: textContent,
+              html: htmlContent
+            })
+          });
+
+          const resendData = await resendResp.json();
+          if (resendResp.ok && resendData && resendData.id) {
+            emailSuccess = true;
+            emailId = resendData.id;
+            results.emailsSent++;
+          } else {
+            console.error(`[Resend Error for ${user.email}]`, resendData);
+          }
+        } catch (mailErr) {
+          console.error(`[Resend Network Error for ${user.email}]`, mailErr);
+        }
+      } else {
+        console.warn("[IntelliPantry Cron] RESEND_API_KEY is not set. Simulating alert recording.");
+      }
+
+      // 6. Record Triggered Alerts in public.alerts & email audit
+      const alertRecords = [];
+
+      candidateExpired.forEach(i => {
+        alertRecords.push({
+          user_id: user.id,
+          product_id: i.id,
+          product_name: i.name,
+          title: `Expired: ${i.name}`,
+          message: `${i.name} (${i.quantity} ${i.unit}) passed expiration date on ${i.expiryDate}.`,
+          type: "expired",
+          is_read: false,
+          email_sent: emailSuccess,
+          email_sent_at: emailSuccess ? new Date().toISOString() : null
+        });
+      });
+
+      candidateExpiring.forEach(i => {
+        alertRecords.push({
+          user_id: user.id,
+          product_id: i.id,
+          product_name: i.name,
+          title: `Expiring Soon: ${i.name}`,
+          message: `${i.name} (${i.quantity} ${i.unit}) expires in ${i.daysLeft} day${i.daysLeft > 1 ? "s" : ""} (${i.expiryDate}).`,
+          type: "expiry",
+          is_read: false,
+          email_sent: emailSuccess,
+          email_sent_at: emailSuccess ? new Date().toISOString() : null
+        });
+      });
+
+      candidateLowStock.forEach(i => {
+        alertRecords.push({
+          user_id: user.id,
+          product_id: i.id,
+          product_name: i.name,
+          title: `Low Stock: ${i.name}`,
+          message: `${i.name} has only ${i.quantity} ${i.unit} remaining (low stock threshold: ${i.threshold}).`,
+          type: "low_stock",
+          is_read: false,
+          email_sent: emailSuccess,
+          email_sent_at: emailSuccess ? new Date().toISOString() : null
+        });
+      });
+
+      if (alertRecords.length > 0) {
+        const insertResp = await supabaseFetch(
+          `${supabaseUrl}/rest/v1/alerts`,
+          activeKey,
+          activeToken,
+          "POST",
+          alertRecords
+        );
+
+        if (insertResp.ok) {
+          results.alertsRecorded += alertRecords.length;
+        } else {
+          console.warn("[Alert Insert Error]", insertResp.data);
+        }
+      }
+
+      // Record Email Audit if delivered
+      if (emailSuccess) {
+        await supabaseFetch(
+          `${supabaseUrl}/rest/v1/email_notifications`,
+          activeKey,
+          activeToken,
+          "POST",
+          [{
+            user_id: user.id,
+            recipient_email: user.email,
+            subject: subject,
+            notification_type: "pantry_alert",
+            status: "sent",
+            provider: "resend",
+            sent_at: new Date().toISOString()
+          }]
+        ).catch(() => {});
+      }
+
+      results.userSummaries.push({
+        userId: user.id,
+        email: user.email,
+        status: emailSuccess ? "alert_email_sent" : (resendApiKey ? "email_failed" : "recorded_without_email"),
+        emailId: emailId,
+        expiredCount: candidateExpired.length,
+        expiringCount: candidateExpiring.length,
+        lowStockCount: candidateLowStock.length
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      summary: results
+    });
+
+  } catch (err) {
+    console.error("[Fatal Error in api/cron-check-alerts]", err);
+    return res.status(500).json({
+      success: false,
+      error: "Internal Server Error in alert cron processing",
+      details: err.message
+    });
+  }
+};

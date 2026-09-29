@@ -271,19 +271,36 @@ END $$;
 
 
 -- ==============================================================================
--- 3. ALERTS TABLE
+-- 3. ALERTS TABLE (Linked to auth.users with 24h Email Deduplication)
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS public.alerts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   message TEXT NOT NULL,
-  type TEXT NOT NULL DEFAULT 'system', -- 'expiry', 'low_stock', 'security', 'system'
+  type TEXT NOT NULL DEFAULT 'system', -- 'expiry', 'expired', 'low_stock', 'security', 'system'
+  product_id TEXT,
+  product_name TEXT,
+  email_sent BOOLEAN NOT NULL DEFAULT false,
+  email_sent_at TIMESTAMPTZ,
   is_read BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
+-- Ensure all columns exist idempotently if table was created in an earlier migration
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS product_id TEXT;
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS product_name TEXT;
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'system';
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS email_sent BOOLEAN DEFAULT false;
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS email_sent_at TIMESTAMPTZ;
+ALTER TABLE public.alerts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now());
+
+-- Deduplication & Query Performance Indexes
 CREATE INDEX IF NOT EXISTS idx_alerts_user_unread ON public.alerts (user_id, is_read, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_alerts_user_created ON public.alerts (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_alerts_user_dedup ON public.alerts (user_id, type, product_id, email_sent, email_sent_at DESC);
 
 ALTER TABLE public.alerts ENABLE ROW LEVEL SECURITY;
 
@@ -319,6 +336,46 @@ BEGIN
     ON CONFLICT (id) DO NOTHING;
   END IF;
 END $$;
+
+-- Helper SQL Function: calculate alert summaries for user
+CREATE OR REPLACE FUNCTION public.get_user_pantry_alerts_summary(target_user_id UUID, warning_days INT DEFAULT 7)
+RETURNS TABLE (
+  item_id UUID,
+  product_name TEXT,
+  quantity NUMERIC,
+  quantity_unit TEXT,
+  expiry_date DATE,
+  low_stock_threshold NUMERIC,
+  alert_category TEXT,
+  days_until_expiry INT
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    p.id AS item_id,
+    p.product_name,
+    p.quantity,
+    COALESCE(p.quantity_unit, p.unit, 'pcs') AS quantity_unit,
+    p.expiry_date,
+    COALESCE(p.low_stock_threshold, p.minimum_stock, 2) AS low_stock_threshold,
+    CASE 
+      WHEN p.expiry_date IS NOT NULL AND p.expiry_date < CURRENT_DATE THEN 'expired'
+      WHEN p.expiry_date IS NOT NULL AND p.expiry_date <= (CURRENT_DATE + warning_days) THEN 'expiry'
+      WHEN p.quantity <= COALESCE(p.low_stock_threshold, p.minimum_stock, 2) THEN 'low_stock'
+      ELSE 'normal'
+    END AS alert_category,
+    CASE 
+      WHEN p.expiry_date IS NOT NULL THEN (p.expiry_date - CURRENT_DATE)
+      ELSE NULL
+    END AS days_until_expiry
+  FROM public.pantry_items p
+  WHERE p.user_id = target_user_id
+    AND (
+      (p.expiry_date IS NOT NULL AND p.expiry_date <= (CURRENT_DATE + warning_days))
+      OR (p.quantity <= COALESCE(p.low_stock_threshold, p.minimum_stock, 2))
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 -- ==============================================================================
@@ -438,6 +495,11 @@ DROP POLICY IF EXISTS "Users can view their own email audit" ON public.email_not
 CREATE POLICY "Users can view their own email audit"
   ON public.email_notifications FOR SELECT TO authenticated
   USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert their own email audit" ON public.email_notifications;
+CREATE POLICY "Users can insert their own email audit"
+  ON public.email_notifications FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() = user_id);
 
 
 -- ==============================================================================

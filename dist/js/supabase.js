@@ -1206,7 +1206,7 @@
       }
     }
 
-    async createAlert(userId, { title, message, type }) {
+    async createAlert(userId, { title, message, type, productId, productName, emailSent, emailSentAt }) {
       if (!userId || !this.isReady()) return null;
       const effectiveUserId = await this.getAuthenticatedUserId(userId);
       if (!effectiveUserId) return null;
@@ -1216,6 +1216,10 @@
         title: title || 'Pantry Alert',
         message: message || '',
         type: type || 'system',
+        product_id: productId ? String(productId) : null,
+        product_name: productName || null,
+        email_sent: Boolean(emailSent),
+        email_sent_at: emailSentAt || (emailSent ? new Date().toISOString() : null),
         is_read: false,
         created_at: new Date().toISOString()
       };

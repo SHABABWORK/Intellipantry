@@ -1393,6 +1393,34 @@ class PantryStore {
   // Deduplicated alert dispatcher
   async checkAndDispatchPantryAlerts(force = false) {
     try {
+      // 1. If user is authenticated with Supabase, dispatch server-side automated check
+      if (window.supabaseService && window.supabaseService.isReady()) {
+        try {
+          const { data: { session } } = await window.supabaseService.client.auth.getSession();
+          if (session && session.access_token) {
+            const resp = await fetch("/api/cron-check-alerts", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${session.access_token}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ force })
+            });
+            if (resp.ok) {
+              const resData = await resp.json();
+              if (resData && resData.summary && resData.summary.alertsRecorded > 0) {
+                await this.fetchAlertsFromSupabase();
+                this.updateAlertBadge();
+              }
+              return;
+            }
+          }
+        } catch (serverErr) {
+          console.warn("[Pantry Alert] Server automated check notice:", serverErr);
+        }
+      }
+
+      // 2. Local fallback for guest users or offline sessions
       const settings = this.getSettings();
       if (!settings.email) return;
 
