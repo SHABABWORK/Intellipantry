@@ -8,6 +8,8 @@
     { "source": "/inventory", "destination": "/dashboard.html" },
     { "source": "/add-item", "destination": "/dashboard.html" },
     { "source": "/scan", "destination": "/dashboard.html" },
+    { "source": "/billing-scan", "destination": "/dashboard.html" },
+    { "source": "/billing", "destination": "/dashboard.html" },
     { "source": "/expiry-calendar", "destination": "/dashboard.html" },
     { "source": "/shopping-list", "destination": "/dashboard.html" },
     { "source": "/recipes", "destination": "/dashboard.html" },

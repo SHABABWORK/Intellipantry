@@ -10,6 +10,9 @@ class AppRouter {
       inventory: () => this.showInventory(),
       "add-item": () => openAddEditModal(),
       "scan-barcode": () => openBillScannerModal(),
+      "billing-scan": () => this.showBillingScan(),
+      "scan": () => this.showBillingScan(),
+      "scan-bill": () => this.showBillingScan(),
       expiry: () => this.showExpiry(),
       "shopping-list": () => this.showShoppingList(),
       recipes: () => this.showRecipes(),
@@ -48,9 +51,11 @@ class AppRouter {
     const home = document.getElementById("dashboardHomeViews");
     const insights = document.getElementById("insightsSection");
     const settings = document.getElementById("settingsSection");
+    const billing = document.getElementById("billingScanSection");
     if (home) home.style.display = "block";
     if (insights) insights.style.display = "none";
     if (settings) settings.style.display = "none";
+    if (billing) billing.style.display = "none";
     setCategoryFilter("All");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -59,9 +64,11 @@ class AppRouter {
     const home = document.getElementById("dashboardHomeViews");
     const insights = document.getElementById("insightsSection");
     const settings = document.getElementById("settingsSection");
+    const billing = document.getElementById("billingScanSection");
     if (home) home.style.display = "block";
     if (insights) insights.style.display = "none";
     if (settings) settings.style.display = "none";
+    if (billing) billing.style.display = "none";
     const tableSection = document.getElementById("inventorySection");
     if (tableSection) {
       tableSection.scrollIntoView({ behavior: "smooth" });
@@ -72,9 +79,11 @@ class AppRouter {
     const home = document.getElementById("dashboardHomeViews");
     const insights = document.getElementById("insightsSection");
     const settings = document.getElementById("settingsSection");
+    const billing = document.getElementById("billingScanSection");
     if (home) home.style.display = "none";
     if (insights) insights.style.display = "flex";
     if (settings) settings.style.display = "none";
+    if (billing) billing.style.display = "none";
     if (typeof window.renderInsightsView === "function") {
       window.renderInsightsView();
     }
@@ -85,11 +94,28 @@ class AppRouter {
     const home = document.getElementById("dashboardHomeViews");
     const insights = document.getElementById("insightsSection");
     const settings = document.getElementById("settingsSection");
+    const billing = document.getElementById("billingScanSection");
     if (home) home.style.display = "none";
     if (insights) insights.style.display = "none";
     if (settings) settings.style.display = "flex";
+    if (billing) billing.style.display = "none";
     if (typeof window.renderSettingsView === "function") {
       window.renderSettingsView();
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  showBillingScan() {
+    const home = document.getElementById("dashboardHomeViews");
+    const insights = document.getElementById("insightsSection");
+    const settings = document.getElementById("settingsSection");
+    const billing = document.getElementById("billingScanSection");
+    if (home) home.style.display = "none";
+    if (insights) insights.style.display = "none";
+    if (settings) settings.style.display = "none";
+    if (billing) billing.style.display = "block";
+    if (window.BillingScan && typeof window.BillingScan.init === "function") {
+      window.BillingScan.init();
     }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
