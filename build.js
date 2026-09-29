@@ -66,6 +66,21 @@ if (fs.existsSync(path.join(srcDir, 'supabase'))) {
   copyRecursiveSync(path.join(srcDir, 'supabase'), path.join(distDir, 'supabase'));
 }
 
+const favFiles = [
+  'favicon.ico',
+  'favicon-16x16.png',
+  'favicon-32x32.png',
+  'apple-touch-icon.png',
+  'android-chrome-192x192.png',
+  'android-chrome-512x512.png',
+  'site.webmanifest'
+];
+favFiles.forEach(file => {
+  if (fs.existsSync(path.join(srcDir, file))) {
+    fs.copyFileSync(path.join(srcDir, file), path.join(distDir, file));
+  }
+});
+
 const robotsContent = `User-agent: *\nAllow: /\n`;
 fs.writeFileSync(path.join(distDir, 'robots.txt'), robotsContent, 'utf8');
 

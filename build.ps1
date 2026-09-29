@@ -58,6 +58,13 @@ if (Test-Path (Join-Path $root "supabase")) {
     Copy-Item -Recurse (Join-Path $root "supabase") (Join-Path $dist "supabase") -Force
 }
 
+$favFiles = @("favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "apple-touch-icon.png", "android-chrome-192x192.png", "android-chrome-512x512.png", "site.webmanifest")
+foreach ($fav in $favFiles) {
+    if (Test-Path (Join-Path $root $fav)) {
+        Copy-Item (Join-Path $root $fav) (Join-Path $dist $fav) -Force
+    }
+}
+
 $robots = "User-agent: *`nAllow: /`n"
 Set-Content -Path (Join-Path $dist "robots.txt") -Value $robots -Encoding UTF8
 
