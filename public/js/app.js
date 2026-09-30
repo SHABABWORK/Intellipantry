@@ -272,6 +272,24 @@ function updateRealTimeClockAndDate() {
   const dtClockEl = document.getElementById("datetimeClockDisplay");
   if (dtClockEl) dtClockEl.textContent = timeStr;
 
+  // 3b. Kitchen Hub Digital Display Clock (Matches User Reference Image Exactly)
+  const monthShort = now.toLocaleDateString("en-US", { month: "short" });
+  const dayTwoDigit = String(now.getDate()).padStart(2, "0");
+  const rawHours = now.getHours();
+  const ampm = rawHours >= 12 ? "PM" : "AM";
+  const h12 = rawHours % 12 || 12;
+  const hoursStr = String(h12).padStart(2, "0");
+  const minutesStr = String(now.getMinutes()).padStart(2, "0");
+  const timeDigits = `${hoursStr}:${minutesStr}`;
+
+  document.querySelectorAll(".kh-month-label").forEach(el => el.textContent = monthShort);
+  document.querySelectorAll(".kh-day-number").forEach(el => el.textContent = dayTwoDigit);
+  document.querySelectorAll(".kh-time-digits").forEach(el => el.textContent = timeDigits);
+  document.querySelectorAll(".kh-time-ampm").forEach(el => el.textContent = ampm);
+  document.querySelectorAll(".kh-status-text").forEach(el => {
+    if (!el.dataset.custom) el.textContent = "Inventory Sync Active";
+  });
+
   // 4. Dynamic Time of Day Quote / Greeting
   const hour = now.getHours();
   const greetingEl = document.getElementById("greetingTimeText");

@@ -483,7 +483,11 @@ class PantryStore {
     });
 
     window.supabaseService.subscribeToUserSettings(this.userId, () => {
-      this.fetchSettingsFromSupabase();
+      this.fetchSettingsFromSupabase().then(() => {
+        if (typeof window.renderSettingsView === 'function') {
+          window.renderSettingsView();
+        }
+      });
     });
   }
 
@@ -491,31 +495,61 @@ class PantryStore {
     const user = getCurrentUserInfo();
     const defaultSettings = {
       preferences: {
+        email_notifications: true,
         alert_expiry: true,
+        expiry_alerts: true,
         alert_expired: true,
+        expired_product_alerts: true,
         alert_low_stock: true,
+        low_stock_alerts: true,
         alert_security: true,
-        alert_weekly_summary: false
+        security_notifications: true,
+        alert_weekly_summary: false,
+        weekly_summary: false,
+        shopping_recommendations: true,
+        meal_plan_notifications: true
       },
       pantry_settings: {
+        default_location: "Pantry",
         expiry_warning_days: 7,
         low_stock_threshold: 2,
         default_unit: "pcs",
-        default_category: "Pantry"
+        default_category: "Pantry",
+        default_planning_period_days: 7,
+        auto_add_scanned_products: true,
+        auto_calculate_expiry: true,
+        opened_product_tracking: true,
+        smart_shopping_recommendations: true,
+        food_waste_tracking: true
       },
       general_settings: {
         language: "English",
         timezone: "Asia/Kolkata",
         currency: "INR",
         date_format: "DD/MM/YYYY",
-        theme: "light"
+        theme: "light",
+        layout_mode: "comfortable"
+      },
+      privacy_settings: {
+        data_usage_consent: true,
+        analytics_enabled: true,
+        ai_personalization: true,
+        recipe_personalization: true,
+        shopping_personalization: true,
+        profile_visibility: "private"
       }
     };
 
     try {
       const raw = localStorage.getItem(this.fullSettingsKey);
       if (raw) {
-        this.fullSettings = { ...defaultSettings, ...JSON.parse(raw) };
+        const parsed = JSON.parse(raw);
+        this.fullSettings = {
+          preferences: { ...defaultSettings.preferences, ...(parsed.preferences || {}) },
+          pantry_settings: { ...defaultSettings.pantry_settings, ...(parsed.pantry_settings || {}) },
+          general_settings: { ...defaultSettings.general_settings, ...(parsed.general_settings || {}) },
+          privacy_settings: { ...defaultSettings.privacy_settings, ...(parsed.privacy_settings || {}) }
+        };
       } else {
         this.fullSettings = defaultSettings;
         localStorage.setItem(this.fullSettingsKey, JSON.stringify(defaultSettings));
@@ -523,6 +557,9 @@ class PantryStore {
     } catch(e) {
       this.fullSettings = defaultSettings;
     }
+
+    this.applyTheme(this.fullSettings.general_settings?.theme || 'light');
+    this.applyLayoutMode(this.fullSettings.general_settings?.layout_mode || 'comfortable');
 
     // Compatibility for legacy getSettings()
     const setKey = this.settingsKey;
@@ -609,8 +646,10 @@ class PantryStore {
         if (dbSettings.preferences) this.fullSettings.preferences = { ...this.fullSettings.preferences, ...dbSettings.preferences };
         if (dbSettings.pantry_settings) this.fullSettings.pantry_settings = { ...this.fullSettings.pantry_settings, ...dbSettings.pantry_settings };
         if (dbSettings.general_settings) this.fullSettings.general_settings = { ...this.fullSettings.general_settings, ...dbSettings.general_settings };
+        if (dbSettings.privacy_settings) this.fullSettings.privacy_settings = { ...this.fullSettings.privacy_settings, ...dbSettings.privacy_settings };
         localStorage.setItem(this.fullSettingsKey, JSON.stringify(this.fullSettings));
         this.applyTheme(this.fullSettings.general_settings?.theme || 'light');
+        this.applyLayoutMode(this.fullSettings.general_settings?.layout_mode || 'comfortable');
         this.notify();
       }
     } catch (err) {
@@ -683,7 +722,86 @@ class PantryStore {
   async addItem(item) {
     const resolvedEmoji = item.emoji || this.detectEmoji(item.name, item.category);
     const warnDays = this.fullSettings?.pantry_settings?.expiry_warning_days || 7;
-    const computedStatus = this.calculateStatus(item.expiryDate, item.quantity, item.minStock, warnDays);
+    const purchaseDateVal = item.purchaseDate || (window.ShelfLife ? window.ShelfLife.getTodayLocalISO() : (window.getTodayISO ? window.getTodayISO() : new Date().toISOString().split('T')[0]));
+
+    // 1. Resolve Expiry & Shelf Life Prediction
+    let actualExpiryDate = null;
+    let estimatedExpiryDate = null;
+    let expiryType = item.expiryType || 'actual';
+    let shelfLifeDaysVal = item.shelfLifeDays !== undefined ? item.shelfLifeDays : null;
+    let storageTypeVal = item.storageType || item.location || "Pantry";
+    let storageRecVal = item.storageRecommendation || null;
+
+    if (item.actualExpiryDate) {
+      actualExpiryDate = item.actualExpiryDate;
+      expiryType = 'actual';
+    } else if (item.estimatedExpiryDate) {
+      estimatedExpiryDate = item.estimatedExpiryDate;
+      expiryType = 'estimated';
+    } else if (item.expiryDate) {
+      if (item.expiryType === 'estimated') {
+        estimatedExpiryDate = item.expiryDate;
+        expiryType = 'estimated';
+      } else {
+        actualExpiryDate = item.expiryDate;
+        expiryType = 'actual';
+      }
+    } else {
+      // No expiry date provided: Predict from Universal Shelf-Life Database
+      if (window.ShelfLife && typeof window.ShelfLife.predictExpiry === 'function') {
+        const pred = window.ShelfLife.predictExpiry(item.name, item.category, purchaseDateVal);
+        estimatedExpiryDate = pred.estimated_expiry_date;
+        shelfLifeDaysVal = pred.typical_shelf_life_days;
+        if (!item.storageType) storageTypeVal = pred.storage_type;
+        if (!item.storageRecommendation) storageRecVal = pred.storage_recommendation;
+        expiryType = 'estimated';
+      }
+    }
+
+    // 2. Resolve Opened Tracking
+    let productStatus = item.productStatus || 'Unopened';
+    let openedDate = item.openedDate || null;
+    let openedShelfLifeDaysVal = item.openedShelfLifeDays !== undefined ? item.openedShelfLifeDays : null;
+    let recommendedUseByVal = item.recommendedUseByDate || null;
+
+    if (productStatus === 'Opened' && window.ShelfLife) {
+      const calc = window.ShelfLife.calculateOpenedUseByDate(item.name, item.category, openedDate);
+      openedDate = calc.opened_date;
+      openedShelfLifeDaysVal = calc.opened_shelf_life_days;
+      recommendedUseByVal = calc.recommended_use_by_date;
+      if (!storageRecVal && calc.storage_recommendation) {
+        storageRecVal = calc.storage_recommendation;
+      }
+    }
+
+    // 3. Determine Effective Expiry Date using Priority Rules:
+    // Priority 1: Manufacturer printed actual expiry
+    // Priority 2: Opened use-by date if earlier
+    // Priority 3: Database estimated expiry
+    let effectiveExpiryDate = null;
+    let isEstimate = expiryType === 'estimated';
+
+    if (window.ShelfLife && typeof window.ShelfLife.calculateEffectiveExpiry === 'function') {
+      const eff = window.ShelfLife.calculateEffectiveExpiry({
+        actual_expiry_date: actualExpiryDate,
+        estimated_expiry_date: estimatedExpiryDate,
+        product_status: productStatus,
+        opened_date: openedDate,
+        recommended_use_by_date: recommendedUseByVal,
+        name: item.name,
+        category: item.category,
+        purchase_date: purchaseDateVal
+      });
+      effectiveExpiryDate = eff.effective_expiry_date;
+      expiryType = eff.expiry_type;
+      isEstimate = eff.is_estimate;
+    } else {
+      effectiveExpiryDate = actualExpiryDate || estimatedExpiryDate || item.expiryDate || "";
+      isEstimate = expiryType === 'estimated';
+    }
+
+    const computedStatus = this.calculateStatus(effectiveExpiryDate, item.quantity, item.minStock, warnDays);
+    const expiryStatusVal = window.ShelfLife ? window.ShelfLife.getExpiryStatus(effectiveExpiryDate).status : computedStatus;
 
     const effectiveUserId = window.supabaseService ? await window.supabaseService.getAuthenticatedUserId(this.userId) : this.userId;
     if (effectiveUserId) this.userId = effectiveUserId;
@@ -705,14 +823,27 @@ class PantryStore {
       quantity: Number(item.quantity) || 1,
       unit: unitVal,
       quantityUnit: unitVal,
-      expiryDate: item.expiryDate || "",
-      purchaseDate: item.purchaseDate || (window.getTodayISO ? window.getTodayISO() : new Date().toISOString().split('T')[0]),
+      expiryDate: effectiveExpiryDate || "",
+      actualExpiryDate: actualExpiryDate,
+      estimatedExpiryDate: estimatedExpiryDate,
+      effectiveExpiryDate: effectiveExpiryDate,
+      expiryType: expiryType,
+      isEstimate: isEstimate,
+      shelfLifeDays: shelfLifeDaysVal,
+      productStatus: productStatus,
+      openedDate: openedDate,
+      openedShelfLifeDays: openedShelfLifeDaysVal,
+      recommendedUseByDate: recommendedUseByVal,
+      storageType: storageTypeVal,
+      storageRecommendation: storageRecVal,
+      expiryStatus: expiryStatusVal,
+      purchaseDate: purchaseDateVal,
       barcode: item.barcode || "",
       price: Number(item.price) || 0,
       notes: notesVal,
       description: notesVal,
-      location: item.location || item.storageLocation || "Pantry",
-      storageLocation: item.location || item.storageLocation || "Pantry",
+      location: item.location || item.storageLocation || storageTypeVal,
+      storageLocation: item.location || item.storageLocation || storageTypeVal,
       status: computedStatus,
       emoji: resolvedEmoji,
       addedAt: item.addedAt || new Date().toISOString(),
@@ -745,7 +876,7 @@ class PantryStore {
       'added',
       newItem.id,
       newItem.name,
-      `Added ${newItem.quantity} ${newItem.unit} to ${newItem.category}`
+      `Added ${newItem.quantity} ${newItem.unit} to ${newItem.category}${newItem.isEstimate ? ' (Estimated Expiry)' : ''}`
     );
 
     return newItem;
@@ -755,13 +886,57 @@ class PantryStore {
     const current = this.getItemById(id);
     const oldQty = current ? Number(current.quantity) : 1;
     const newQty = updates.quantity !== undefined ? Number(updates.quantity) : oldQty;
-
     const warnDays = this.fullSettings?.pantry_settings?.expiry_warning_days || 7;
-    if (updates.expiryDate !== undefined || updates.quantity !== undefined || updates.minStock !== undefined) {
-      const exp = updates.expiryDate !== undefined ? updates.expiryDate : (current ? current.expiryDate : "");
-      const stk = updates.minStock !== undefined ? updates.minStock : (current && current.minStock !== undefined ? current.minStock : 2);
-      updates.status = this.calculateStatus(exp, newQty, stk, warnDays);
+
+    // Recalculate shelf-life / expiry if dates, status, or names changed
+    const merged = { ...(current || {}), ...updates };
+    if (
+      updates.actualExpiryDate !== undefined ||
+      updates.estimatedExpiryDate !== undefined ||
+      updates.expiryDate !== undefined ||
+      updates.productStatus !== undefined ||
+      updates.openedDate !== undefined ||
+      updates.name !== undefined ||
+      updates.category !== undefined
+    ) {
+      if (window.ShelfLife) {
+        // If product status changed to opened and recommended date not set
+        if (merged.productStatus === 'Opened' && !merged.recommendedUseByDate) {
+          const calc = window.ShelfLife.calculateOpenedUseByDate(merged.name, merged.category, merged.openedDate);
+          updates.openedDate = calc.opened_date;
+          updates.openedShelfLifeDays = calc.opened_shelf_life_days;
+          updates.recommendedUseByDate = calc.recommended_use_by_date;
+          merged.openedDate = calc.opened_date;
+          merged.openedShelfLifeDays = calc.opened_shelf_life_days;
+          merged.recommendedUseByDate = calc.recommended_use_by_date;
+          if (!merged.storageRecommendation) {
+            updates.storageRecommendation = calc.storage_recommendation;
+            merged.storageRecommendation = calc.storage_recommendation;
+          }
+        }
+
+        const eff = window.ShelfLife.calculateEffectiveExpiry({
+          actual_expiry_date: merged.actualExpiryDate !== undefined ? merged.actualExpiryDate : (merged.expiryType === 'actual' ? merged.expiryDate : null),
+          estimated_expiry_date: merged.estimatedExpiryDate !== undefined ? merged.estimatedExpiryDate : (merged.expiryType === 'estimated' ? merged.expiryDate : null),
+          product_status: merged.productStatus,
+          opened_date: merged.openedDate,
+          recommended_use_by_date: merged.recommendedUseByDate,
+          name: merged.name,
+          category: merged.category,
+          purchase_date: merged.purchaseDate
+        });
+
+        updates.effectiveExpiryDate = eff.effective_expiry_date;
+        updates.expiryDate = eff.effective_expiry_date;
+        updates.expiryType = eff.expiry_type;
+        updates.isEstimate = eff.is_estimate;
+        updates.expiryStatus = window.ShelfLife.getExpiryStatus(eff.effective_expiry_date).status;
+      }
     }
+
+    const expDate = updates.expiryDate !== undefined ? updates.expiryDate : (current ? current.expiryDate : "");
+    const stk = updates.minStock !== undefined ? updates.minStock : (current && current.minStock !== undefined ? current.minStock : 2);
+    updates.status = this.calculateStatus(expDate, newQty, stk, warnDays);
 
     const effectiveUserId = window.supabaseService ? await window.supabaseService.getAuthenticatedUserId(this.userId) : this.userId;
     if (effectiveUserId) this.userId = effectiveUserId;
@@ -793,6 +968,35 @@ class PantryStore {
     );
 
     return this.getItemById(id);
+  }
+
+  // Toggle Opened/Unopened status for a product
+  async toggleProductOpenedStatus(id, customOpenedDate = null) {
+    const item = this.getItemById(id);
+    if (!item) return null;
+
+    const isCurrentlyOpened = item.productStatus === "Opened";
+    const newStatus = isCurrentlyOpened ? "Unopened" : "Opened";
+    const today = window.ShelfLife ? window.ShelfLife.getTodayLocalISO() : (window.getTodayISO ? window.getTodayISO() : new Date().toISOString().split("T")[0]);
+    const openedDate = isCurrentlyOpened ? null : (customOpenedDate || today);
+
+    let openedData = {
+      productStatus: newStatus,
+      openedDate: openedDate,
+      openedShelfLifeDays: null,
+      recommendedUseByDate: null
+    };
+
+    if (newStatus === "Opened" && window.ShelfLife) {
+      const calc = window.ShelfLife.calculateOpenedUseByDate(item.name, item.category, openedDate);
+      openedData.openedShelfLifeDays = calc.opened_shelf_life_days;
+      openedData.recommendedUseByDate = calc.recommended_use_by_date;
+      if (!item.storageRecommendation && calc.storage_recommendation) {
+        openedData.storageRecommendation = calc.storage_recommendation;
+      }
+    }
+
+    return await this.updateItem(id, openedData);
   }
 
   async deleteItem(id) {
@@ -1071,7 +1275,8 @@ class PantryStore {
     this.fullSettings = {
       preferences: { ...this.fullSettings.preferences, ...(newSettings.preferences || {}) },
       pantry_settings: { ...this.fullSettings.pantry_settings, ...(newSettings.pantry_settings || {}) },
-      general_settings: { ...this.fullSettings.general_settings, ...(newSettings.general_settings || {}) }
+      general_settings: { ...this.fullSettings.general_settings, ...(newSettings.general_settings || {}) },
+      privacy_settings: { ...this.fullSettings.privacy_settings, ...(newSettings.privacy_settings || {}) }
     };
 
     try {
@@ -1086,6 +1291,14 @@ class PantryStore {
       alertOnExpiry: this.fullSettings.preferences.alert_expiry !== false
     });
 
+    // Apply Theme & Layout Density immediately to DOM
+    this.applyTheme(this.fullSettings.general_settings?.theme || 'light');
+    this.applyLayoutMode(this.fullSettings.general_settings?.layout_mode || 'comfortable');
+
+    // Recalculate pantry alerts & metrics immediately
+    this.syncAlertsFromPantry();
+    this.notify();
+
     if (this.userId && window.supabaseService && window.supabaseService.isReady()) {
       try {
         await window.supabaseService.saveUserSettings(this.userId, this.fullSettings);
@@ -1093,11 +1306,6 @@ class PantryStore {
         console.warn("[PantryStore] Settings cloud save warning:", e);
       }
     }
-
-    // Apply Theme
-    this.applyTheme(this.fullSettings.general_settings?.theme || 'light');
-    this.syncAlertsFromPantry();
-    this.notify();
   }
 
   applyTheme(theme) {
@@ -1112,6 +1320,14 @@ class PantryStore {
       }
     } else {
       root.classList.remove('dark-theme');
+    }
+  }
+
+  applyLayoutMode(mode) {
+    if (mode === 'compact') {
+      document.body.classList.add('compact-mode');
+    } else {
+      document.body.classList.remove('compact-mode');
     }
   }
 
@@ -1359,6 +1575,24 @@ class PantryStore {
     return "Fresh";
   }
 
+  // 5-Level Granular Expiry Classification from Universal Shelf-Life Engine
+  getExpiryClassification(itemOrExpiryDate) {
+    let expDate = itemOrExpiryDate;
+    if (itemOrExpiryDate && typeof itemOrExpiryDate === 'object') {
+      expDate = itemOrExpiryDate.effectiveExpiryDate || itemOrExpiryDate.expiryDate;
+    }
+    if (window.ShelfLife && typeof window.ShelfLife.getExpiryStatus === 'function') {
+      return window.ShelfLife.getExpiryStatus(expDate);
+    }
+    const days = getDaysDifference(expDate);
+    if (days === null) return { status: "Fresh", days: null, label: "Fresh", badgeClass: "badge-status status-fresh", dotColor: "#10b981", emoji: "🟢" };
+    if (days < 0) return { status: "Expired", days, label: "Expired", badgeClass: "badge-status status-expired", dotColor: "#ef4444", emoji: "🔴", text: `Expired ${Math.abs(days)}d ago` };
+    if (days === 0) return { status: "Expires Today", days: 0, label: "Expires Today", badgeClass: "badge-status status-today", dotColor: "#dc2626", emoji: "⚠️", text: "Expires today!" };
+    if (days <= 7) return { status: "Very Soon", days, label: "Very Soon", badgeClass: "badge-status status-very-soon", dotColor: "#ea580c", emoji: "🟠", text: `${days}d left` };
+    if (days <= 30) return { status: "Expiring Soon", days, label: "Expiring Soon", badgeClass: "badge-status status-expiring", dotColor: "#d97706", emoji: "🟡", text: `${days}d left` };
+    return { status: "Fresh", days, label: "Fresh", badgeClass: "badge-status status-fresh", dotColor: "#10b981", emoji: "🟢", text: `${days}d left` };
+  }
+
   getMetrics() {
     const items = this.getItems();
     const total = items.length;
@@ -1366,18 +1600,44 @@ class PantryStore {
     let expiringSoon = 0;
     let expired = 0;
     let fresh = 0;
-
-    const warnDays = this.fullSettings?.pantry_settings?.expiry_warning_days || 7;
+    let verySoon = 0;
+    let expiresToday = 0;
+    let estimatedItems = 0;
+    let openedItems = 0;
 
     items.forEach(i => {
       const threshold = i.minStock !== undefined && i.minStock !== null && !isNaN(Number(i.minStock)) ? Number(i.minStock) : 2;
       const qty = Number(i.quantity) || 0;
-      const s = this.calculateStatus(i.expiryDate, qty, threshold, warnDays);
+      const expDate = i.effectiveExpiryDate || i.expiryDate;
 
-      if (s === "Low Stock" || qty <= threshold) lowStock++;
-      if (s === "Expiring Soon") expiringSoon++;
-      if (s === "Expired") expired++;
-      if (s === "Fresh" && qty > threshold) fresh++;
+      if (qty <= threshold) lowStock++;
+
+      if (window.ShelfLife && typeof window.ShelfLife.getExpiryStatus === 'function') {
+        const expStatus = window.ShelfLife.getExpiryStatus(expDate);
+        if (expStatus.tier === "expired" || expStatus.status === "Expired") expired++;
+        else if (expStatus.tier === "expires_today" || expStatus.status === "Expires Today") expiresToday++;
+        else if (expStatus.tier === "very_soon" || expStatus.status === "Very Soon") verySoon++;
+        else if (expStatus.tier === "expiring_soon" || expStatus.status === "Expiring Soon") expiringSoon++;
+        else fresh++;
+      } else {
+        const diff = getDaysDifference(expDate);
+        if (diff !== null) {
+          if (diff < 0) expired++;
+          else if (diff === 0) expiresToday++;
+          else if (diff <= 7) verySoon++;
+          else if (diff <= 30) expiringSoon++;
+          else fresh++;
+        } else {
+          fresh++;
+        }
+      }
+
+      if (i.isEstimate || i.expiryType === 'estimated' || (i.estimatedExpiryDate && !i.actualExpiryDate)) {
+        estimatedItems++;
+      }
+      if (i.productStatus === 'Opened' || i.isOpened) {
+        openedItems++;
+      }
     });
 
     return {
@@ -1386,6 +1646,10 @@ class PantryStore {
       expiringSoon: expiringSoon,
       expired: expired,
       fresh: fresh,
+      verySoon: verySoon,
+      expiresToday: expiresToday,
+      estimatedItems: estimatedItems,
+      openedItems: openedItems,
       shoppingListCount: lowStock + expired
     };
   }

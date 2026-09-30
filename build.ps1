@@ -34,7 +34,7 @@ function Inject-Env($filePath, $destPath) {
     Set-Content -Path $destPath -Value $content -Encoding UTF8
 }
 
-Inject-Env (Join-Path $root "dashboard.html") (Join-Path $dist "index.html")
+Inject-Env (Join-Path $root "landing.html") (Join-Path $dist "index.html")
 Inject-Env (Join-Path $root "landing.html") (Join-Path $dist "landing.html")
 Inject-Env (Join-Path $root "login.html") (Join-Path $dist "login.html")
 Inject-Env (Join-Path $root "dashboard.html") (Join-Path $dist "dashboard.html")
@@ -58,7 +58,7 @@ if (Test-Path (Join-Path $root "supabase")) {
     Copy-Item -Recurse (Join-Path $root "supabase") (Join-Path $dist "supabase") -Force
 }
 
-$favFiles = @("favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "apple-touch-icon.png", "android-chrome-192x192.png", "android-chrome-512x512.png", "site.webmanifest")
+$favFiles = @("favicon.ico", "favicon.png", "favicon-48x48.png", "favicon-32x32.png", "favicon-16x16.png", "apple-touch-icon.png", "android-chrome-192x192.png", "android-chrome-512x512.png", "site.webmanifest")
 foreach ($fav in $favFiles) {
     if (Test-Path (Join-Path $root $fav)) {
         Copy-Item (Join-Path $root $fav) (Join-Path $dist $fav) -Force

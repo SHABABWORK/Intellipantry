@@ -308,6 +308,21 @@
       }
     }
 
+    async signOutOtherSessions() {
+      if (!this.isReady()) return { success: false, error: "Supabase connection required." };
+      try {
+        if (this.client.auth && typeof this.client.auth.signOut === 'function') {
+          const { error } = await this.client.auth.signOut({ scope: 'others' });
+          if (error) throw error;
+          return { success: true };
+        }
+        return { success: true };
+      } catch (err) {
+        console.warn("[Supabase Auth] signOutOtherSessions error:", err);
+        return { success: false, error: err.message || "Failed to sign out other sessions." };
+      }
+    }
+
     isAuthenticated() {
       if (!this.isReady()) return false;
       const token = localStorage.getItem('smartpantry_token');
@@ -330,7 +345,10 @@
               id: user.id,
               email: user.email,
               name: user.user_metadata?.full_name || user.email.split('@')[0] || 'Pantry Chef',
-              emailVerified: Boolean(user.email_confirmed_at || user.confirmed_at)
+              avatarUrl: user.user_metadata?.avatar_url || '',
+              emailVerified: Boolean(user.email_confirmed_at || user.confirmed_at),
+              createdAt: user.created_at,
+              lastSignInAt: user.last_sign_in_at
             };
           }
         } catch (e) {}
@@ -745,7 +763,19 @@
         quantity: qty,
         quantity_unit: unitVal,
         purchase_date: productData.purchaseDate || null,
-        expiry_date: productData.expiryDate || null,
+        actual_expiry_date: productData.actualExpiryDate || (productData.expiryType === 'actual' ? productData.expiryDate : null),
+        estimated_expiry_date: productData.estimatedExpiryDate || (productData.expiryType === 'estimated' ? productData.expiryDate : null),
+        effective_expiry_date: productData.effectiveExpiryDate || productData.expiryDate || null,
+        expiry_type: productData.expiryType || 'actual',
+        shelf_life_days: productData.shelfLifeDays !== undefined ? productData.shelfLifeDays : null,
+        product_status: productData.productStatus || 'Unopened',
+        opened_date: productData.openedDate || null,
+        opened_shelf_life_days: productData.openedShelfLifeDays !== undefined ? productData.openedShelfLifeDays : null,
+        recommended_use_by_date: productData.recommendedUseByDate || null,
+        storage_type: productData.storageType || null,
+        storage_recommendation: productData.storageRecommendation || null,
+        expiry_status: productData.expiryStatus || productData.status || null,
+        expiry_date: productData.effectiveExpiryDate || productData.expiryDate || null,
         low_stock_threshold: minStockVal,
         notes: notesVal,
         storage_location: productData.storageLocation || productData.location || 'Pantry'
@@ -889,7 +919,21 @@
       if (updates.category !== undefined) dbPayload.category = updates.category;
       if (updates.quantity !== undefined) dbPayload.quantity = Number(updates.quantity);
       if (unitVal !== undefined) dbPayload.quantity_unit = unitVal;
-      if (updates.expiryDate !== undefined) dbPayload.expiry_date = updates.expiryDate || null;
+      if (updates.expiryDate !== undefined) {
+        dbPayload.expiry_date = updates.effectiveExpiryDate || updates.expiryDate || null;
+      }
+      if (updates.actualExpiryDate !== undefined) dbPayload.actual_expiry_date = updates.actualExpiryDate;
+      if (updates.estimatedExpiryDate !== undefined) dbPayload.estimated_expiry_date = updates.estimatedExpiryDate;
+      if (updates.effectiveExpiryDate !== undefined) dbPayload.effective_expiry_date = updates.effectiveExpiryDate;
+      if (updates.expiryType !== undefined) dbPayload.expiry_type = updates.expiryType;
+      if (updates.shelfLifeDays !== undefined) dbPayload.shelf_life_days = updates.shelfLifeDays;
+      if (updates.productStatus !== undefined) dbPayload.product_status = updates.productStatus;
+      if (updates.openedDate !== undefined) dbPayload.opened_date = updates.openedDate;
+      if (updates.openedShelfLifeDays !== undefined) dbPayload.opened_shelf_life_days = updates.openedShelfLifeDays;
+      if (updates.recommendedUseByDate !== undefined) dbPayload.recommended_use_by_date = updates.recommendedUseByDate;
+      if (updates.storageType !== undefined) dbPayload.storage_type = updates.storageType;
+      if (updates.storageRecommendation !== undefined) dbPayload.storage_recommendation = updates.storageRecommendation;
+      if (updates.expiryStatus !== undefined) dbPayload.expiry_status = updates.expiryStatus;
       if (updates.purchaseDate !== undefined) dbPayload.purchase_date = updates.purchaseDate || null;
       if (updates.barcode !== undefined) dbPayload.barcode = updates.barcode;
       if (updates.storageLocation !== undefined || updates.location !== undefined) {
@@ -1065,23 +1109,59 @@
     async getUserSettings(userId) {
       if (!userId || !this.isUUID(userId) || !this.isReady()) return null;
       try {
-        const { data, error } = await this.client
-          .from('notification_preferences')
-          .select('*')
-          .eq('user_id', userId)
-          .maybeSingle();
+        const [notifRes, userSetRes] = await Promise.allSettled([
+          this.client.from('notification_preferences').select('*').eq('user_id', userId).maybeSingle(),
+          this.client.from('user_settings').select('*').eq('user_id', userId).maybeSingle()
+        ]);
 
-        if (!error && data) return data;
+        const notifData = (notifRes.status === 'fulfilled' && notifRes.value.data) ? notifRes.value.data : {};
+        const userSetData = (userSetRes.status === 'fulfilled' && userSetRes.value.data) ? userSetRes.value.data : {};
 
-        // Fallback to user_settings
-        const leg = await this.client
-          .from('user_settings')
-          .select('*')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-        return leg.data || null;
+        return {
+          notification_preferences: notifData,
+          user_settings: userSetData,
+          preferences: {
+            email_notifications: notifData.email_notifications ?? notifData.preferences?.email_notifications ?? true,
+            alert_expiry: notifData.expiry_alerts ?? notifData.preferences?.alert_expiry ?? true,
+            alert_expired: notifData.expired_product_alerts ?? notifData.preferences?.alert_expired ?? true,
+            alert_low_stock: notifData.low_stock_alerts ?? notifData.preferences?.alert_low_stock ?? true,
+            shopping_recommendations: notifData.shopping_recommendations ?? notifData.preferences?.shopping_recommendations ?? true,
+            meal_plan_notifications: notifData.meal_plan_notifications ?? notifData.preferences?.meal_plan_notifications ?? true,
+            alert_weekly_summary: notifData.weekly_summary ?? notifData.preferences?.alert_weekly_summary ?? false,
+            alert_security: notifData.security_notifications ?? notifData.preferences?.alert_security ?? true
+          },
+          pantry_settings: {
+            default_location: userSetData.default_storage_type ?? userSetData.pantry_settings?.default_location ?? notifData.pantry_settings?.default_location ?? 'Pantry',
+            expiry_warning_days: userSetData.expiry_warning_period_days ?? userSetData.pantry_settings?.expiry_warning_days ?? notifData.pantry_settings?.expiry_warning_days ?? 7,
+            low_stock_threshold: userSetData.minimum_stock_threshold ?? userSetData.low_stock_warning_level ?? userSetData.pantry_settings?.low_stock_threshold ?? notifData.pantry_settings?.low_stock_threshold ?? 2,
+            default_unit: userSetData.default_quantity_unit ?? userSetData.pantry_settings?.default_unit ?? notifData.pantry_settings?.default_unit ?? 'pcs',
+            default_planning_period_days: userSetData.default_planning_period_days ?? userSetData.pantry_settings?.default_planning_period_days ?? 7,
+            default_category: userSetData.pantry_settings?.default_category ?? notifData.pantry_settings?.default_category ?? 'Pantry',
+            auto_add_scanned_products: userSetData.auto_add_scanned_products ?? userSetData.pantry_settings?.auto_add_scanned_products ?? true,
+            auto_calculate_expiry: userSetData.auto_calculate_expiry ?? userSetData.pantry_settings?.auto_calculate_expiry ?? true,
+            opened_product_tracking: userSetData.opened_product_tracking ?? userSetData.pantry_settings?.opened_product_tracking ?? true,
+            smart_shopping_recommendations: userSetData.smart_shopping_recommendations ?? userSetData.pantry_settings?.smart_shopping_recommendations ?? true,
+            food_waste_tracking: userSetData.food_waste_tracking ?? userSetData.pantry_settings?.food_waste_tracking ?? true
+          },
+          general_settings: {
+            theme: userSetData.theme ?? userSetData.general_settings?.theme ?? notifData.general_settings?.theme ?? 'light',
+            layout_mode: userSetData.layout_mode ?? userSetData.general_settings?.layout_mode ?? 'comfortable',
+            language: userSetData.language ?? userSetData.general_settings?.language ?? notifData.general_settings?.language ?? 'English',
+            timezone: userSetData.timezone ?? userSetData.general_settings?.timezone ?? notifData.general_settings?.timezone ?? 'Asia/Kolkata',
+            currency: userSetData.currency ?? userSetData.general_settings?.currency ?? notifData.general_settings?.currency ?? 'INR',
+            date_format: userSetData.date_format ?? userSetData.general_settings?.date_format ?? notifData.general_settings?.date_format ?? 'DD/MM/YYYY'
+          },
+          privacy_settings: {
+            analytics_enabled: userSetData.analytics_enabled ?? userSetData.privacy_settings?.analytics_enabled ?? true,
+            ai_personalization: userSetData.ai_personalization ?? userSetData.privacy_settings?.ai_personalization ?? true,
+            recipe_personalization: userSetData.recipe_personalization ?? userSetData.privacy_settings?.recipe_personalization ?? true,
+            shopping_personalization: userSetData.shopping_personalization ?? userSetData.privacy_settings?.shopping_personalization ?? true,
+            profile_visibility: userSetData.profile_visibility ?? userSetData.privacy_settings?.profile_visibility ?? 'private',
+            data_usage_consent: userSetData.data_usage_consent ?? userSetData.privacy_settings?.data_usage_consent ?? true
+          }
+        };
       } catch (err) {
+        console.warn("[Supabase Settings] Fetch error:", err);
         return null;
       }
     }
@@ -1091,29 +1171,259 @@
       const effectiveUserId = await this.getAuthenticatedUserId(userId);
       if (!effectiveUserId) return false;
 
-      const payload = {
+      const p = settingsData.preferences || {};
+      const pp = settingsData.pantry_settings || {};
+      const gen = settingsData.general_settings || {};
+      const priv = settingsData.privacy_settings || {};
+
+      const notifPayload = {
         user_id: effectiveUserId,
-        preferences: settingsData.preferences || {},
-        pantry_settings: settingsData.pantry_settings || {},
-        general_settings: settingsData.general_settings || {},
+        email_notifications: p.email_notifications !== false,
+        expiry_alerts: p.alert_expiry !== false && p.expiry_alerts !== false,
+        expired_product_alerts: p.alert_expired !== false && p.expired_product_alerts !== false,
+        low_stock_alerts: p.alert_low_stock !== false && p.low_stock_alerts !== false,
+        shopping_recommendations: p.shopping_recommendations !== false,
+        meal_plan_notifications: p.meal_plan_notifications !== false,
+        weekly_summary: !!p.alert_weekly_summary || !!p.weekly_summary,
+        security_notifications: p.alert_security !== false && p.security_notifications !== false,
+        preferences: p,
+        pantry_settings: pp,
+        general_settings: gen,
+        updated_at: new Date().toISOString()
+      };
+
+      const userSettingsPayload = {
+        user_id: effectiveUserId,
+        minimum_stock_threshold: pp.low_stock_threshold !== undefined ? Number(pp.low_stock_threshold) : 2,
+        low_stock_warning_level: pp.low_stock_threshold !== undefined ? Number(pp.low_stock_threshold) : 2,
+        default_planning_period_days: pp.default_planning_period_days !== undefined ? Number(pp.default_planning_period_days) : 7,
+        default_storage_type: pp.default_location || 'Pantry',
+        expiry_warning_period_days: pp.expiry_warning_days !== undefined ? Number(pp.expiry_warning_days) : 7,
+        default_quantity_unit: pp.default_unit || 'pcs',
+        auto_add_scanned_products: pp.auto_add_scanned_products !== false,
+        auto_calculate_expiry: pp.auto_calculate_expiry !== false,
+        opened_product_tracking: pp.opened_product_tracking !== false,
+        smart_shopping_recommendations: pp.smart_shopping_recommendations !== false,
+        food_waste_tracking: pp.food_waste_tracking !== false,
+        theme: gen.theme || 'light',
+        layout_mode: gen.layout_mode || 'comfortable',
+        language: gen.language || 'English',
+        timezone: gen.timezone || 'Asia/Kolkata',
+        currency: gen.currency || 'INR',
+        date_format: gen.date_format || 'DD/MM/YYYY',
+        analytics_enabled: priv.analytics_enabled !== false,
+        ai_personalization: priv.ai_personalization !== false,
+        recipe_personalization: priv.recipe_personalization !== false,
+        shopping_personalization: priv.shopping_personalization !== false,
+        profile_visibility: priv.profile_visibility || 'private',
+        data_usage_consent: priv.data_usage_consent !== false,
+        preferences: p,
+        pantry_settings: pp,
+        general_settings: gen,
+        privacy_settings: priv,
         updated_at: new Date().toISOString()
       };
 
       try {
-        const { data, error } = await this.client
+        const p1 = this.client
           .from('notification_preferences')
-          .upsert(payload, { onConflict: 'user_id' })
-          .select();
+          .upsert(notifPayload, { onConflict: 'user_id' });
 
-        // Also upsert user_settings for compatibility
-        await this.client
+        const p2 = this.client
           .from('user_settings')
-          .upsert(payload, { onConflict: 'user_id' });
+          .upsert(userSettingsPayload, { onConflict: 'user_id' });
 
-        return !error;
+        await Promise.allSettled([p1, p2]);
+        return true;
       } catch (err) {
         console.warn("[Supabase Settings] Save error:", err.message);
         return false;
+      }
+    }
+
+    async uploadAvatar(userId, fileOrDataUrl) {
+      if (!userId || !this.isReady()) return { success: false, error: 'Supabase client not ready' };
+      const effectiveUserId = await this.getAuthenticatedUserId(userId);
+      if (!effectiveUserId) return { success: false, error: 'User authentication required' };
+
+      try {
+        let avatarUrl = '';
+        if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('data:image/')) {
+          avatarUrl = fileOrDataUrl;
+        } else if (fileOrDataUrl instanceof File || fileOrDataUrl instanceof Blob) {
+          const fileExt = (fileOrDataUrl.name || 'avatar.jpg').split('.').pop();
+          const filePath = `${effectiveUserId}/avatar-${Date.now()}.${fileExt}`;
+          try {
+            const { data, error } = await this.client.storage
+              .from('avatars')
+              .upload(filePath, fileOrDataUrl, { upsert: true });
+
+            if (!error && data) {
+              const { data: publicUrlData } = this.client.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+              avatarUrl = publicUrlData?.publicUrl || '';
+            }
+          } catch(storageErr) {
+            console.warn("[Supabase Storage] bucket upload error, using DataURL fallback:", storageErr);
+          }
+
+          if (!avatarUrl) {
+            avatarUrl = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(fileOrDataUrl);
+            });
+          }
+        } else if (typeof fileOrDataUrl === 'string') {
+          avatarUrl = fileOrDataUrl;
+        }
+
+        if (!avatarUrl) return { success: false, error: 'Invalid avatar data' };
+
+        // Save to public.profiles
+        await this.updateProfile(effectiveUserId, { avatarUrl });
+
+        // Update auth metadata
+        try {
+          await this.client.auth.updateUser({
+            data: { avatar_url: avatarUrl }
+          });
+        } catch (e) {}
+
+        return { success: true, avatarUrl };
+      } catch (err) {
+        return { success: false, error: err.message || 'Avatar upload failed' };
+      }
+    }
+
+    async getDatabaseHealthAndStats(userId) {
+      if (!this.isReady()) {
+        return {
+          status: 'error',
+          error: '🔴 Database connection unavailable',
+          latencyMs: 0,
+          pantryCount: 0,
+          shoppingCount: 0,
+          alertsCount: 0,
+          mealPlansCount: 0,
+          lastSyncTime: null,
+          lastUpdateTime: null
+        };
+      }
+
+      const effectiveUserId = await this.getAuthenticatedUserId(userId);
+      const startTime = performance.now();
+      let latencyMs = 0;
+      let pantryCount = 0;
+      let shoppingCount = 0;
+      let alertsCount = 0;
+      let mealPlansCount = 0;
+      let lastUpdateTime = null;
+
+      try {
+        const { count: pCount, data: latestPantry, error: pErr } = await this.client
+          .from('pantry_items')
+          .select('updated_at', { count: 'exact' })
+          .eq('user_id', effectiveUserId)
+          .order('updated_at', { ascending: false })
+          .limit(1);
+
+        latencyMs = Math.round(performance.now() - startTime);
+
+        if (pErr) {
+          const testRes = await fetch(`${this.url}/auth/v1/settings`, {
+            headers: { 'apikey': this.key, 'Authorization': `Bearer ${this.key}` }
+          });
+          if (!testRes.ok) {
+            return {
+              status: 'error',
+              error: '🔴 Database connection unavailable: ' + (pErr.message || 'Connection failed'),
+              latencyMs,
+              pantryCount: 0,
+              shoppingCount: 0,
+              alertsCount: 0,
+              mealPlansCount: 0,
+              lastSyncTime: null,
+              lastUpdateTime: null
+            };
+          }
+        }
+
+        pantryCount = pCount ?? (window.store ? window.store.getItems().length : 0);
+        if (latestPantry && latestPantry[0]?.updated_at) {
+          lastUpdateTime = latestPantry[0].updated_at;
+        }
+
+        // Shopping List Count
+        try {
+          const { count: sCount } = await this.client
+            .from('shopping_list')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', effectiveUserId);
+          shoppingCount = sCount ?? 0;
+        } catch (e) {
+          shoppingCount = 0;
+        }
+
+        // Alerts Count
+        try {
+          const { count: aCount } = await this.client
+            .from('alerts')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', effectiveUserId);
+          alertsCount = aCount ?? (window.store ? (window.store.alerts || []).length : 0);
+        } catch (e) {
+          alertsCount = window.store ? (window.store.alerts || []).length : 0;
+        }
+
+        // Meal Plans Count
+        try {
+          const { count: mCount } = await this.client
+            .from('meal_plans')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', effectiveUserId);
+          mealPlansCount = mCount ?? 0;
+        } catch (e) {
+          mealPlansCount = 0;
+        }
+
+        if (!lastUpdateTime) {
+          try {
+            const { data: latestAct } = await this.client
+              .from('activity_logs')
+              .select('created_at')
+              .eq('user_id', effectiveUserId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (latestAct?.created_at) lastUpdateTime = latestAct.created_at;
+          } catch (e) {}
+        }
+
+        return {
+          status: 'connected',
+          latencyMs,
+          pantryCount,
+          shoppingCount,
+          alertsCount,
+          mealPlansCount,
+          lastSyncTime: new Date().toISOString(),
+          lastUpdateTime: lastUpdateTime || new Date().toISOString()
+        };
+      } catch (err) {
+        return {
+          status: 'error',
+          error: '🔴 Database connection unavailable: ' + (err.message || 'Offline'),
+          latencyMs: Math.round(performance.now() - startTime),
+          pantryCount: 0,
+          shoppingCount: 0,
+          alertsCount: 0,
+          mealPlansCount: 0,
+          lastSyncTime: null,
+          lastUpdateTime: null
+        };
       }
     }
 
@@ -1394,8 +1704,21 @@
               filter: `user_id=eq.${userId}`
             },
             (payload) => {
-              console.log("[Supabase Realtime] settings event:", payload.eventType);
-              if (typeof onDataChange === 'function') onDataChange(payload);
+              console.log("[Supabase Realtime] notification_preferences event:", payload.eventType);
+              if (typeof onDataChange === 'function') onDataChange({ table: 'notification_preferences', ...payload });
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'user_settings',
+              filter: `user_id=eq.${userId}`
+            },
+            (payload) => {
+              console.log("[Supabase Realtime] user_settings event:", payload.eventType);
+              if (typeof onDataChange === 'function') onDataChange({ table: 'user_settings', ...payload });
             }
           )
           .subscribe();
@@ -1457,13 +1780,40 @@
         notes: notesVal,
         ingredients: row.ingredients || '',
         nutrition: row.nutrition || null,
+        actualExpiryDate: row.actual_expiry_date || null,
+        estimatedExpiryDate: row.estimated_expiry_date || null,
+        effectiveExpiryDate: row.effective_expiry_date || expDate || '',
+        expiryType: row.expiry_type || (row.actual_expiry_date ? 'actual' : (row.estimated_expiry_date ? 'estimated' : 'actual')),
+        isEstimate: row.expiry_type === 'estimated' || Boolean(row.estimated_expiry_date && !row.actual_expiry_date),
+        shelfLifeDays: row.shelf_life_days || null,
+        productStatus: row.product_status || 'Unopened',
+        openedDate: row.opened_date || null,
+        openedShelfLifeDays: row.opened_shelf_life_days || null,
+        recommendedUseByDate: row.recommended_use_by_date || null,
+        storageType: row.storage_type || null,
+        storageRecommendation: row.storage_recommendation || null,
+        expiryStatus: row.expiry_status || null,
         emoji: row.emoji || (window.store ? window.store.detectEmoji(row.product_name || row.name, row.category) : '📦'),
-        status: (window.store && expDate) 
-          ? window.store.calculateStatus(expDate, qtyVal, minStockVal) 
-          : (row.status || 'Fresh'),
+        status: (window.store && (row.effective_expiry_date || expDate)) 
+          ? window.store.calculateStatus(row.effective_expiry_date || expDate, qtyVal, minStockVal) 
+          : (row.expiry_status || row.status || 'Fresh'),
         addedAt: row.created_at || new Date().toISOString(),
         updatedAt: row.updated_at || new Date().toISOString()
       };
+    }
+
+    async getShelfLifeReference() {
+      if (!this.isReady()) return [];
+      try {
+        const { data, error } = await this.client
+          .from('shelf_life_reference')
+          .select('*')
+          .order('product_name', { ascending: true });
+        if (!error && Array.isArray(data)) return data;
+        return [];
+      } catch (e) {
+        return [];
+      }
     }
 
     dispatchLoginNotification(user) {

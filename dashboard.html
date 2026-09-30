@@ -6,12 +6,15 @@
   <title>Smart Pantry — Inventory & Expiry Tracker</title>
 
   <!-- Favicon & App Icons -->
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="icon" href="/favicon.png">
   <link rel="shortcut icon" href="/favicon.ico">
-  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#1e392a">
 
   <!-- Tailwind CSS Output & Custom Design Styles -->
   <link rel="stylesheet" href="css/tailwind-output.css">
@@ -144,10 +147,7 @@
       <button class="mobile-menu-btn" onclick="toggleSidebarDrawer()" aria-label="Open Navigation">☰</button>
       <div class="topbar-brand">
         <div class="brand-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
-            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
-          </svg>
+          <img src="assets/images/brand-logo.png" alt="IntelliPantry Logo" style="width:100%; height:100%; object-fit:contain; border-radius:8px;">
         </div>
         <div class="brand-info">
           <h1>IntelliPantry</h1>
@@ -198,6 +198,9 @@
           <a href="login.html" style="width:100%; padding:10px 16px; background:none; border:none; color:#38bdf8; font-size:13px; font-weight:600; text-align:left; cursor:pointer; font-family:inherit; text-decoration:none; border-bottom:1px solid #334155; display:flex; align-items:center; gap:8px;" onmouseover="this.style.background='#263348'" onmouseout="this.style.background='none'">
             🔑 Sign In / Account Access
           </a>
+          <button onclick="openFeaturesGuideModal()" style="width:100%; padding:10px 16px; background:none; border:none; color:#34d399; font-size:13px; font-weight:600; text-align:left; cursor:pointer; font-family:inherit; border-bottom:1px solid #334155; display:flex; align-items:center; gap:8px;" onmouseover="this.style.background='#263348'" onmouseout="this.style.background='none'">
+            ✨ What's Included / Features Guide
+          </button>
           <button onclick="openDatabaseSettingsModal()" style="width:100%; padding:10px 16px; background:none; border:none; color:#f8fafc; font-size:13px; font-weight:600; text-align:left; cursor:pointer; font-family:inherit; border-bottom:1px solid #334155; display:flex; align-items:center; gap:8px;" onmouseover="this.style.background='#263348'" onmouseout="this.style.background='none'">
             ⚡ Supabase Database Settings
           </button>
@@ -233,10 +236,7 @@
       <!-- Sidebar Desktop Brand Header -->
       <div class="sidebar-brand">
         <div class="brand-leaf-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
-            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
-            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
-          </svg>
+          <img src="assets/images/brand-logo.png" alt="IntelliPantry Logo" style="width:100%; height:100%; object-fit:contain; border-radius:8px;">
         </div>
         <div>
           <h1 class="brand-title">IntelliPantry</h1>
@@ -344,6 +344,13 @@
           </svg>
           Supabase DB
         </a>
+
+        <a class="nav-link" onclick="openFeaturesGuideModal()" style="cursor:pointer; color:#059669; font-weight:700;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+          ✨ What's Included
+        </a>
       </nav>
 
       <!-- Small Sustainability/Food-Waste Message at the Bottom -->
@@ -370,12 +377,25 @@
           </h2>
           <p id="welcomeSub">Here's your pantry overview today.</p>
         </div>
-        <div class="datetime-card" id="dashboardDateTimeCard" title="Live Local Date & Clock">
-          <span class="datetime-card-icon">📅</span>
-          <div>
-            <div class="datetime-date" id="datetimeDateDisplay">Loading date...</div>
-            <div class="datetime-clock" id="datetimeClockDisplay">--:--:--</div>
+        <!-- Kitchen Hub Digital Display Clock (Matches User Reference Image media_1790802008906.png Exactly) -->
+        <div class="kitchen-hub-clock-card" id="dashboardDateTimeCard" title="Kitchen Hub Digital Clock • Real-Time Sync">
+          <div class="kh-date-block">
+            <div class="kh-month-label" id="khMonthDisplay">Oct</div>
+            <div class="kh-day-number" id="khDayDisplay">01</div>
           </div>
+          <div class="kh-divider"></div>
+          <div class="kh-time-block">
+            <div class="kh-time-row">
+              <span class="kh-time-digits" id="khTimeDigits">01:55</span>
+              <span class="kh-time-ampm" id="khTimeAmPm">AM</span>
+            </div>
+            <div class="kh-status-row">
+              <span class="kh-status-text" id="khStatusText">Inventory Sync Active</span>
+            </div>
+          </div>
+          <!-- Hidden compatibility elements to preserve existing JS bindings -->
+          <span id="datetimeDateDisplay" style="display:none;"></span>
+          <span id="datetimeClockDisplay" style="display:none;"></span>
         </div>
       </div>
 
@@ -443,6 +463,66 @@
         </div>
 
       </div>
+
+      <!-- Expiry Overview Panel & Universal Prediction Status -->
+      <section class="expiry-overview-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:20px;">🛡️</span>
+            <div>
+              <h3 style="font-size:15px; font-weight:800; color:#1e392a; margin:0;">Expiry & Shelf-Life Overview</h3>
+              <p style="font-size:12px; color:#64748b; margin:2px 0 0;">Interactive 5-tier expiry tracking & reference predictions</p>
+            </div>
+          </div>
+          <div style="font-size:11px; color:#78867c; background:#fbfaf7; border:1px solid #ece7dc; border-radius:20px; padding:4px 12px; display:flex; align-items:center; gap:6px;">
+            <span>ℹ️</span> <em>Estimated shelf life is a general reference. Always follow manufacturer dates.</em>
+          </div>
+        </div>
+
+        <!-- Interactive Expiry Filter Pills -->
+        <div class="expiry-overview-pills">
+          <button type="button" class="expiry-overview-pill active" data-status="All" onclick="setStatusFilter('All')" title="Show all items">
+            <span class="pill-dot" style="background:#64748b;"></span>
+            <span>Total Items</span>
+            <strong id="overviewPillTotal">0</strong>
+          </button>
+          <button type="button" class="expiry-overview-pill" data-status="Fresh" onclick="setStatusFilter('Fresh')" title="Filter items with >30 days remaining">
+            <span class="pill-dot" style="background:#10b981;"></span>
+            <span>Fresh (>30d)</span>
+            <strong id="overviewPillFresh" style="color:#059669;">0</strong>
+          </button>
+          <button type="button" class="expiry-overview-pill" data-status="Expiring Soon" onclick="setStatusFilter('Expiring Soon')" title="Filter items expiring in 8-30 days">
+            <span class="pill-dot" style="background:#f59e0b;"></span>
+            <span>Expiring Soon (8–30d)</span>
+            <strong id="overviewPillExpiringSoon" style="color:#d97706;">0</strong>
+          </button>
+          <button type="button" class="expiry-overview-pill" data-status="Very Soon" onclick="setStatusFilter('Very Soon')" title="Filter items expiring in 1-7 days">
+            <span class="pill-dot" style="background:#ea580c;"></span>
+            <span>Very Soon (1–7d)</span>
+            <strong id="overviewPillVerySoon" style="color:#c2410c;">0</strong>
+          </button>
+          <button type="button" class="expiry-overview-pill" data-status="Expires Today" onclick="setStatusFilter('Expires Today')" title="Filter items expiring today">
+            <span class="pill-dot" style="background:#dc2626;"></span>
+            <span>Expires Today</span>
+            <strong id="overviewPillExpiresToday" style="color:#b91c1c;">0</strong>
+          </button>
+          <button type="button" class="expiry-overview-pill" data-status="Expired" onclick="setStatusFilter('Expired')" title="Filter expired items">
+            <span class="pill-dot" style="background:#991b1b;"></span>
+            <span>Expired</span>
+            <strong id="overviewPillExpired" style="color:#991b1b;">0</strong>
+          </button>
+          <button type="button" class="expiry-overview-pill" data-status="Estimated" onclick="setStatusFilter('Estimated')" title="Filter items with database estimated expiry">
+            <span class="pill-dot" style="background:#8b5cf6;"></span>
+            <span>✨ Estimated</span>
+            <strong id="overviewPillEstimated" style="color:#7c3aed;">0</strong>
+          </button>
+          <button type="button" class="expiry-overview-pill" data-status="Opened" onclick="setStatusFilter('Opened')" title="Filter opened items with shortened use-by">
+            <span class="pill-dot" style="background:#f97316;"></span>
+            <span>🔓 Opened</span>
+            <strong id="overviewPillOpened" style="color:#ea580c;">0</strong>
+          </button>
+        </div>
+      </section>
 
       <!-- Quick Actions (Matches Panel 1) -->
       <section class="quick-actions-section">
@@ -547,10 +627,14 @@
         <div class="status-filter-row" style="display:flex; align-items:center; gap:8px; margin-top:12px; margin-bottom:18px; flex-wrap:wrap;">
           <span style="font-size:12px; font-weight:700; color:#64748b; margin-right:4px;">Status:</span>
           <button type="button" class="status-filter-btn active" data-status="All" onclick="setStatusFilter('All')">All Statuses</button>
-          <button type="button" class="status-filter-btn" data-status="Fresh" onclick="setStatusFilter('Fresh')">🟢 In Stock / Fresh</button>
-          <button type="button" class="status-filter-btn" data-status="Expiring Soon" onclick="setStatusFilter('Expiring Soon')">🟡 Expiring Soon</button>
-          <button type="button" class="status-filter-btn" data-status="Low Stock" onclick="setStatusFilter('Low Stock')">🟠 Low Stock</button>
+          <button type="button" class="status-filter-btn" data-status="Fresh" onclick="setStatusFilter('Fresh')">🟢 Fresh (>30d)</button>
+          <button type="button" class="status-filter-btn" data-status="Expiring Soon" onclick="setStatusFilter('Expiring Soon')">🟡 Expiring Soon (8–30d)</button>
+          <button type="button" class="status-filter-btn" data-status="Very Soon" onclick="setStatusFilter('Very Soon')">🟠 Very Soon (1–7d)</button>
+          <button type="button" class="status-filter-btn" data-status="Expires Today" onclick="setStatusFilter('Expires Today')">⚠️ Expires Today</button>
           <button type="button" class="status-filter-btn" data-status="Expired" onclick="setStatusFilter('Expired')">🔴 Expired</button>
+          <button type="button" class="status-filter-btn" data-status="Low Stock" onclick="setStatusFilter('Low Stock')">📦 Low Stock</button>
+          <button type="button" class="status-filter-btn" data-status="Estimated" onclick="setStatusFilter('Estimated')">✨ Estimated</button>
+          <button type="button" class="status-filter-btn" data-status="Opened" onclick="setStatusFilter('Opened')">🔓 Opened</button>
         </div>
 
         <!-- Modern Responsive Grocery Card Grid (Matches Image 1) -->
@@ -1173,7 +1257,7 @@
           <button type="button" class="settings-tab-btn active" onclick="switchSettingsTab('account', this)">👤 Account</button>
           <button type="button" class="settings-tab-btn" onclick="switchSettingsTab('database', this)">⚡ Database</button>
           <button type="button" class="settings-tab-btn" onclick="switchSettingsTab('notifications', this)">🔔 Notifications</button>
-          <button type="button" class="settings-tab-btn" onclick="switchSettingsTab('preferences', this)">🥫 Pantry</button>
+          <button type="button" class="settings-tab-btn" onclick="switchSettingsTab('preferences', this)">🎯 Pantry</button>
           <button type="button" class="settings-tab-btn" onclick="switchSettingsTab('appearance', this)">🎨 Appearance</button>
           <button type="button" class="settings-tab-btn" onclick="switchSettingsTab('security', this)">🔐 Security</button>
           <button type="button" class="settings-tab-btn" onclick="switchSettingsTab('privacy', this)">🛡️ Privacy</button>
@@ -1186,27 +1270,50 @@
           <div class="settings-card settings-tab-pane active" id="settingsTab_account">
             <div class="settings-card-header">
               <h3>👤 Profile & Account</h3>
-              <p>Manage your identity, personal information, and display name.</p>
+              <p>Manage your identity, personal information, and display name in real time.</p>
             </div>
             
             <!-- User Profile Summary Badge -->
-            <div style="display:flex; align-items:center; gap:16px; padding:16px; background:#f8fafc; border-radius:14px; border:1px solid #e2e8f0; margin-bottom:20px; max-width:540px;">
+            <div style="display:flex; align-items:center; gap:16px; padding:16px; background:#f8fafc; border-radius:14px; border:1px solid #e2e8f0; margin-bottom:20px; max-width:560px;">
               <div id="settingsProfileAvatarPreview" style="width:56px; height:56px; border-radius:50%; background:#1e392a; color:#ffffff; font-size:24px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden;">
                 P
               </div>
               <div style="flex:1; min-width:0;">
                 <h4 id="settingsProfileNameDisplay" style="margin:0; font-size:16px; font-weight:800; color:#1e293b;">Pantry Chef</h4>
                 <p id="settingsProfileEmailDisplay" style="margin:2px 0 0; font-size:13px; color:#64748b;">user@example.com</p>
-                <span style="display:inline-block; margin-top:4px; font-size:11.5px; font-weight:700; color:#166534; background:#f0fdf4; border:1px solid #bbf7d0; padding:2px 8px; border-radius:12px;">
-                  Home Pantry
-                </span>
+                <div style="display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap;">
+                  <span style="font-size:11px; font-weight:700; color:#166534; background:#f0fdf4; border:1px solid #bbf7d0; padding:2px 8px; border-radius:12px;">
+                    Home Pantry
+                  </span>
+                  <span style="font-size:11px; color:#64748b;">
+                    Member since: <strong id="settingsAccountCreated">-</strong>
+                  </span>
+                  <span style="font-size:11px; color:#64748b;">
+                    Last active: <strong id="settingsAccountLastLogin">-</strong>
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div class="space-y-4" style="max-width:540px;">
+            <div class="space-y-4" style="max-width:560px;">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Profile Photo</label>
+                <div style="display:flex; gap:10px; align-items:center;">
+                  <button type="button" onclick="document.getElementById('settingsAvatarFileInput').click()" style="padding:8px 14px; border-radius:10px; font-size:12.5px; font-weight:700; background:#f8fafc; color:#1e392a; border:1px solid #cbd5e1; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                    📷 Upload Image
+                  </button>
+                  <input type="file" id="settingsAvatarFileInput" accept="image/*" style="display:none;" onchange="handleProfileAvatarUpload(this)">
+                  <span id="pill_avatar_upload" class="settings-save-pill"></span>
+                </div>
+                <div style="margin-top:8px;">
+                  <input type="url" id="settingsAvatarUrl" onchange="handleSettingChange('account', 'avatar_url', this.value, 'pill_account_save')" class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none" placeholder="Or paste image URL (e.g. https://example.com/avatar.jpg)">
+                  <small style="color:#94a3b8; font-size:11px; display:block; margin-top:2px;">Upload a picture or enter a web link to your avatar.</small>
+                </div>
+              </div>
+
               <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">Display Name</label>
-                <input type="text" id="settingsDisplayName" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none" placeholder="e.g. Alex Green">
+                <input type="text" id="settingsDisplayName" onchange="handleSettingChange('account', 'name', this.value, 'pill_account_save')" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none" placeholder="e.g. Alex Green">
                 <small style="color:#94a3b8; font-size:11.5px; display:block; margin-top:3px;">Your friendly display name shown across your pantry.</small>
               </div>
 
@@ -1221,138 +1328,230 @@
                     ✓ Verified
                   </span>
                 </div>
-                <small style="color:#94a3b8; font-size:11.5px; display:block; margin-top:3px;">Primary email linked to your account.</small>
+                <small style="color:#94a3b8; font-size:11.5px; display:block; margin-top:3px;">Primary authenticated email linked to your Supabase session.</small>
               </div>
 
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Profile Photo URL (Optional)</label>
-                <input type="url" id="settingsAvatarUrl" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none" placeholder="https://example.com/avatar.jpg">
-                <small style="color:#94a3b8; font-size:11.5px; display:block; margin-top:3px;">Leave blank to use your name initials.</small>
-              </div>
-
-              <div style="padding-top:12px;">
+              <div style="display:flex; align-items:center; gap:12px; padding-top:12px;">
                 <button type="button" onclick="saveAllSettingsForm()" class="btn-forest-submit" style="width:auto; padding:10px 22px; border-radius:12px; font-size:13px; font-weight:700;">
                   Save Profile
                 </button>
+                <span id="pill_account_save" class="settings-save-pill"></span>
               </div>
             </div>
-          <!-- TAB: SUPABASE CLOUD DATABASE -->
+          </div>
+
+          <!-- TAB 2: SUPABASE CLOUD DATABASE -->
           <div class="settings-card settings-tab-pane" id="settingsTab_database" style="display:none;">
             <div class="settings-card-header">
               <h3>⚡ Supabase Cloud Database</h3>
-              <p>Configure, inspect, and verify your live PostgreSQL cloud connection.</p>
+              <p>Live health, latency, and real-time statistics from your connected PostgreSQL database.</p>
             </div>
 
             <div class="space-y-4" style="max-width:560px;">
-              <div style="padding:16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:14px; display:flex; align-items:flex-start; gap:12px;">
-                <div style="font-size:22px; line-height:1;">🟢</div>
-                <div>
+              <!-- Live Database Status Banner -->
+              <div id="dbStatusBanner" style="padding:16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:14px; display:flex; align-items:flex-start; gap:12px;">
+                <div id="dbStatusIcon" style="font-size:22px; line-height:1;">🟢</div>
+                <div style="flex:1;">
                   <h4 style="margin:0; font-size:14.5px; font-weight:800; color:#166534;" id="settingsDbStatusTitle">
                     Connected to Live PostgreSQL Database
                   </h4>
-                  <p style="margin:4px 0 0; font-size:12.5px; color:#15803d; line-height:1.4;">
+                  <p id="settingsDbStatusDesc" style="margin:4px 0 0; font-size:12.5px; color:#15803d; line-height:1.4;">
                     Your account is securely synchronized with your live Supabase cloud database. All inventory, barcodes, and expiry records are user-isolated with PostgreSQL Row Level Security (RLS).
                   </p>
+                  <button type="button" id="dbRetryBtn" onclick="refreshDatabaseConnectionTab(this)" style="display:none; margin-top:8px; padding:6px 14px; background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">
+                    🔄 Retry Database Connection
+                  </button>
                 </div>
               </div>
 
+              <!-- Database Record Counts Grid -->
+              <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px;">
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px;">
+                  <div style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase;">🥫 Pantry Records</div>
+                  <div id="dbStatPantryCount" style="font-size:24px; font-weight:800; color:#1e392a; margin-top:4px;">0</div>
+                </div>
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px;">
+                  <div style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase;">🛒 Shopping List Records</div>
+                  <div id="dbStatShoppingCount" style="font-size:24px; font-weight:800; color:#1e392a; margin-top:4px;">0</div>
+                </div>
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px;">
+                  <div style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase;">🔔 Active Alerts</div>
+                  <div id="dbStatAlertsCount" style="font-size:24px; font-weight:800; color:#1e392a; margin-top:4px;">0</div>
+                </div>
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px;">
+                  <div style="font-size:11.5px; font-weight:700; color:#64748b; text-transform:uppercase;">🍽️ Meal Plan Records</div>
+                  <div id="dbStatMealPlansCount" style="font-size:24px; font-weight:800; color:#1e392a; margin-top:4px;">0</div>
+                </div>
+              </div>
+
+              <!-- Sync & Latency Details Card -->
               <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; padding:18px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                   <span style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.04em;">Database Connection Details</span>
-                  <span style="font-size:11.5px; font-weight:700; color:#166534; background:#dcfce7; padding:2px 8px; border-radius:10px;">PostgreSQL Active</span>
+                  <span id="dbStatLatencyBadge" style="font-size:11.5px; font-weight:700; color:#166534; background:#dcfce7; padding:2px 8px; border-radius:10px;">PostgreSQL Active</span>
                 </div>
 
-                <div style="margin-bottom:12px;">
-                  <label style="display:block; font-size:11.5px; font-weight:700; color:#475569; margin-bottom:4px;">Supabase Project URL</label>
-                  <div id="settingsDisplayProjectUrl" style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:8px 12px; font-family:monospace; font-size:12.5px; color:#1e293b; word-break:break-all;">
-                    Configured via Vercel Environment Variables
+                <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+                  <div style="display:flex; justify-content:space-between; font-size:12.5px; border-bottom:1px solid #f1f5f9; padding-bottom:6px;">
+                    <span style="color:#64748b;">Last Successful Sync:</span>
+                    <strong id="dbStatLastSync" style="color:#1e293b;">-</strong>
                   </div>
-                </div>
-
-                <div style="margin-bottom:16px;">
-                  <label style="display:block; font-size:11.5px; font-weight:700; color:#475569; margin-bottom:4px;">Connection Status</label>
-                  <div id="settingsDisplayProjectRef" style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:8px 12px; font-family:monospace; font-size:12.5px; color:#1e293b;">
-                    Managed by Supabase Auth & Cloud PostgreSQL
+                  <div style="display:flex; justify-content:space-between; font-size:12.5px; border-bottom:1px solid #f1f5f9; padding-bottom:6px;">
+                    <span style="color:#64748b;">Last Database Update:</span>
+                    <strong id="dbStatLastUpdate" style="color:#1e293b;">-</strong>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; font-size:12.5px; border-bottom:1px solid #f1f5f9; padding-bottom:6px;">
+                    <span style="color:#64748b;">Live Query Latency:</span>
+                    <strong id="dbStatLatency" style="color:#166534;">-</strong>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; font-size:12.5px;">
+                    <span style="color:#64748b;">Realtime WebSocket:</span>
+                    <strong style="color:#166534;">🟢 Subscribed (postgres_changes)</strong>
                   </div>
                 </div>
 
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                  <button type="button" class="btn-forest-submit" onclick="openDatabaseSettingsModal()" style="width:auto; padding:9px 18px; border-radius:10px; font-size:13px; font-weight:700;">
-                    ⚡ Configure Database Settings
+                  <button type="button" class="btn-forest-submit" onclick="refreshDatabaseConnectionTab(this)" style="width:auto; padding:9px 18px; border-radius:10px; font-size:13px; font-weight:700;">
+                    🔄 Refresh Connection
                   </button>
-                  <button type="button" onclick="testLiveDatabaseConnection(this)" style="background:#ffffff; color:#1e392a; border:1.5px solid #1e392a; padding:9px 16px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer;">
-                    🔄 Test Live Connection
+                  <button type="button" onclick="openDatabaseSettingsModal()" style="background:#ffffff; color:#1e392a; border:1.5px solid #1e392a; padding:9px 16px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer;">
+                    ⚡ Configure Database Settings
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- TAB 2: NOTIFICATIONS -->
+          <!-- TAB 3: NOTIFICATIONS -->
           <div class="settings-card settings-tab-pane" id="settingsTab_notifications" style="display:none;">
             <div class="settings-card-header">
               <h3>🔔 Notifications</h3>
-              <p>Receive useful updates and smart reminders about your pantry.</p>
+              <p>Receive real-time alerts and smart reminders. Preferences save instantly to Supabase.</p>
             </div>
 
             <div class="space-y-2" style="width:100%; max-width:100%;">
+              <!-- 1. Master Email Notifications -->
+              <div class="settings-row">
+                <div class="settings-label-group">
+                  <h4>📧 Email Notifications</h4>
+                  <p>Master toggle for all email communications and alerts.</p>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span id="pill_notif_email" class="settings-save-pill"></span>
+                  <label class="switch">
+                    <input type="checkbox" id="pref_email_notifications" onchange="handleNotificationSettingToggle('email_notifications', this)">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 2. Expiry Alerts -->
               <div class="settings-row">
                 <div class="settings-label-group">
                   <h4>⏰ Expiry Alerts</h4>
-                  <p>Get notified when products are approaching expiry.</p>
+                  <p>Get notified when products are approaching expiration.</p>
                 </div>
-                <label class="switch">
-                  <input type="checkbox" id="pref_alert_expiry" onchange="handleNotificationToggleChange()" checked>
-                  <span class="slider"></span>
-                </label>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span id="pill_notif_expiry" class="settings-save-pill"></span>
+                  <label class="switch">
+                    <input type="checkbox" id="pref_alert_expiry" onchange="handleNotificationSettingToggle('alert_expiry', this)">
+                    <span class="slider"></span>
+                  </label>
+                </div>
               </div>
 
-              <div class="settings-row">
-                <div class="settings-label-group">
-                  <h4>🛒 Low Stock Alerts</h4>
-                  <p>Get notified when products need restocking.</p>
-                </div>
-                <label class="switch">
-                  <input type="checkbox" id="pref_alert_low_stock" onchange="handleNotificationToggleChange()" checked>
-                  <span class="slider"></span>
-                </label>
-              </div>
-
+              <!-- 3. Expired Product Alerts -->
               <div class="settings-row">
                 <div class="settings-label-group">
                   <h4>⚠️ Expired Product Alerts</h4>
-                  <p>Get notified immediately when products expire.</p>
+                  <p>Get immediate notifications when products reach their expiry date.</p>
                 </div>
-                <label class="switch">
-                  <input type="checkbox" id="pref_alert_expired" onchange="handleNotificationToggleChange()" checked>
-                  <span class="slider"></span>
-                </label>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span id="pill_notif_expired" class="settings-save-pill"></span>
+                  <label class="switch">
+                    <input type="checkbox" id="pref_alert_expired" onchange="handleNotificationSettingToggle('alert_expired', this)">
+                    <span class="slider"></span>
+                  </label>
+                </div>
               </div>
 
+              <!-- 4. Low Stock Alerts -->
               <div class="settings-row">
                 <div class="settings-label-group">
-                  <h4>🔐 Login & Security Notifications</h4>
-                  <p>Receive important login and security alerts.</p>
+                  <h4>🛒 Low Stock Alerts</h4>
+                  <p>Get notified when staple items fall below their minimum threshold.</p>
                 </div>
-                <label class="switch">
-                  <input type="checkbox" id="pref_alert_security" onchange="handleNotificationToggleChange()" checked>
-                  <span class="slider"></span>
-                </label>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span id="pill_notif_low_stock" class="settings-save-pill"></span>
+                  <label class="switch">
+                    <input type="checkbox" id="pref_alert_low_stock" onchange="handleNotificationSettingToggle('alert_low_stock', this)">
+                    <span class="slider"></span>
+                  </label>
+                </div>
               </div>
 
+              <!-- 5. Shopping Recommendations -->
+              <div class="settings-row">
+                <div class="settings-label-group">
+                  <h4>🛍️ Shopping Recommendations</h4>
+                  <p>Receive smart shopping recommendations based on pantry consumption.</p>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span id="pill_notif_shopping" class="settings-save-pill"></span>
+                  <label class="switch">
+                    <input type="checkbox" id="pref_shopping_recommendations" onchange="handleNotificationSettingToggle('shopping_recommendations', this)">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 6. Meal Plan Notifications -->
+              <div class="settings-row">
+                <div class="settings-label-group">
+                  <h4>🍽️ Meal Plan Notifications</h4>
+                  <p>Reminders about planned meals and ingredients to use before they spoil.</p>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span id="pill_notif_meal_plan" class="settings-save-pill"></span>
+                  <label class="switch">
+                    <input type="checkbox" id="pref_meal_plan_notifications" onchange="handleNotificationSettingToggle('meal_plan_notifications', this)">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 7. Weekly Pantry Summary -->
               <div class="settings-row">
                 <div class="settings-label-group">
                   <h4>📊 Weekly Pantry Summary</h4>
-                  <p>Receive a weekly digest of your pantry usage and saved food.</p>
+                  <p>Receive a weekly digest of pantry usage and saved food metrics.</p>
                 </div>
-                <label class="switch">
-                  <input type="checkbox" id="pref_alert_weekly_summary" onchange="handleNotificationToggleChange()">
-                  <span class="slider"></span>
-                </label>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span id="pill_notif_weekly" class="settings-save-pill"></span>
+                  <label class="switch">
+                    <input type="checkbox" id="pref_alert_weekly_summary" onchange="handleNotificationSettingToggle('alert_weekly_summary', this)">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 8. Security & Login Notifications -->
+              <div class="settings-row">
+                <div class="settings-label-group">
+                  <h4>🔐 Security & Login Notifications</h4>
+                  <p>Receive notifications for new logins, password changes, and security updates.</p>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span id="pill_notif_security" class="settings-save-pill"></span>
+                  <label class="switch">
+                    <input type="checkbox" id="pref_alert_security" onchange="handleNotificationSettingToggle('alert_security', this)">
+                    <span class="slider"></span>
+                  </label>
+                </div>
               </div>
 
               <div style="padding-top:18px; border-top:1px solid #f1f5f9; margin-top:14px;">
-                <p style="font-size:12.5px; color:#64748b; margin-bottom:10px;">Alerts will be delivered to your verified email address.</p>
+                <p style="font-size:12.5px; color:#64748b; margin-bottom:10px;">Alerts will be delivered to your registered email address.</p>
                 <button type="button" onclick="triggerTestEmailAlert()" style="background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; padding:10px 18px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:8px;">
                   ✉️ Send Test Notification Email
                 </button>
@@ -1360,44 +1559,70 @@
             </div>
           </div>
 
-          <!-- TAB 3: PANTRY PREFERENCES -->
+          <!-- TAB 4: PANTRY PREFERENCES -->
           <div class="settings-card settings-tab-pane" id="settingsTab_preferences" style="display:none;">
             <div class="settings-card-header">
               <h3>🥫 Pantry Preferences</h3>
-              <p>Customize default storage, warning periods, and measurement units.</p>
+              <p>Configure storage defaults, expiry thresholds, and smart pantry behavior in real time.</p>
             </div>
 
-            <div class="space-y-4" style="max-width:540px;">
+            <div class="space-y-4" style="max-width:560px;">
+              <!-- Thresholds & Storage Selectors -->
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Default Storage Location</label>
-                <select id="pantryPrefDefaultLocation" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <label class="block text-xs font-bold text-slate-700">Minimum Stock Threshold (Low Stock Warning Level)</label>
+                  <span id="pill_pantry_low_stock" class="settings-save-pill"></span>
+                </div>
+                <input type="number" id="pantryPrefLowStockThreshold" onchange="handlePantrySettingChange('low_stock_threshold', this.value, 'pill_pantry_low_stock')" min="1" max="20" value="2" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
+                <small style="color:#94a3b8; font-size:11.5px; display:block; margin-top:3px;">Products with this quantity or fewer are flagged as Low Stock immediately.</small>
+              </div>
+
+              <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <label class="block text-xs font-bold text-slate-700">Default Planning Period</label>
+                  <span id="pill_pantry_planning" class="settings-save-pill"></span>
+                </div>
+                <select id="pantryPrefPlanningPeriod" onchange="handlePantrySettingChange('default_planning_period_days', this.value, 'pill_pantry_planning')" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
+                  <option value="7" selected>7 Days (Weekly cycle)</option>
+                  <option value="14">14 Days (Bi-weekly cycle)</option>
+                  <option value="30">30 Days (Monthly cycle)</option>
+                </select>
+                <small style="color:#94a3b8; font-size:11.5px; display:block; margin-top:3px;">Timeframe used for automated meal planning and shopping suggestions.</small>
+              </div>
+
+              <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <label class="block text-xs font-bold text-slate-700">Default Storage Location</label>
+                  <span id="pill_pantry_location" class="settings-save-pill"></span>
+                </div>
+                <select id="pantryPrefDefaultLocation" onchange="handlePantrySettingChange('default_location', this.value, 'pill_pantry_location')" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
                   <option value="Pantry" selected>🥫 Pantry (Room Temperature)</option>
                   <option value="Fridge">❄️ Fridge (Chilled)</option>
                   <option value="Freezer">🧊 Freezer (Frozen)</option>
                 </select>
-                <small style="color:#94a3b8; font-size:11.5px; display:block; margin-top:3px;">Pre-selected location when adding new items or scanning receipts.</small>
+                <small style="color:#94a3b8; font-size:11.5px; display:block; margin-top:3px;">Pre-selected location when adding new items or scanning bills.</small>
               </div>
 
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Low-Stock Threshold</label>
-                <input type="number" id="pantryPrefLowStockThreshold" min="1" max="20" value="2" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
-                <small style="color:#94a3b8; font-size:11.5px; display:block; margin-top:3px;">Items with this quantity or fewer will be flagged as Low Stock.</small>
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Expiry Warning Period</label>
-                <select id="pantryPrefExpiryDays" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <label class="block text-xs font-bold text-slate-700">Expiry Warning Period</label>
+                  <span id="pill_pantry_expiry" class="settings-save-pill"></span>
+                </div>
+                <select id="pantryPrefExpiryDays" onchange="handlePantrySettingChange('expiry_warning_days', this.value, 'pill_pantry_expiry')" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
                   <option value="3">3 Days Before Expiry (Urgent)</option>
                   <option value="7" selected>7 Days Before Expiry (Recommended)</option>
                   <option value="14">14 Days Before Expiry (Extended window)</option>
                   <option value="30">30 Days Before Expiry (Monthly review)</option>
                 </select>
-                <small style="color:#94a3b8; font-size:11.5px; display:block; margin-top:3px;">Defines when an item triggers "Expiring Soon" badges and notifications.</small>
+                <small style="color:#94a3b8; font-size:11.5px; display:block; margin-top:3px;">Controls when items trigger "Expiring Soon" badges and alert notifications.</small>
               </div>
 
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Default Quantity Unit</label>
-                <select id="pantryPrefDefaultUnit" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <label class="block text-xs font-bold text-slate-700">Default Quantity Unit</label>
+                  <span id="pill_pantry_unit" class="settings-save-pill"></span>
+                </div>
+                <select id="pantryPrefDefaultUnit" onchange="handlePantrySettingChange('default_unit', this.value, 'pill_pantry_unit')" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
                   <option value="pcs" selected>Pieces (pcs)</option>
                   <option value="kg">Kilograms (kg)</option>
                   <option value="g">Grams (g)</option>
@@ -1409,8 +1634,11 @@
               </div>
 
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Default Storage Category</label>
-                <select id="pantryPrefDefaultCategory" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <label class="block text-xs font-bold text-slate-700">Default Storage Category</label>
+                  <span id="pill_pantry_category" class="settings-save-pill"></span>
+                </div>
+                <select id="pantryPrefDefaultCategory" onchange="handlePantrySettingChange('default_category', this.value, 'pill_pantry_category')" class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
                   <option value="Pantry" selected>Pantry</option>
                   <option value="Fruits">Fruits</option>
                   <option value="Vegetables">Vegetables</option>
@@ -1423,50 +1651,198 @@
                 </select>
               </div>
 
-              <div style="padding-top:12px;">
-                <button type="button" onclick="saveAllSettingsForm()" class="btn-forest-submit" style="width:auto; padding:10px 22px; border-radius:12px; font-size:13px; font-weight:700;">
-                  Save Preferences
-                </button>
+              <!-- Smart Engine Switches -->
+              <div style="margin-top:20px; padding-top:16px; border-top:1px solid #e2e8f0;">
+                <h4 style="font-size:13.5px; font-weight:800; color:#1e293b; margin-bottom:12px;">⚙️ Smart Engine Automation</h4>
+
+                <div class="settings-row">
+                  <div class="settings-label-group">
+                    <h4>📷 Auto-add Scanned Products</h4>
+                    <p>Automatically create pantry items when recognized via barcode or bill OCR.</p>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="pill_pantry_auto_add" class="settings-save-pill"></span>
+                    <label class="switch">
+                      <input type="checkbox" id="pantryPrefAutoAddScanned" onchange="handlePantrySettingChange('auto_add_scanned_products', this.checked, 'pill_pantry_auto_add')">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="settings-row">
+                  <div class="settings-label-group">
+                    <h4>🧠 Auto-calculate Estimated Expiry</h4>
+                    <p>Apply Universal Shelf-Life Database estimates when package expiry date is missing.</p>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="pill_pantry_auto_expiry" class="settings-save-pill"></span>
+                    <label class="switch">
+                      <input type="checkbox" id="pantryPrefAutoCalculateExpiry" onchange="handlePantrySettingChange('auto_calculate_expiry', this.checked, 'pill_pantry_auto_expiry')">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="settings-row">
+                  <div class="settings-label-group">
+                    <h4>📦 Opened-Product Tracking</h4>
+                    <p>Calculate accelerated shelf-life rules when items are marked as Opened.</p>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="pill_pantry_opened" class="settings-save-pill"></span>
+                    <label class="switch">
+                      <input type="checkbox" id="pantryPrefOpenedTracking" onchange="handlePantrySettingChange('opened_product_tracking', this.checked, 'pill_pantry_opened')">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="settings-row">
+                  <div class="settings-label-group">
+                    <h4>🛍️ Smart Shopping Recommendations</h4>
+                    <p>Automatically suggest restocking based on consumption frequency.</p>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="pill_pantry_smart_shopping" class="settings-save-pill"></span>
+                    <label class="switch">
+                      <input type="checkbox" id="pantryPrefSmartShopping" onchange="handlePantrySettingChange('smart_shopping_recommendations', this.checked, 'pill_pantry_smart_shopping')">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="settings-row">
+                  <div class="settings-label-group">
+                    <h4>♻️ Food Waste Tracking</h4>
+                    <p>Record and analyze expired or discarded food to minimize waste and spending.</p>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="pill_pantry_food_waste" class="settings-save-pill"></span>
+                    <label class="switch">
+                      <input type="checkbox" id="pantryPrefFoodWaste" onchange="handlePantrySettingChange('food_waste_tracking', this.checked, 'pill_pantry_food_waste')">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:6px; margin-top:8px;">
+                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;"></span>
+                <span style="font-size:11px; font-weight:700; color:#10b981;">Real-time Smart Pantry Engine active</span>
               </div>
             </div>
           </div>
 
-          <!-- TAB 4: APPEARANCE -->
+          <!-- TAB 5: APPEARANCE -->
           <div class="settings-card settings-tab-pane" id="settingsTab_appearance" style="display:none;">
             <div class="settings-card-header">
               <h3>🎨 Appearance</h3>
-              <p>Select your preferred visual interface mode.</p>
+              <p>Customize visual interface theme, layout density, and regional localization in real time.</p>
             </div>
 
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:12px; max-width:540px;">
-              <button type="button" class="theme-choice-btn active" id="themeBtn_light" onclick="selectAppearanceTheme('light', this)" style="padding:18px 16px; border-radius:14px; border:2px solid #10b981; background:#ffffff; text-align:center; cursor:pointer;">
-                <div style="font-size:26px; margin-bottom:8px;">☀️</div>
-                <div style="font-size:14px; font-weight:700; color:#1e293b;">Light</div>
-                <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Clean default</div>
-              </button>
+            <div class="space-y-6" style="max-width:560px;">
+              <!-- Theme Selection -->
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-2">Color Theme</label>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:12px;">
+                  <button type="button" class="theme-choice-btn active" id="themeBtn_light" onclick="selectAppearanceTheme('light', this)" style="padding:18px 16px; border-radius:14px; border:2px solid #10b981; background:#ffffff; text-align:center; cursor:pointer;">
+                    <div style="font-size:26px; margin-bottom:8px;">☀️</div>
+                    <div style="font-size:14px; font-weight:700; color:#1e293b;">Light</div>
+                    <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Clean default</div>
+                  </button>
 
-              <button type="button" class="theme-choice-btn" id="themeBtn_dark" onclick="selectAppearanceTheme('dark', this)" style="padding:18px 16px; border-radius:14px; border:1px solid #cbd5e1; background:#0f172a; text-align:center; cursor:pointer;">
-                <div style="font-size:26px; margin-bottom:8px;">🌙</div>
-                <div style="font-size:14px; font-weight:700; color:#f8fafc;">Dark</div>
-                <div style="font-size:11.5px; color:#94a3b8; margin-top:2px;">Comfortable at night</div>
-              </button>
+                  <button type="button" class="theme-choice-btn" id="themeBtn_dark" onclick="selectAppearanceTheme('dark', this)" style="padding:18px 16px; border-radius:14px; border:1px solid #cbd5e1; background:#0f172a; text-align:center; cursor:pointer;">
+                    <div style="font-size:26px; margin-bottom:8px;">🌙</div>
+                    <div style="font-size:14px; font-weight:700; color:#f8fafc;">Dark</div>
+                    <div style="font-size:11.5px; color:#94a3b8; margin-top:2px;">Comfortable at night</div>
+                  </button>
 
-              <button type="button" class="theme-choice-btn" id="themeBtn_system" onclick="selectAppearanceTheme('system', this)" style="padding:18px 16px; border-radius:14px; border:1px solid #cbd5e1; background:#f8fafc; text-align:center; cursor:pointer;">
-                <div style="font-size:26px; margin-bottom:8px;">💻</div>
-                <div style="font-size:14px; font-weight:700; color:#1e293b;">System</div>
-                <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Auto syncs device</div>
-              </button>
+                  <button type="button" class="theme-choice-btn" id="themeBtn_system" onclick="selectAppearanceTheme('system', this)" style="padding:18px 16px; border-radius:14px; border:1px solid #cbd5e1; background:#f8fafc; text-align:center; cursor:pointer;">
+                    <div style="font-size:26px; margin-bottom:8px;">💻</div>
+                    <div style="font-size:14px; font-weight:700; color:#1e293b;">System</div>
+                    <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Auto syncs device</div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Layout Mode: Comfortable vs Compact -->
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-2">Layout Density</label>
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px;">
+                  <button type="button" id="layoutBtn_comfortable" onclick="selectLayoutMode('comfortable', this)" style="padding:14px; border-radius:12px; border:2px solid #10b981; background:#ffffff; text-align:left; cursor:pointer;">
+                    <div style="font-size:13.5px; font-weight:700; color:#1e293b;">✨ Comfortable</div>
+                    <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Spacious cards and relaxed padding</div>
+                  </button>
+                  <button type="button" id="layoutBtn_compact" onclick="selectLayoutMode('compact', this)" style="padding:14px; border-radius:12px; border:1px solid #cbd5e1; background:#f8fafc; text-align:left; cursor:pointer;">
+                    <div style="font-size:13.5px; font-weight:700; color:#1e293b;">⚡ Compact</div>
+                    <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Dense tables for power pantry management</div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Regional & Localization Settings -->
+              <div style="padding-top:16px; border-top:1px solid #e2e8f0;">
+                <h4 style="font-size:13.5px; font-weight:800; color:#1e293b; margin-bottom:4px;">🌐 Regional & Localization</h4>
+                <p style="font-size:11.5px; color:#64748b; margin-bottom:12px;">Configure date format, currency, and local timezone for real-time calendar calculations.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Interface Language</label>
+                    <select id="generalLanguage" onchange="handleGeneralSettingChange()" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
+                      <option value="English" selected>English</option>
+                      <option value="Hindi">हिंदी (Hindi)</option>
+                      <option value="Spanish">Español (Spanish)</option>
+                      <option value="French">Français (French)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Timezone</label>
+                    <select id="generalTimezone" onchange="handleGeneralSettingChange()" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
+                      <option value="Asia/Kolkata" selected>Asia/Kolkata (IST, UTC+5:30)</option>
+                      <option value="America/New_York">America/New_York (EST, UTC-5)</option>
+                      <option value="America/Los_Angeles">America/Los_Angeles (PST, UTC-8)</option>
+                      <option value="Europe/London">Europe/London (GMT, UTC+0)</option>
+                      <option value="UTC">UTC (Universal)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Currency</label>
+                    <select id="generalCurrency" onchange="handleGeneralSettingChange()" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
+                      <option value="INR" selected>₹ INR (Indian Rupee)</option>
+                      <option value="USD">$ USD (US Dollar)</option>
+                      <option value="EUR">€ EUR (Euro)</option>
+                      <option value="GBP">£ GBP (British Pound)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Date Format</label>
+                    <select id="generalDateFormat" onchange="handleGeneralSettingChange()" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
+                      <option value="DD/MM/YYYY" selected>DD/MM/YYYY (30/09/2026)</option>
+                      <option value="YYYY-MM-DD">YYYY-MM-DD (2026-09-30)</option>
+                      <option value="MM/DD/YYYY">MM/DD/YYYY (09/30/2026)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:6px; margin-top:12px;">
+                  <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;"></span>
+                  <span style="font-size:11px; font-weight:700; color:#10b981;">Changes persist immediately across your browser session</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- TAB 5: SECURITY -->
+          <!-- TAB 6: SECURITY -->
           <div class="settings-card settings-tab-pane" id="settingsTab_security" style="display:none;">
             <div class="settings-card-header">
               <h3>🔐 Security</h3>
-              <p>Manage your password, login sessions, and verification.</p>
+              <p>Manage your password, login sessions, and verification in real time.</p>
             </div>
 
-            <div class="space-y-4" style="max-width:540px;">
+            <div class="space-y-4" style="max-width:560px;">
               <!-- Email Verification Status -->
               <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0;">
                 <div>
@@ -1476,6 +1852,19 @@
                 <span id="securityEmailBadge" style="padding:5px 12px; border-radius:8px; font-size:12px; font-weight:700; background:#f0fdf4; color:#166534; border:1px solid #bbf7d0;">
                   ✓ Verified
                 </span>
+              </div>
+
+              <!-- Active Session & Last Login Information -->
+              <div style="padding:14px 16px; background:#ffffff; border-radius:12px; border:1px solid #e2e8f0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <h4 style="margin:0; font-size:13px; font-weight:700; color:#1e293b;">Active Session Information</h4>
+                  <span style="font-size:11px; font-weight:700; color:#166534; background:#dcfce7; padding:2px 8px; border-radius:8px;">Live</span>
+                </div>
+                <div style="font-size:12px; color:#64748b; line-height:1.5;">
+                  <div>Last Sign-In: <strong id="securityLastLoginTimestamp" style="color:#1e293b;">-</strong></div>
+                  <div>Security Protocol: <strong style="color:#1e293b;">Supabase GoTrue JWT • SSL 256-bit Encrypted</strong></div>
+                  <div>Password Status: <strong id="securityPasswordStatusBadge" style="color:#166534;">🔒 Secured with Password</strong></div>
+                </div>
               </div>
 
               <!-- Change Password -->
@@ -1502,16 +1891,16 @@
                 </div>
               </div>
 
-              <!-- Invite Member to Pantry -->
-              <div style="padding-top:14px; border-top:1px solid #f1f5f9;">
-                <h4 style="font-size:13.5px; font-weight:700; color:#1e293b; margin-bottom:6px;">Invite Member to Pantry</h4>
-                <p style="font-size:12px; color:#64748b; margin-bottom:10px;">Invite a family member or collaborator to join this pantry via email.</p>
-                <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                  <input type="email" id="settingsInviteEmail" class="flex-1 px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none" placeholder="member@example.com">
-                  <button type="button" onclick="handleSettingsInviteUser()" class="btn-forest-submit" style="width:auto; padding:10px 18px; border-radius:12px; font-size:13px; font-weight:700; background:#2e9e5b;">
-                    Send Invite
-                  </button>
+              <!-- Security Notifications Toggle -->
+              <div class="settings-row" style="padding-top:14px; border-top:1px solid #f1f5f9;">
+                <div class="settings-label-group">
+                  <h4>🛡️ Security Notifications</h4>
+                  <p>Send email alerts when password or sensitive profile changes occur.</p>
                 </div>
+                <label class="switch">
+                  <input type="checkbox" id="pref_security_notifications_sec" onchange="handleNotificationSettingToggle('alert_security', this)" checked>
+                  <span class="slider"></span>
+                </label>
               </div>
 
               <!-- Reauthenticate Session -->
@@ -1523,25 +1912,26 @@
                 </button>
               </div>
 
-              <!-- Sign out from all devices -->
-              <div style="padding-top:16px; border-top:1px solid #f1f5f9;">
-                <h4 style="font-size:13.5px; font-weight:700; color:#1e293b; margin-bottom:4px;">Sign Out From All Devices</h4>
-                <p style="font-size:12px; color:#64748b; margin-bottom:10px;">Log out of all other active sessions and browsers.</p>
+              <!-- Sign out actions -->
+              <div style="padding-top:16px; border-top:1px solid #f1f5f9; display:flex; gap:10px; flex-wrap:wrap;">
                 <button type="button" onclick="handleSignOutOtherSessions()" style="background:#f8fafc; border:1px solid #cbd5e1; color:#1e293b; padding:9px 18px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer;">
-                  🚪 Sign Out All Devices
+                  🚪 Sign Out Other Sessions
+                </button>
+                <button type="button" onclick="window.store.logout()" style="background:#fff1f2; border:1px solid #fecdd3; color:#e11d48; padding:9px 18px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer;">
+                  🚪 Sign Out
                 </button>
               </div>
             </div>
           </div>
 
-          <!-- TAB 6: PRIVACY -->
+          <!-- TAB 7: PRIVACY -->
           <div class="settings-card settings-tab-pane" id="settingsTab_privacy" style="display:none;">
             <div class="settings-card-header">
               <h3>🛡️ Privacy</h3>
-              <p>Control your data, download an archive, or remove your account.</p>
+              <p>Control your data, download an archive, or configure personalization permissions.</p>
             </div>
 
-            <div class="space-y-4" style="max-width:540px;">
+            <div class="space-y-4" style="max-width:560px;">
               <!-- Privacy Information Card -->
               <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:14px 16px;">
                 <h4 style="font-size:13.5px; font-weight:700; color:#166534; margin:0 0 4px;">Private & Protected</h4>
@@ -1550,8 +1940,83 @@
                 </p>
               </div>
 
+              <!-- Privacy Preferences & Permissions Toggles -->
+              <div style="padding-top:10px;">
+                <h4 style="font-size:13.5px; font-weight:800; color:#1e293b; margin-bottom:8px;">🔒 Data Controls & Personalization</h4>
+
+                <div class="settings-row">
+                  <div class="settings-label-group">
+                    <h4>📊 Data Usage & Analytics</h4>
+                    <p>Allow anonymous performance telemetry to help improve pantry forecasting.</p>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="pill_priv_analytics" class="settings-save-pill"></span>
+                    <label class="switch">
+                      <input type="checkbox" id="priv_analytics" onchange="handlePrivacySettingToggle('analytics_enabled', this.checked, 'pill_priv_analytics')">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="settings-row">
+                  <div class="settings-label-group">
+                    <h4>🧠 AI Personalization</h4>
+                    <p>Enable AI-driven shelf-life estimates and smart restocking suggestions.</p>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="pill_priv_ai" class="settings-save-pill"></span>
+                    <label class="switch">
+                      <input type="checkbox" id="priv_ai" onchange="handlePrivacySettingToggle('ai_personalization', this.checked, 'pill_priv_ai')">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="settings-row">
+                  <div class="settings-label-group">
+                    <h4>🍳 Recipe Personalization</h4>
+                    <p>Allow the system to suggest recipes based on ingredients expiring soon.</p>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="pill_priv_recipes" class="settings-save-pill"></span>
+                    <label class="switch">
+                      <input type="checkbox" id="priv_recipes" onchange="handlePrivacySettingToggle('recipe_personalization', this.checked, 'pill_priv_recipes')">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="settings-row">
+                  <div class="settings-label-group">
+                    <h4>🛒 Shopping Personalization</h4>
+                    <p>Allow the smart shopping list to automatically populate low-stock essentials.</p>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="pill_priv_shopping" class="settings-save-pill"></span>
+                    <label class="switch">
+                      <input type="checkbox" id="priv_shopping" onchange="handlePrivacySettingToggle('shopping_personalization', this.checked, 'pill_priv_shopping')">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="settings-row">
+                  <div class="settings-label-group">
+                    <h4>🔒 Profile Visibility</h4>
+                    <p>Choose whether your pantry is private or accessible by household members.</p>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="pill_priv_visibility" class="settings-save-pill"></span>
+                    <select id="priv_visibility" onchange="handlePrivacySettingToggle('profile_visibility', this.value, 'pill_priv_visibility')" style="padding:6px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; background:#f8fafc;">
+                      <option value="private" selected>Private (Only You)</option>
+                      <option value="shared">Household Shared</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
               <!-- Export Data -->
-              <div style="padding-top:14px;">
+              <div style="padding-top:14px; border-top:1px solid #f1f5f9;">
                 <h4 style="font-size:13.5px; font-weight:700; color:#1e293b; margin-bottom:4px;">Download Your Data</h4>
                 <p style="font-size:12px; color:#64748b; margin-bottom:10px;">Download an exact JSON copy of your pantry products, categories, and settings.</p>
                 <button type="button" onclick="window.store.exportUserData()" style="background:#1e392a; color:#fff; border:none; padding:10px 18px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:8px;">
@@ -1570,21 +2035,35 @@
             </div>
           </div>
 
-          <!-- TAB 7: ABOUT -->
+          <!-- TAB 8: ABOUT -->
           <div class="settings-card settings-tab-pane" id="settingsTab_about" style="display:none;">
             <div class="settings-card-header">
               <h3>ℹ️ About IntelliPantry</h3>
-              <p>Application details, policies, and support.</p>
+              <p>Application details, verified technology stack, and support.</p>
             </div>
 
-            <div class="space-y-4" style="max-width:540px;">
+            <div class="space-y-4" style="max-width:560px;">
               <div style="display:flex; align-items:center; gap:14px; padding:14px 16px; background:#f8fafc; border-radius:12px; border:1px solid #e2e8f0;">
-                <div style="width:44px; height:44px; border-radius:12px; background:#1e392a; color:#ffffff; font-size:22px; display:flex; align-items:center; justify-content:center;">
+                <div style="width:48px; height:48px; border-radius:12px; background:#1e392a; color:#ffffff; font-size:24px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                   🍃
                 </div>
                 <div>
                   <h4 style="margin:0; font-size:15px; font-weight:800; color:#1e293b;">IntelliPantry</h4>
-                  <p style="margin:2px 0 0; font-size:12px; color:#64748b;">Smart Inventory & Expiry Management • Version 1.0.0</p>
+                  <p style="margin:2px 0 0; font-size:12px; color:#64748b;">Smart Inventory & Real-Time Expiry Management • Version 1.2.0</p>
+                </div>
+              </div>
+
+              <!-- System Details & Tech Stack Card -->
+              <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:14px 16px;">
+                <h4 style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; margin-bottom:8px;">System Architecture</h4>
+                <div style="font-size:12px; color:#334155; line-height:1.6;">
+                  <div>• <strong>Hosting:</strong> Vercel Global Serverless Deployment</div>
+                  <div>• <strong>Database:</strong> Supabase Cloud PostgreSQL with Row Level Security (RLS)</div>
+                  <div>• <strong>Authentication:</strong> Supabase GoTrue Auth (JWT & Session Isolation)</div>
+                  <div>• <strong>Realtime Engine:</strong> Supabase Realtime WebSocket Replication</div>
+                  <div>• <strong>Shelf-Life Engine:</strong> Universal Reference Shelf-Life Database (40+ Categories)</div>
+                  <div>• <strong>OCR Engine:</strong> Tesseract.js Neural Receipt Scanner</div>
+                  <div>• <strong>Barcode Engine:</strong> ZXing Multi-Format Barcode Engine</div>
                 </div>
               </div>
 
@@ -1599,8 +2078,8 @@
                   <span style="color:#94a3b8;">›</span>
                 </a>
 
-                <a href="mailto:intellipantrynotify@gmail.com" style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; text-decoration:none; color:#1e293b; font-size:13px; font-weight:600;">
-                  <span>✉️ Contact Support (intellipantrynotify@gmail.com)</span>
+                <a href="mailto:support@intellipantry.in" style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; text-decoration:none; color:#1e293b; font-size:13px; font-weight:600;">
+                  <span>✉️ Contact Support (support@intellipantry.in)</span>
                   <span style="color:#94a3b8;">›</span>
                 </a>
               </div>
@@ -1620,25 +2099,28 @@
     <!-- RIGHT WIDGET COLUMN -->
     <aside class="right-column">
 
-      <!-- Real-Time Date, Day, Live Clock & Location Widget -->
-      <div class="datetime-location-card">
-        <div class="dtl-header">
-          <div class="dtl-left">
-            <div class="dtl-day-badge" id="currentDayBadge">Today</div>
-            <div class="dtl-full-date" id="currentFullDate">Loading date...</div>
+      <!-- Kitchen Hub Digital Display Clock (Matches User Reference Image media_1790802008906.png Exactly) -->
+      <div class="kitchen-hub-clock-card" id="kitchenHubClockCard">
+        <div class="kh-date-block">
+          <div class="kh-month-label">Oct</div>
+          <div class="kh-day-number">01</div>
+        </div>
+        <div class="kh-divider"></div>
+        <div class="kh-time-block">
+          <div class="kh-time-row">
+            <span class="kh-time-digits">01:55</span>
+            <span class="kh-time-ampm">AM</span>
           </div>
-          <div class="dtl-right">
-            <div class="dtl-live-clock" id="liveClockDisplay">--:--:--</div>
-            <button class="dtl-loc-badge" id="userLocationBadge" onclick="refreshUserLocation()" title="Click to refresh location">
-              <span class="loc-icon">📍</span>
-              <span id="userLocationText">Detecting location...</span>
-            </button>
+          <div class="kh-status-row">
+            <span class="kh-status-text">Inventory Sync Active</span>
           </div>
         </div>
-        <div class="quote-box" id="timeGreetingBox">
-          <span>“</span>
-          <span id="dynamicTimeQuote">Fresh food, brighter days — tracked in real time.</span>
-        </div>
+        <!-- Hidden compatibility elements to preserve existing JS bindings -->
+        <span id="currentDayBadge" style="display:none;"></span>
+        <span id="currentFullDate" style="display:none;"></span>
+        <span id="liveClockDisplay" style="display:none;"></span>
+        <span id="dynamicTimeQuote" style="display:none;"></span>
+        <span id="userLocationBadge" style="display:none;"><span id="userLocationText"></span></span>
       </div>
 
       <!-- Emerald Scan Barcode Card (Opens AI Bill / Camera Scanner) -->
@@ -1858,7 +2340,7 @@
             <label class="form-label">Item Name <span class="required-star">*</span></label>
             <div class="input-with-icon">
               <span class="input-icon">🏷️</span>
-              <input type="text" id="itemNameInput" placeholder="e.g. Fresh Strawberries, Organic Milk" required autocomplete="off">
+              <input type="text" id="itemNameInput" placeholder="e.g. Fresh Strawberries, Organic Milk" required autocomplete="off" oninput="updateModalShelfLifePreview()">
             </div>
           </div>
 
@@ -1943,7 +2425,15 @@
           <!-- Expiry Date & Purchase Date -->
           <div class="form-row-2">
             <div class="form-field-group">
-              <label class="form-label">Expiry Date</label>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label class="form-label" style="margin:0;">Expiry Date</label>
+                <!-- Actual vs Estimated Switcher -->
+                <div class="expiry-type-toggle-group" style="display:flex; background:#f1f5f9; border-radius:8px; padding:2px; font-size:11px; font-weight:700;">
+                  <button type="button" id="expiryTypeBtnActual" class="expiry-type-toggle-btn active" onclick="setModalExpiryType('actual')" style="border:none; background:transparent; padding:2px 8px; border-radius:6px; cursor:pointer; color:#334155;">Actual</button>
+                  <button type="button" id="expiryTypeBtnEstimate" class="expiry-type-toggle-btn" onclick="setModalExpiryType('estimated'); autoPredictModalExpiry();" style="border:none; background:transparent; padding:2px 8px; border-radius:6px; cursor:pointer; color:#64748b;">✨ Est.</button>
+                </div>
+              </div>
+              <input type="hidden" id="itemExpiryTypeInput" value="actual">
               <div class="input-with-icon">
                 <span class="input-icon">📅</span>
                 <input type="date" id="itemExpiryInput">
@@ -1954,10 +2444,34 @@
               <label class="form-label">Purchase Date</label>
               <div class="input-with-icon">
                 <span class="input-icon">🛒</span>
-                <input type="date" id="itemPurchaseInput">
+                <input type="date" id="itemPurchaseInput" onchange="updateModalShelfLifePreview()">
               </div>
             </div>
           </div>
+
+          <!-- Product Condition / Opened Status -->
+          <div class="form-field-group" style="margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label class="form-label" style="margin:0;">Package Condition</label>
+              <div style="display:flex; background:#f1f5f9; border-radius:8px; padding:2px; font-size:11.5px; font-weight:700;">
+                <button type="button" id="productStatusBtnUnopened" class="product-status-btn active" onclick="setModalProductStatus('Unopened')" style="border:none; background:transparent; padding:3px 10px; border-radius:6px; cursor:pointer; color:#334155;">🔒 Sealed / Unopened</button>
+                <button type="button" id="productStatusBtnOpened" class="product-status-btn" onclick="setModalProductStatus('Opened')" style="border:none; background:transparent; padding:3px 10px; border-radius:6px; cursor:pointer; color:#64748b;">🔓 Opened</button>
+              </div>
+            </div>
+            <input type="hidden" id="itemProductStatusInput" value="Unopened">
+            
+            <div id="modalOpenedProductSection" style="display:none; background:#fff7ed; border:1px solid #ffedd5; border-radius:10px; padding:10px 12px; margin-top:6px;">
+              <label class="form-label" style="font-size:12px; color:#9a3412;">Date Opened</label>
+              <div class="input-with-icon" style="background:#ffffff; border-radius:8px;">
+                <span class="input-icon">🔓</span>
+                <input type="date" id="itemOpenedDateInput" onchange="updateModalShelfLifePreview()">
+              </div>
+              <small style="display:block; font-size:11px; color:#c2410c; margin-top:4px;">Shelf life typically shortens once opened.</small>
+            </div>
+          </div>
+
+          <!-- Dynamic Shelf Life Recommendation Box -->
+          <div id="modalShelfLifePreviewBox"></div>
 
           <!-- Brand & Barcode with [⛶ Scan] button -->
           <div class="form-row-2">
@@ -2244,6 +2758,12 @@
             <option value="Freezer">Freezer</option>
           </select>
         </div>
+      </div>
+
+      <!-- Universal Shelf Life Prediction Preview for Barcode -->
+      <div id="barcodeShelfLifePreview" style="background:#fbfaf5; border:1px solid #e7e2d6; border-radius:10px; padding:10px 12px; margin-top:8px; font-size:12px; color:#475569;">
+        <span style="font-weight:700; color:#1e392a;">🌱 Reference Shelf-Life:</span> <span id="barcodeShelfLifeText">Auto-calculated</span>
+        <div style="font-size:11px; color:#87968c; margin-top:4px;">⚠️ <em>Estimated shelf life is a reference. Prioritize manufacturer printed date if available.</em></div>
       </div>
 
       <div class="flex justify-end gap-2 pt-3">
@@ -2762,8 +3282,14 @@ async function handleBarcodeDetected(barcode) {
   else if (category === "Frozen") location = "Freezer";
 
   // Expiry date calculation
-  const todayISO = window.getTodayISO ? window.getTodayISO() : new Date().toISOString().split("T")[0];
-  const suggestedExpiry = calculateShelfLifeDate(todayISO, category);
+  const todayISO = window.ShelfLife ? window.ShelfLife.getTodayLocalISO() : (window.getTodayISO ? window.getTodayISO() : new Date().toISOString().split("T")[0]);
+  const suggestedExpiry = calculateShelfLifeDate(todayISO, category, productName);
+
+  const barcodeShelfText = document.getElementById("barcodeShelfLifeText");
+  if (barcodeShelfText && window.ShelfLife) {
+    const pred = window.ShelfLife.predictExpiry(productName, category, todayISO);
+    barcodeShelfText.textContent = `~${pred.typical_shelf_life_days} days (${pred.storage_type} storage: ${pred.storage_recommendation})`;
+  }
 
   // Populate Barcode Modal
   document.getElementById("barcodeModalNumber").textContent = barcode;
@@ -2962,9 +3488,13 @@ function extractReceiptDate(text) {
   return null;
 }
 
-// Calculate shelf life date based on food category
-function calculateShelfLifeDate(purchaseDateStr, category) {
-  const base = window.parseLocalDate(purchaseDateStr) || new Date();
+// Calculate shelf life date based on universal shelf life prediction engine
+function calculateShelfLifeDate(purchaseDateStr, category, productName = "") {
+  if (window.ShelfLife && typeof window.ShelfLife.predictExpiry === "function") {
+    const pred = window.ShelfLife.predictExpiry(productName, category, purchaseDateStr);
+    return pred.estimated_expiry_date;
+  }
+  const base = (window.parseLocalDate ? window.parseLocalDate(purchaseDateStr) : new Date(purchaseDateStr)) || new Date();
   const daysMap = {
     Dairy: 7,
     Vegetables: 5,
@@ -3021,7 +3551,7 @@ function handlePurchaseDateChange(newDate) {
   if (sourceLabel) sourceLabel.textContent = "Manually adjusted";
 
   detectedGroceryItems.forEach(item => {
-    item.expiryDate = calculateShelfLifeDate(newDate, item.category);
+    item.expiryDate = calculateShelfLifeDate(newDate, item.category, item.name);
   });
   renderDetectedItems();
 }
@@ -3086,7 +3616,7 @@ function parseGroceryItems(text, purchaseDate) {
           quantity = parseFloat(quantityMatch[1]) || 1;
           unit = quantityMatch[2] || "pcs";
         }
-        const expiryDate = calculateShelfLifeDate(purchaseDate, entry.category);
+        const expiryDate = calculateShelfLifeDate(purchaseDate, entry.category, entry.name);
 
         items.push({
           name: entry.name,
@@ -3115,7 +3645,7 @@ function parseGroceryItems(text, purchaseDate) {
             quantity: 1,
             unit: "pcs",
             emoji: "📦",
-            expiryDate: calculateShelfLifeDate(purchaseDate, "Pantry"),
+            expiryDate: calculateShelfLifeDate(purchaseDate, "Pantry", cleanName),
             purchaseDate,
             selected: true
           });
@@ -3131,7 +3661,7 @@ function parseGroceryItems(text, purchaseDate) {
       quantity: 1,
       unit: "pcs",
       emoji: "📦",
-      expiryDate: calculateShelfLifeDate(purchaseDate, "Pantry"),
+      expiryDate: calculateShelfLifeDate(purchaseDate, "Pantry", "Grocery Item"),
       purchaseDate,
       selected: true
     });
@@ -3230,7 +3760,7 @@ function renderDetectedItems() {
                 <option value="box" ${item.unit === "box" ? "selected" : ""}>box</option>
               </select>
               <select 
-                onchange="detectedGroceryItems[${idx}].category = this.value; detectedGroceryItems[${idx}].expiryDate = calculateShelfLifeDate(scannedPurchaseDate, this.value); renderDetectedItems();"
+                onchange="detectedGroceryItems[${idx}].category = this.value; detectedGroceryItems[${idx}].expiryDate = calculateShelfLifeDate(scannedPurchaseDate, this.value, detectedGroceryItems[${idx}].name); renderDetectedItems();"
                 style="padding:2px 4px; font-size:11px; border:1px solid #cbd5e1; border-radius:4px; outline:none;"
               >
                 <option value="Pantry" ${item.category === "Pantry" ? "selected" : ""}>Pantry</option>
@@ -3491,6 +4021,77 @@ window.addEventListener("beforeunload", () => stopCamera());
   </div>
 
   <!-- ==========================================
+       PRODUCT DETAILS & SHELF LIFE MODAL
+       ========================================== -->
+  <div class="modal-backdrop" id="productDetailsModal">
+    <div class="modal-card" style="max-width: 520px; width: 92%;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="font-size:26px;">🥫</div>
+          <div>
+            <h3 id="detailModalTitle" style="font-size:18px; font-weight:800; color:#1e392a; margin:0;">Product Details</h3>
+            <p id="detailModalCategory" style="font-size:12px; color:#64748b; margin:2px 0 0;">Category</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="closeProductDetailsModal()">✕</button>
+      </div>
+
+      <div style="padding:16px 0 6px; display:flex; flex-direction:column; gap:12px; font-size:13.5px; color:#334155;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; background:#faf8f5; border:1px solid #eae5db; border-radius:12px; padding:12px 14px;">
+          <div>
+            <div style="font-size:11px; font-weight:700; color:#87968c; text-transform:uppercase;">Quantity</div>
+            <div id="detailModalQuantity" style="font-weight:700; color:#1e392a; font-size:14px; margin-top:2px;">1 pcs</div>
+          </div>
+          <div>
+            <div style="font-size:11px; font-weight:700; color:#87968c; text-transform:uppercase;">Location</div>
+            <div id="detailModalLocation" style="font-weight:600; color:#1e392a; font-size:14px; margin-top:2px;">Pantry</div>
+          </div>
+          <div>
+            <div style="font-size:11px; font-weight:700; color:#87968c; text-transform:uppercase;">Purchased</div>
+            <div id="detailModalPurchase" style="font-weight:600; color:#1e392a; font-size:13px; margin-top:2px;">—</div>
+          </div>
+          <div>
+            <div style="font-size:11px; font-weight:700; color:#87968c; text-transform:uppercase;">Expiry / Use By</div>
+            <div id="detailModalExpiry" style="font-size:13px; margin-top:2px;">—</div>
+          </div>
+        </div>
+
+        <div id="detailModalOpenedInfo" style="display:none;"></div>
+
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:12px 14px;">
+          <div style="font-size:11.5px; font-weight:800; color:#166534; text-transform:uppercase; margin-bottom:3px; display:flex; align-items:center; gap:5px;">
+            <span>🧊</span> Storage Recommendation
+          </div>
+          <p id="detailModalStorageRec" style="margin:0; font-size:12.5px; color:#1e392a; line-height:1.45;">Store in cool, dry pantry.</p>
+        </div>
+
+        <div style="font-size:11px; color:#87968c; line-height:1.4; padding:0 4px;">
+          ⚠️ <em>Estimated shelf life is a general reference only. The actual manufacturer expiry date must always take priority.</em>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:16px; padding-top:12px; border-top:1px solid #eae5db; flex-wrap:wrap;">
+        <div style="display:flex; gap:8px;">
+          <button type="button" id="detailModalOpenedBtn" style="background:#fef3c7; border:1px solid #fde68a; color:#92400e; font-weight:700; font-size:12px; padding:8px 12px; border-radius:8px; cursor:pointer;">
+            🔓 Mark as Opened
+          </button>
+          <button type="button" id="detailModalConsumeBtn" style="background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; font-weight:700; font-size:12px; padding:8px 12px; border-radius:8px; cursor:pointer;">
+            🍽️ Consume
+          </button>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" id="detailModalEditBtn" style="background:#ffffff; border:1px solid #cbd5e1; color:#334155; font-weight:700; font-size:12px; padding:8px 12px; border-radius:8px; cursor:pointer;">
+            ✏️ Edit
+          </button>
+          <button type="button" id="detailModalDeleteBtn" style="background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; font-weight:700; font-size:12px; padding:8px 12px; border-radius:8px; cursor:pointer;">
+            🗑️ Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
        TERMS OF SERVICE MODAL
        ========================================== -->
   <div class="modal-backdrop" id="consumerTermsModal">
@@ -3616,6 +4217,89 @@ window.addEventListener("beforeunload", () => stopCamera());
     </div>
   </div>
 
+  <!-- ==========================================
+       FEATURES SHOWCASE MODAL (What's Included)
+       ========================================== -->
+  <div class="modal-backdrop" id="featuresGuideModal" onclick="if(event.target === this) closeFeaturesGuideModal()">
+    <div class="modal-card" style="max-width:1080px; width:95%; background:#090d0b; color:#fff; border-radius:24px; padding:32px 28px; max-height:90vh; overflow-y:auto; border:1px solid rgba(255,255,255,0.1);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:18px;">
+        <div>
+          <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(46,158,91,0.15); color:#34d399; border:1px solid rgba(46,158,91,0.3); font-size:11px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; padding:4px 12px; border-radius:999px; margin-bottom:10px;">✨ WHAT'S INCLUDED</div>
+          <h2 style="font-size:24px; font-weight:800; color:#fff; margin:0 0 6px;">Smart Features Built for Modern Kitchens</h2>
+          <p style="font-size:14px; color:#94a3b8; margin:0;">Explore everything included in IntelliPantry — designed to save time, reduce waste, and keep your household in sync.</p>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closeFeaturesGuideModal()" style="background:rgba(255,255,255,0.08); color:#cbd5e1; border:none; border-radius:50%; width:36px; height:36px; cursor:pointer; font-size:16px; font-weight:700;">✕</button>
+      </div>
+
+      <div class="features-grid">
+        <!-- 1. NFC Zone Tags -->
+        <div class="feature-card">
+          <div class="feature-icon-box">📡</div>
+          <h3 class="feature-card-title">NFC Zone Tags</h3>
+          <p class="feature-card-desc">Tap a tag on your fridge, freezer, or pantry shelf. Instantly see what's in that zone and mark what you took — no opening the app, no hunting through lists.</p>
+        </div>
+
+        <!-- 2. Pantry Tracking -->
+        <div class="feature-card">
+          <div class="feature-icon-box">📦</div>
+          <h3 class="feature-card-title">Pantry Tracking</h3>
+          <p class="feature-card-desc">Add items by barcode scan or manually. Track quantities, expiry dates, and get alerts before food goes bad. Never throw out forgotten groceries again.</p>
+        </div>
+
+        <!-- 3. AI Meal Planning -->
+        <div class="feature-card">
+          <div class="feature-icon-box">🤖</div>
+          <h3 class="feature-card-title">AI Meal Planning</h3>
+          <p class="feature-card-desc">Generate a full week of meal plans based on what's actually in your pantry. No more "what's for dinner?" — the AI sees your inventory and plans around it.</p>
+        </div>
+
+        <!-- 4. Family Sharing -->
+        <div class="feature-card">
+          <div class="feature-icon-box">👨‍👩‍👧‍👦</div>
+          <h3 class="feature-card-title">Family Sharing</h3>
+          <p class="feature-card-desc">Invite up to 4 household members. Everyone sees the same pantry in real time — no more duplicate grocery runs because someone didn't know you already bought it.</p>
+        </div>
+
+        <!-- 5. Barcode Scanner -->
+        <div class="feature-card">
+          <div class="feature-icon-box">📷</div>
+          <h3 class="feature-card-title">Barcode Scanner</h3>
+          <p class="feature-card-desc">Scan any grocery barcode and get the product name, brand, and calories pulled in automatically. Adding groceries after a shopping trip takes seconds.</p>
+        </div>
+
+        <!-- 6. Recipe Suggestions -->
+        <div class="feature-card">
+          <div class="feature-icon-box">🍽️</div>
+          <h3 class="feature-card-title">Recipe Suggestions</h3>
+          <p class="feature-card-desc">AI-generated recipes built from your current pantry. Save favorites, plan around dietary needs, and always cook with what you already have on hand.</p>
+        </div>
+
+        <!-- 7. Smart Shopping List -->
+        <div class="feature-card">
+          <div class="feature-icon-box">🛒</div>
+          <h3 class="feature-card-title">Smart Shopping List</h3>
+          <p class="feature-card-desc">Items that run out auto-appear on your shopping list. Add anything manually, check things off at the store, and keep the whole household in sync.</p>
+        </div>
+
+        <!-- 8. Cart Total + Tax Tracker -->
+        <div class="feature-card">
+          <div class="feature-icon-box">🧾</div>
+          <h3 class="feature-card-title">Cart Total + Tax Tracker</h3>
+          <p class="feature-card-desc">See a running total of your cart as you shop, with tax calculated in real time. No more checkout surprises — know exactly what you're spending before you hit the register.</p>
+        </div>
+
+        <!-- 9. Zero Food Waste -->
+        <div class="feature-card feature-card-cta">
+          <div class="feature-icon-box" style="background: rgba(46, 158, 91, 0.2); border-color: rgba(46, 158, 91, 0.4);">🌿</div>
+          <h3 class="feature-card-title">Zero Food Waste Guarantee</h3>
+          <p class="feature-card-desc">Track financial savings, shelf-life longevity, and carbon footprint reduction as you manage fresh ingredients sustainably.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- Universal Shelf-Life Reference & Expiry Prediction Engine -->
+<script src="js/shelf-life.js"></script>
 <!-- Central State, Components & Application Engine -->
 <script src="js/store.js"></script>
 <script src="js/components.js"></script>
@@ -3625,6 +4309,17 @@ window.addEventListener("beforeunload", () => stopCamera());
 <script src="js/app.js"></script>
 
 <script>
+// Features Guide Modal Handlers
+function openFeaturesGuideModal() {
+  const modal = document.getElementById('featuresGuideModal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeFeaturesGuideModal() {
+  const modal = document.getElementById('featuresGuideModal');
+  if (modal) modal.classList.remove('active');
+}
+
 // Consumer Terms and Privacy Modal Handlers
 function openTermsModal() {
   const modal = document.getElementById('consumerTermsModal');

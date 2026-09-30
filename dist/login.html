@@ -6,12 +6,15 @@
   <title>Smart Pantry — Login & Account Access</title>
 
   <!-- Favicon & App Icons -->
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="icon" href="/favicon.png">
   <link rel="shortcut icon" href="/favicon.ico">
-  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#1e392a">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,11 +55,27 @@
       --success-border: #bbf7d0;
     }
 
-    html, body {
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
       min-height: 100vh;
       background-color: var(--bg-cream);
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
       color: var(--text-dark);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0;
+      margin: 0;
+      overflow-x: hidden;
+    }
+
+    .auth-page-hero {
+      width: 100%;
+      min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -103,6 +122,27 @@
 
     .brand-header-link:hover {
       transform: translateY(-1px);
+    }
+
+    .brand-logo-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(30, 57, 42, 0.12);
+      border: 1.5px solid rgba(230, 227, 218, 0.9);
+      flex-shrink: 0;
+    }
+
+    .brand-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
 
     .brand-leaf-badge {
@@ -534,13 +574,21 @@
     /* Video Frame */
     .video-showcase-box {
       width: 100%;
-      height: 235px;
+      height: 250px;
       border-radius: 20px;
       overflow: hidden;
       border: 3px solid #ffffff;
-      box-shadow: 0 12px 30px rgba(28, 45, 33, 0.11);
-      background: #ffffff;
+      box-shadow: 0 14px 34px rgba(28, 45, 33, 0.12);
+      background: #111a14;
       position: relative;
+    }
+
+    .video-showcase-box::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0) 45%, rgba(0,0,0,0.65) 100%);
+      pointer-events: none;
     }
 
     .showcase-video {
@@ -555,6 +603,122 @@
       height: 100%;
       object-fit: cover;
       display: none;
+    }
+
+    .promo-video-live-tag {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 2;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: #ffffff;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .promo-live-dot {
+      width: 6px;
+      height: 6px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulseGreenDot 1.5s infinite;
+    }
+
+    @keyframes pulseGreenDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.3); }
+    }
+
+    .promo-video-overlay-card {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: 50px;
+      z-index: 2;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 12px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .promo-overlay-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .promo-overlay-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .promo-overlay-info h5 {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 800;
+      color: #1e392a;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .promo-overlay-info p {
+      margin: 2px 0 0;
+      font-size: 10.5px;
+      color: #576359;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .promo-video-controls {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .promo-ctrl-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .promo-ctrl-btn:hover {
+      background: rgba(30, 57, 42, 0.9);
+      transform: scale(1.08);
     }
 
     /* Three Feature Items */
@@ -680,6 +844,179 @@
         height: 200px;
       }
     }
+
+    /* ==========================================
+       FEATURES SHOWCASE (Matches User Screenshot)
+       ========================================== */
+    .features-dark-section {
+      width: 100%;
+      background: #090d0b;
+      color: #ffffff;
+      padding: 96px 48px 108px;
+      position: relative;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .features-container {
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+
+    .features-header {
+      text-align: center;
+      max-width: 720px;
+      margin: 0 auto 56px;
+    }
+
+    .features-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(46, 158, 91, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(46, 158, 91, 0.3);
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 999px;
+      margin-bottom: 18px;
+    }
+
+    .features-main-title {
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: #ffffff;
+      line-height: 1.18;
+      margin-bottom: 16px;
+    }
+
+    .features-main-title span {
+      background: linear-gradient(135deg, #34d399 0%, #10b981 50%, #6ee7b7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .features-subtitle {
+      font-size: 16px;
+      color: #94a3b8;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+    }
+
+    .feature-card {
+      background: #131815;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 30px 26px;
+      transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .feature-card:hover {
+      background: #171f1a;
+      border-color: rgba(46, 158, 91, 0.45);
+      transform: translateY(-3px);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45), 0 0 20px rgba(46, 158, 91, 0.12);
+    }
+
+    .feature-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    .feature-card:hover .feature-icon-box {
+      background: rgba(46, 158, 91, 0.16);
+      border-color: rgba(46, 158, 91, 0.3);
+    }
+
+    .feature-card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 12px;
+      letter-spacing: -0.01em;
+    }
+
+    .feature-card-desc {
+      font-size: 14px;
+      color: #94a3b8;
+      line-height: 1.65;
+      font-weight: 400;
+      margin: 0;
+    }
+
+    .feature-card-cta {
+      background: linear-gradient(135deg, rgba(30, 57, 42, 0.75) 0%, rgba(19, 24, 21, 0.95) 100%);
+      border: 1.5px dashed rgba(46, 158, 91, 0.45);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .feature-card-cta:hover {
+      border-style: solid;
+      border-color: #2e9e5b;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45), 0 0 24px rgba(46, 158, 91, 0.2);
+    }
+
+    .btn-cta-card {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #2e9e5b;
+      color: #ffffff;
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 13.5px;
+      font-weight: 700;
+      text-decoration: none;
+      margin-top: 18px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .btn-cta-card:hover {
+      background: #24824a;
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 1024px) {
+      .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .features-dark-section {
+        padding: 72px 28px 84px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+      .features-dark-section {
+        padding: 56px 20px 64px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -687,7 +1024,8 @@
   <!-- ==========================================
        MAIN CENTERED TWO-COLUMN CARD
        ========================================== -->
-  <main class="auth-card-wrapper">
+  <div class="auth-page-hero">
+    <main class="auth-card-wrapper" id="authTop">
 
     <!-- ==========================================
          LEFT PANEL: AUTHENTICATION FORM
@@ -696,13 +1034,10 @@
       <div>
         <!-- Brand Logo Header -->
         <a href="landing.html" class="brand-header-link" title="Back to Home">
-          <div class="brand-leaf-badge">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
-              <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
-            </svg>
+          <div class="brand-logo-wrap">
+            <img src="assets/images/brand-logo.png" alt="IntelliPantry Logo" class="brand-logo-img">
           </div>
-          <span class="brand-title">Smart Pantry</span>
+          <span class="brand-title">IntelliPantry</span>
         </a>
 
         <!-- Title & Subtitle Area -->
@@ -853,6 +1188,11 @@
           <div class="helper-links-row">
             <button type="button" class="helper-link" onclick="triggerMagicLinkPrompt()">✉️ Email me a Magic Link / 6-digit Code (OTP)</button>
           </div>
+          <div style="text-align:center; margin-top:16px; margin-bottom:6px;">
+            <a href="#features-overview" style="color:var(--forest); font-size:12.5px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:6px; background:var(--forest-light); padding:7px 16px; border-radius:999px;">
+              <span>✨</span> What features are included? Explore all 8 features ↓
+            </a>
+          </div>
         </div>
       </div>
 
@@ -877,12 +1217,38 @@
       </div>
 
       <!-- Center Promotional Food/Pantry Video Element -->
-      <div class="video-showcase-box">
-        <video class="showcase-video" autoplay muted loop playsinline poster="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80">
-          <source src="https://player.vimeo.com/external/371433846.sd.mp4?s=236da2f3c0fd273d2c6d9a064f3ae35579b2bbdf&profile_id=164&oauth2_token_id=57447761" type="video/mp4">
-          <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
+      <div class="video-showcase-box" id="promoVideoContainer">
+        <video id="loginPromoVideo" class="showcase-video" autoplay muted loop playsinline poster="assets/categories/pantry.png">
+          <source src="assets/videos/pantry-promo.mp4" type="video/mp4">
+          <source src="assets/pantry-promo.mp4" type="video/mp4">
+          <source src="https://videos.pexels.com/video-files/3195394/3195394-sd_640_360_25fps.mp4" type="video/mp4">
           <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80" alt="Fresh Pantry Groceries" class="video-fallback-img">
         </video>
+
+        <!-- Top Live Promo Badge -->
+        <div class="promo-video-live-tag">
+          <span class="promo-live-dot"></span>
+          <span>INTELLIPANTRY IN ACTION</span>
+        </div>
+
+        <!-- Dynamic Website Idea Callout Card -->
+        <div class="promo-video-overlay-card" id="promoOverlayCard">
+          <div class="promo-overlay-icon" id="promoOverlayIcon">🥦</div>
+          <div class="promo-overlay-info">
+            <h5 id="promoOverlayTitle">Smart Expiry Tracking</h5>
+            <p id="promoOverlaySubtitle">Automatic 5-tier alerts so groceries never spoil</p>
+          </div>
+        </div>
+
+        <!-- Controls: Play/Pause and Sound -->
+        <div class="promo-video-controls">
+          <button type="button" id="btnToggleVideoPlay" class="promo-ctrl-btn" onclick="togglePromoVideoPlay()" title="Play / Pause video">
+            ⏸
+          </button>
+          <button type="button" id="btnToggleVideoMute" class="promo-ctrl-btn" onclick="togglePromoVideoMute()" title="Toggle Sound">
+            🔇
+          </button>
+        </div>
       </div>
 
       <!-- Bottom Three Feature Badges (Matching Screenshot) -->
@@ -896,13 +1262,121 @@
           <div class="feature-title">Get Timely<br>Alerts</div>
         </div>
         <div class="feature-item">
-          <div class="feature-icon-bubble bubble-mint">♻️</div>
-          <div class="feature-title">Reduce<br>Waste</div>
+          <div class="feature-icon-bubble bubble-mint">🍳</div>
+          <div class="feature-title">Recipe<br>Kitchen</div>
         </div>
+      </div>
+
+      <div style="text-align:center; margin-top:16px;">
+        <a href="#features-overview" style="color:#ffffff; font-size:12.5px; font-weight:700; text-decoration:none; background:rgba(255,255,255,0.12); padding:7px 16px; border-radius:999px; display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(255,255,255,0.2);">
+          <span>✨</span> View full features breakdown ↓
+        </a>
       </div>
     </section>
 
   </main>
+</div>
+
+<!-- ==========================================
+     FEATURES SHOWCASE (Matches User Screenshot)
+     ========================================== -->
+<section class="features-dark-section" id="features-overview">
+  <div class="features-container">
+    <div class="features-header">
+      <div class="features-badge">✨ WHAT'S INCLUDED</div>
+      <h2 class="features-main-title">Smart Features Built for <span>Modern Kitchens</span></h2>
+      <p class="features-subtitle">
+        Everything you need to organize inventory, track expiry dates, plan meals, and eliminate food waste — all synced in real time.
+      </p>
+    </div>
+
+    <div class="features-grid">
+      <!-- 1. NFC Zone Tags -->
+      <div class="feature-card">
+        <div class="feature-icon-box">📡</div>
+        <h3 class="feature-card-title">NFC Zone Tags</h3>
+        <p class="feature-card-desc">
+          Tap a tag on your fridge, freezer, or pantry shelf. Instantly see what's in that zone and mark what you took — no opening the app, no hunting through lists.
+        </p>
+      </div>
+
+      <!-- 2. Pantry Tracking -->
+      <div class="feature-card">
+        <div class="feature-icon-box">📦</div>
+        <h3 class="feature-card-title">Pantry Tracking</h3>
+        <p class="feature-card-desc">
+          Add items by barcode scan or manually. Track quantities, expiry dates, and get alerts before food goes bad. Never throw out forgotten groceries again.
+        </p>
+      </div>
+
+      <!-- 3. AI Meal Planning -->
+      <div class="feature-card">
+        <div class="feature-icon-box">🤖</div>
+        <h3 class="feature-card-title">AI Meal Planning</h3>
+        <p class="feature-card-desc">
+          Generate a full week of meal plans based on what's actually in your pantry. No more "what's for dinner?" — the AI sees your inventory and plans around it.
+        </p>
+      </div>
+
+      <!-- 4. Family Sharing -->
+      <div class="feature-card">
+        <div class="feature-icon-box">👨‍👩‍👧‍👦</div>
+        <h3 class="feature-card-title">Family Sharing</h3>
+        <p class="feature-card-desc">
+          Invite up to 4 household members. Everyone sees the same pantry in real time — no more duplicate grocery runs because someone didn't know you already bought it.
+        </p>
+      </div>
+
+      <!-- 5. Barcode Scanner -->
+      <div class="feature-card">
+        <div class="feature-icon-box">📷</div>
+        <h3 class="feature-card-title">Barcode Scanner</h3>
+        <p class="feature-card-desc">
+          Scan any grocery barcode and get the product name, brand, and calories pulled in automatically. Adding groceries after a shopping trip takes seconds.
+        </p>
+      </div>
+
+      <!-- 6. Recipe Suggestions -->
+      <div class="feature-card">
+        <div class="feature-icon-box">🍽️</div>
+        <h3 class="feature-card-title">Recipe Suggestions</h3>
+        <p class="feature-card-desc">
+          AI-generated recipes built from your current pantry. Save favorites, plan around dietary needs, and always cook with what you already have on hand.
+        </p>
+      </div>
+
+      <!-- 7. Smart Shopping List -->
+      <div class="feature-card">
+        <div class="feature-icon-box">🛒</div>
+        <h3 class="feature-card-title">Smart Shopping List</h3>
+        <p class="feature-card-desc">
+          Items that run out auto-appear on your shopping list. Add anything manually, check things off at the store, and keep the whole household in sync.
+        </p>
+      </div>
+
+      <!-- 8. Cart Total + Tax Tracker -->
+      <div class="feature-card">
+        <div class="feature-icon-box">🧾</div>
+        <h3 class="feature-card-title">Cart Total + Tax Tracker</h3>
+        <p class="feature-card-desc">
+          See a running total of your cart as you shop, with tax calculated in real time. No more checkout surprises — know exactly what you're spending before you hit the register.
+        </p>
+      </div>
+
+      <!-- 9. CTA Card (Completes the 3x3 layout) -->
+      <div class="feature-card feature-card-cta">
+        <div class="feature-icon-box" style="background: rgba(46, 158, 91, 0.2); border-color: rgba(46, 158, 91, 0.4);">🌿</div>
+        <h3 class="feature-card-title">Ready to Modernize Your Kitchen?</h3>
+        <p class="feature-card-desc">
+          Join households saving ₹3,000+ monthly, reducing waste, and enjoying fresh meals every single day.
+        </p>
+        <a href="#authTop" class="btn-cta-card">
+          Sign In / Create Account ↑
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
 
   <!-- ==========================================
        MODAL 1: FORGOT / RESET PASSWORD
@@ -1586,9 +2060,80 @@
       }
     }
 
+    // ==========================================
+    // PROMOTIONAL PANTRY VIDEO CONTROLLER & CYCLING FEATURES
+    // ==========================================
+    const PROMO_FEATURES = [
+      { icon: "🥦", title: "Smart Expiry Tracking", desc: "Automatic 5-tier alerts so groceries never spoil" },
+      { icon: "🧾", title: "AI Receipt Scanner", desc: "Snap bills to auto-populate groceries into your pantry" },
+      { icon: "⛶", title: "Instant Barcode Lookup", desc: "Instant product recognition from 3M+ food items" },
+      { icon: "🍳", title: "Recipe Kitchen", desc: "Cook delicious meals matched to your active ingredients" },
+      { icon: "♻️", title: "Zero Food Waste", desc: "Save ₹3,000+ monthly and prevent household food waste" }
+    ];
+
+    let currentPromoIndex = 0;
+    function rotatePromoFeature() {
+      currentPromoIndex = (currentPromoIndex + 1) % PROMO_FEATURES.length;
+      const item = PROMO_FEATURES[currentPromoIndex];
+      const card = document.getElementById("promoOverlayCard");
+      const iconEl = document.getElementById("promoOverlayIcon");
+      const titleEl = document.getElementById("promoOverlayTitle");
+      const descEl = document.getElementById("promoOverlaySubtitle");
+
+      if (card && iconEl && titleEl && descEl) {
+        card.style.opacity = "0";
+        card.style.transform = "translateY(4px)";
+        setTimeout(() => {
+          iconEl.textContent = item.icon;
+          titleEl.textContent = item.title;
+          descEl.textContent = item.desc;
+          card.style.opacity = "1";
+          card.style.transform = "translateY(0)";
+        }, 250);
+      }
+    }
+
+    setInterval(rotatePromoFeature, 3500);
+
+    function togglePromoVideoPlay() {
+      const video = document.getElementById("loginPromoVideo");
+      const btn = document.getElementById("btnToggleVideoPlay");
+      if (!video || !btn) return;
+      if (video.paused) {
+        video.play();
+        btn.textContent = "⏸";
+      } else {
+        video.pause();
+        btn.textContent = "▶";
+      }
+    }
+
+    function togglePromoVideoMute() {
+      const video = document.getElementById("loginPromoVideo");
+      const btn = document.getElementById("btnToggleVideoMute");
+      if (!video || !btn) return;
+      video.muted = !video.muted;
+      btn.textContent = video.muted ? "🔇" : "🔊";
+    }
+
+    window.togglePromoVideoPlay = togglePromoVideoPlay;
+    window.togglePromoVideoMute = togglePromoVideoMute;
+
     // Initialize Page & Check URL Hash / Params
     document.addEventListener("DOMContentLoaded", async function() {
       initOtpBoxEvents();
+
+      // Ensure promo video autoplays smoothly
+      const promoVid = document.getElementById("loginPromoVideo");
+      if (promoVid) {
+        promoVid.muted = true;
+        const playPromise = promoVid.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            console.log("Promo video autoplay waiting for user interaction");
+          });
+        }
+      }
 
       const urlParams = new URLSearchParams(window.location.search);
       const hash = window.location.hash || '';

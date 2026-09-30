@@ -47,7 +47,7 @@ const dashboardHtml = fs.readFileSync(path.join(srcDir, 'dashboard.html'), 'utf8
 const loginHtml = fs.readFileSync(path.join(srcDir, 'login.html'), 'utf8');
 const landingHtml = fs.readFileSync(path.join(srcDir, 'landing.html'), 'utf8');
 
-fs.writeFileSync(path.join(distDir, 'index.html'), injectPublicEnv(dashboardHtml), 'utf8');
+fs.writeFileSync(path.join(distDir, 'index.html'), injectPublicEnv(landingHtml), 'utf8');
 fs.writeFileSync(path.join(distDir, 'landing.html'), injectPublicEnv(landingHtml), 'utf8');
 fs.writeFileSync(path.join(distDir, 'login.html'), injectPublicEnv(loginHtml), 'utf8');
 fs.writeFileSync(path.join(distDir, 'dashboard.html'), injectPublicEnv(dashboardHtml), 'utf8');
@@ -68,6 +68,8 @@ if (fs.existsSync(path.join(srcDir, 'supabase'))) {
 
 const favFiles = [
   'favicon.ico',
+  'favicon.png',
+  'favicon-48x48.png',
   'favicon-16x16.png',
   'favicon-32x32.png',
   'apple-touch-icon.png',

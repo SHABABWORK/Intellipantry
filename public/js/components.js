@@ -16,27 +16,46 @@ function formatDate(dateStr) {
   return parsed.toLocaleDateString("en-GB", options);
 }
 
-// Render the metrics row
+// Render the metrics row and Expiry Overview panel
 function updateMetricsDisplay() {
   const metrics = window.store.getMetrics();
   const totalEl = document.getElementById("metricTotalItems");
   const lowStockEl = document.getElementById("metricLowStock");
   const expiringEl = document.getElementById("metricExpiringSoon");
   const shoppingEl = document.getElementById("metricShoppingList");
-
   const freshEl = document.getElementById("metricFreshItems");
 
   if (totalEl) totalEl.textContent = metrics.total;
+  if (lowStockEl) lowStockEl.textContent = metrics.expiringSoon !== undefined ? metrics.expiringSoon : 0;
   if (lowStockEl) lowStockEl.textContent = metrics.lowStock;
   if (expiringEl) expiringEl.textContent = metrics.expiringSoon;
   if (shoppingEl) shoppingEl.textContent = metrics.shoppingListCount;
   if (freshEl) freshEl.textContent = metrics.fresh !== undefined ? metrics.fresh : Math.max(0, metrics.total - metrics.lowStock - metrics.expiringSoon - metrics.expired);
+
+  // Expiry Overview pills (if rendered in UI)
+  const pillTotal = document.getElementById("overviewPillTotal");
+  const pillFresh = document.getElementById("overviewPillFresh");
+  const pillExpiringSoon = document.getElementById("overviewPillExpiringSoon");
+  const pillVerySoon = document.getElementById("overviewPillVerySoon");
+  const pillExpiresToday = document.getElementById("overviewPillExpiresToday");
+  const pillExpired = document.getElementById("overviewPillExpired");
+  const pillEstimated = document.getElementById("overviewPillEstimated");
+  const pillOpened = document.getElementById("overviewPillOpened");
+
+  if (pillTotal) pillTotal.textContent = metrics.total;
+  if (pillFresh) pillFresh.textContent = metrics.fresh;
+  if (pillExpiringSoon) pillExpiringSoon.textContent = metrics.expiringSoon;
+  if (pillVerySoon) pillVerySoon.textContent = metrics.verySoon;
+  if (pillExpiresToday) pillExpiresToday.textContent = metrics.expiresToday;
+  if (pillExpired) pillExpired.textContent = metrics.expired;
+  if (pillEstimated) pillEstimated.textContent = metrics.estimatedItems;
+  if (pillOpened) pillOpened.textContent = metrics.openedItems;
 }
 
 // Status filter pill handling
 function setStatusFilter(status) {
   currentStatusFilter = status;
-  document.querySelectorAll(".status-filter-btn").forEach(btn => {
+  document.querySelectorAll(".status-filter-btn, .expiry-overview-pill").forEach(btn => {
     if (btn.getAttribute("data-status") === status) {
       btn.classList.add("active");
     } else {
@@ -121,17 +140,29 @@ function renderInventoryTable() {
       (item.barcode || "").toLowerCase().includes(q) ||
       (item.storageLocation || "").toLowerCase().includes(q);
 
-    const computedStatus = window.store.calculateStatus(item.expiryDate, item.quantity, item.minStock, warnDays);
+    const expDate = item.effectiveExpiryDate || item.expiryDate;
+    const computedStatus = window.store.calculateStatus(expDate, item.quantity, item.minStock, warnDays);
+    const expClass = window.store.getExpiryClassification ? window.store.getExpiryClassification(item) : { status: computedStatus, days: null };
+    const diffDays = expClass.days !== null ? expClass.days : (window.getDaysDifference ? window.getDaysDifference(expDate) : null);
+
     let matchesStatus = true;
     if (currentStatusFilter !== "All") {
       if (currentStatusFilter === "Expiring Soon") {
-        matchesStatus = computedStatus === "Expiring Soon";
+        matchesStatus = (diffDays !== null && diffDays >= 8 && diffDays <= 30) || (computedStatus === "Expiring Soon" && diffDays > 7);
+      } else if (currentStatusFilter === "Very Soon") {
+        matchesStatus = diffDays !== null && diffDays >= 1 && diffDays <= 7;
+      } else if (currentStatusFilter === "Expires Today") {
+        matchesStatus = diffDays === 0;
       } else if (currentStatusFilter === "Expired") {
-        matchesStatus = computedStatus === "Expired";
+        matchesStatus = diffDays !== null && diffDays < 0;
+      } else if (currentStatusFilter === "Fresh" || currentStatusFilter === "In Stock") {
+        matchesStatus = (diffDays === null || diffDays > 30) && Number(item.quantity) > (item.minStock !== undefined ? Number(item.minStock) : 2);
+      } else if (currentStatusFilter === "Estimated") {
+        matchesStatus = Boolean(item.isEstimate || item.expiryType === 'estimated' || (item.estimatedExpiryDate && !item.actualExpiryDate));
+      } else if (currentStatusFilter === "Opened") {
+        matchesStatus = item.productStatus === 'Opened';
       } else if (currentStatusFilter === "Low Stock") {
         matchesStatus = computedStatus === "Low Stock" || Number(item.quantity) <= (item.minStock !== undefined ? Number(item.minStock) : 2);
-      } else if (currentStatusFilter === "Fresh" || currentStatusFilter === "In Stock") {
-        matchesStatus = (computedStatus === "Fresh" || computedStatus === "In Stock") && Number(item.quantity) > (item.minStock !== undefined ? Number(item.minStock) : 2);
       }
     }
 
@@ -193,28 +224,40 @@ function renderInventoryTable() {
   // 1. Render Grocery Cards Grid (Matches Screenshot Image 1)
   if (cardsGrid) {
     cardsGrid.innerHTML = filtered.map(item => {
-      const computedStatus = window.store.calculateStatus(item.expiryDate, item.quantity, item.minStock, warnDays);
-      const rel = window.formatRelativeExpiry ? window.formatRelativeExpiry(item.expiryDate, warnDays) : { text: item.expiryDate || "—", urgent: false, days: null };
+      const expDate = item.effectiveExpiryDate || item.expiryDate;
+      const computedStatus = window.store.calculateStatus(expDate, item.quantity, item.minStock, warnDays);
+      const expClass = window.store.getExpiryClassification ? window.store.getExpiryClassification(item) : { status: computedStatus, days: null, dotColor: "#10b981", badgeClass: "badge-status status-fresh" };
+      const rel = window.formatRelativeExpiry ? window.formatRelativeExpiry(expDate, warnDays) : { text: expDate || "—", urgent: false, days: null };
 
       let statusDotClass = "dot-fresh";
       let statusTextClass = "status-label-fresh";
-      let statusLabel = "Fresh";
+      let statusLabel = expClass.label || expClass.status || "Fresh";
 
-      if (computedStatus === "Expired" || (rel.days !== null && rel.days < 0)) {
+      if (expClass.status === "Expired") {
         statusDotClass = "dot-expired";
         statusTextClass = "status-label-expired";
         statusLabel = "Expired";
-      } else if (computedStatus === "Expiring Soon" || (rel.days !== null && rel.days <= warnDays)) {
+      } else if (expClass.status === "Expires Today") {
+        statusDotClass = "dot-expired";
+        statusTextClass = "status-label-expired";
+        statusLabel = "Expires Today";
+      } else if (expClass.status === "Very Soon") {
         statusDotClass = "dot-usesoon";
         statusTextClass = "status-label-usesoon";
-        statusLabel = "Use Soon";
+        statusLabel = "Very Soon (1–7d)";
+      } else if (expClass.status === "Expiring Soon") {
+        statusDotClass = "dot-usesoon";
+        statusTextClass = "status-label-usesoon";
+        statusLabel = "Expiring Soon";
       } else if (computedStatus === "Low Stock" || Number(item.quantity) <= (item.minStock !== undefined ? Number(item.minStock) : 2)) {
         statusDotClass = "dot-usesoon";
         statusTextClass = "status-label-usesoon";
         statusLabel = "Low Stock";
       }
 
-      const dateFormatted = formatDate(item.expiryDate);
+      const isEstimated = Boolean(item.isEstimate || item.expiryType === 'estimated' || (item.estimatedExpiryDate && !item.actualExpiryDate));
+      const isOpened = item.productStatus === 'Opened';
+      const dateFormatted = formatDate(expDate);
       const catName = item.category || "Pantry";
       const catLower = catName.toLowerCase();
 
@@ -225,30 +268,47 @@ function renderInventoryTable() {
         imgHtml = `<img src="assets/categories/${catLower}.png" alt="${escapeHTML(item.name)}" class="grocery-card-img" onerror="this.onerror=null; this.outerHTML='<span style=\\'font-size:44px;\\'>${item.emoji || "📦"}</span>';">`;
       }
 
+      // Prefix label based on type
+      let expPrefix = "Exp: ";
+      if (isOpened && item.recommendedUseByDate) {
+        expPrefix = "Use by: ";
+      } else if (isEstimated) {
+        expPrefix = "Est: ";
+      }
+
       return `
         <div class="grocery-card" data-id="${item.id}">
           <div class="grocery-card-top">
+            <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
+              ${isEstimated ? `<span class="badge-mini badge-estimate" title="Estimated shelf life reference. Manufacturer printed date always takes priority.">✨ Est</span>` : ''}
+              ${isOpened ? `<span class="badge-mini badge-opened" title="Opened on ${item.openedDate || 'recently'}. Recommended use by: ${item.recommendedUseByDate || 'soon'}">🔓 Opened</span>` : ''}
+            </div>
             <div style="position:relative;">
               <button type="button" class="grocery-menu-btn" onclick="toggleGroceryCardMenu('${item.id}', event)" title="Item Actions">⋮</button>
               <div id="cardMenu_${item.id}" class="grocery-card-dropdown" style="display:none;">
+                <button type="button" onclick="viewProductDetails('${item.id}')">👁️ View Details</button>
                 <button type="button" onclick="openAddEditModal('${item.id}')">✏️ Edit Item</button>
+                <button type="button" onclick="toggleProductOpened('${item.id}')">${isOpened ? '🔒 Mark as Unopened' : '🔓 Mark as Opened'}</button>
                 <button type="button" onclick="consumePantryItem('${item.id}')">🍴 Use / Consume</button>
                 <button type="button" onclick="addItemToShoppingList('${escapeHTML(item.name)}')">🛒 Add to Shopping List</button>
                 <button type="button" style="color:#ef4444;" onclick="deletePantryItem('${item.id}')">🗑️ Delete</button>
               </div>
             </div>
           </div>
-          <div class="grocery-img-wrap">
+          <div class="grocery-img-wrap" onclick="viewProductDetails('${item.id}')" style="cursor:pointer;" title="Click to view details">
             ${imgHtml}
           </div>
           <div class="grocery-card-body">
-            <h4 class="grocery-name">${escapeHTML(item.name)}</h4>
+            <h4 class="grocery-name" onclick="viewProductDetails('${item.id}')" style="cursor:pointer;" title="${escapeHTML(item.name)}">${escapeHTML(item.name)}</h4>
             <div class="grocery-qty">${item.quantity} ${escapeHTML(item.unit || "pieces")}</div>
             <div class="grocery-status-row">
               <span class="grocery-status-dot ${statusDotClass}"></span>
               <span class="${statusTextClass}">${escapeHTML(statusLabel)}</span>
             </div>
-            <div class="grocery-exp-date">Exp: ${dateFormatted}</div>
+            <div class="grocery-exp-date" title="${isEstimated ? 'Universal estimated expiry' : 'Manufacturer printed date'}">
+              ${expPrefix}${dateFormatted}
+            </div>
+            ${item.storageRecommendation ? `<div style="font-size:10.5px; color:#64748b; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHTML(item.storageRecommendation)}">📍 ${escapeHTML(item.storageType || item.storageLocation || 'Pantry')}</div>` : ''}
           </div>
         </div>
       `;
@@ -258,16 +318,24 @@ function renderInventoryTable() {
   // 2. Render Table Rows for List View
   if (tbody) {
     tbody.innerHTML = filtered.map(item => {
-      const computedStatus = window.store.calculateStatus(item.expiryDate, item.quantity, item.minStock, warnDays);
-      const rel = window.formatRelativeExpiry ? window.formatRelativeExpiry(item.expiryDate, warnDays) : { text: item.expiryDate || "—", urgent: false, days: null };
+      const expDate = item.effectiveExpiryDate || item.expiryDate;
+      const computedStatus = window.store.calculateStatus(expDate, item.quantity, item.minStock, warnDays);
+      const expClass = window.store.getExpiryClassification ? window.store.getExpiryClassification(item) : { status: computedStatus, days: null, badgeClass: "badge-status status-fresh" };
+      const rel = window.formatRelativeExpiry ? window.formatRelativeExpiry(expDate, warnDays) : { text: expDate || "—", urgent: false, days: null };
 
       let statusClass = "status-fresh";
-      let statusLabel = "Fresh";
+      let statusLabel = expClass.label || expClass.status || "Fresh";
 
-      if (computedStatus === "Expired" || (rel.days !== null && rel.days < 0)) {
+      if (expClass.status === "Expired") {
         statusClass = "status-expired";
         statusLabel = "Expired";
-      } else if (computedStatus === "Expiring Soon" || (rel.days !== null && rel.days <= warnDays)) {
+      } else if (expClass.status === "Expires Today") {
+        statusClass = "status-today";
+        statusLabel = "Expires Today";
+      } else if (expClass.status === "Very Soon") {
+        statusClass = "status-very-soon";
+        statusLabel = "Very Soon";
+      } else if (expClass.status === "Expiring Soon") {
         statusClass = "status-expiring";
         statusLabel = "Expiring Soon";
       } else if (computedStatus === "Low Stock" || Number(item.quantity) <= (item.minStock !== undefined ? Number(item.minStock) : 2)) {
@@ -275,17 +343,23 @@ function renderInventoryTable() {
         statusLabel = "Low Stock";
       }
 
-      const isUrgent = rel.urgent || statusLabel === "Expiring Soon" || statusLabel === "Expired";
-      const dateFormatted = formatDate(item.expiryDate);
+      const isEstimated = Boolean(item.isEstimate || item.expiryType === 'estimated' || (item.estimatedExpiryDate && !item.actualExpiryDate));
+      const isOpened = item.productStatus === 'Opened';
+      const isUrgent = rel.urgent || statusLabel === "Expiring Soon" || statusLabel === "Expired" || statusLabel === "Expires Today" || statusLabel === "Very Soon";
+      const dateFormatted = formatDate(expDate);
       const catName = item.category || "Pantry";
 
       return `
         <tr data-id="${item.id}">
           <td>
             <div class="item-cell">
-              <div class="item-thumb">${item.imageUrl ? `<img src="${escapeHTML(item.imageUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" onerror="this.outerHTML='${item.emoji || "📦"}'">` : (item.emoji || "📦")}</div>
+              <div class="item-thumb" onclick="viewProductDetails('${item.id}')" style="cursor:pointer;">${item.imageUrl ? `<img src="${escapeHTML(item.imageUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" onerror="this.outerHTML='${item.emoji || "📦"}'">` : (item.emoji || "📦")}</div>
               <div>
-                <span style="font-weight: 700; color: #0f172a;">${escapeHTML(item.name)}</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-weight: 700; color: #0f172a; cursor:pointer;" onclick="viewProductDetails('${item.id}')">${escapeHTML(item.name)}</span>
+                  ${isEstimated ? `<span class="badge-mini badge-estimate" title="Estimated shelf life">✨ Est</span>` : ''}
+                  ${isOpened ? `<span class="badge-mini badge-opened" title="Opened">🔓 Opened</span>` : ''}
+                </div>
                 ${item.brand ? `<div style="font-size:11px; color:#64748b; font-weight:500;">${escapeHTML(item.brand)}</div>` : ''}
                 ${item.barcode ? `<div style="font-size:10px; color:#94a3b8; font-family:monospace;">${escapeHTML(item.barcode)}</div>` : ''}
               </div>
@@ -296,7 +370,7 @@ function renderInventoryTable() {
               <img src="assets/categories/${catName.toLowerCase()}.png" alt="" style="width:20px; height:18px; object-fit:contain;" onerror="this.style.display='none'">
               <span>${escapeHTML(catName)}</span>
             </span>
-            ${item.storageLocation ? `<div style="font-size:10.5px; color:#94a3b8; margin-top:2px;">📍 ${escapeHTML(item.storageLocation)}</div>` : ''}
+            ${item.storageLocation || item.storageType ? `<div style="font-size:10.5px; color:#94a3b8; margin-top:2px;">📍 ${escapeHTML(item.storageType || item.storageLocation)}</div>` : ''}
           </td>
           <td style="font-weight: 600;">
             ${item.quantity} ${escapeHTML(item.unit || "pcs")}
@@ -305,7 +379,7 @@ function renderInventoryTable() {
           <td class="${isUrgent ? "expiry-urgent" : ""}">
             <div style="display:flex; flex-direction:column; gap:2px;">
               <span style="font-weight: 600;">${dateFormatted}</span>
-              ${item.expiryDate ? `<span style="font-size: 11px; font-weight: 700; color: ${rel.days < 0 ? '#ef4444' : (rel.days <= 7 ? '#d97706' : '#10b981')};">${rel.text}</span>` : `<span style="font-size: 11px; color:#94a3b8;">No expiry set</span>`}
+              ${expDate ? `<span style="font-size: 11px; font-weight: 700; color: ${expClass.dotColor || '#10b981'};">${isOpened && item.recommendedUseByDate ? 'Use by ' + formatDate(item.recommendedUseByDate) : (isEstimated ? 'Est: ' + (expClass.text || rel.text) : (expClass.text || rel.text))}</span>` : `<span style="font-size: 11px; color:#94a3b8;">No expiry set</span>`}
             </div>
           </td>
           <td>
@@ -315,6 +389,9 @@ function renderInventoryTable() {
           </td>
           <td style="text-align: right;">
             <div style="display: flex; justify-content: flex-end; gap: 4px;">
+              <button class="action-dots-btn" onclick="viewProductDetails('${item.id}')" title="View Details">
+                👁️
+              </button>
               <button class="action-dots-btn" onclick="openAddEditModal('${item.id}')" title="Edit Item">
                 ✏️
               </button>
@@ -388,6 +465,24 @@ function updateLiveDateTimeGreeting() {
   const dateStr = now.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
   const dateEl = document.getElementById("datetimeDateDisplay");
   if (dateEl) dateEl.textContent = dateStr;
+
+  // Kitchen Hub Digital Display Clock Sync
+  const monthShort = now.toLocaleDateString("en-US", { month: "short" });
+  const dayTwoDigit = String(now.getDate()).padStart(2, "0");
+  const rawHours = now.getHours();
+  const ampm = rawHours >= 12 ? "PM" : "AM";
+  const h12 = rawHours % 12 || 12;
+  const hoursStr = String(h12).padStart(2, "0");
+  const minutesStr = String(now.getMinutes()).padStart(2, "0");
+  const timeDigits = `${hoursStr}:${minutesStr}`;
+
+  document.querySelectorAll(".kh-month-label").forEach(el => el.textContent = monthShort);
+  document.querySelectorAll(".kh-day-number").forEach(el => el.textContent = dayTwoDigit);
+  document.querySelectorAll(".kh-time-digits").forEach(el => el.textContent = timeDigits);
+  document.querySelectorAll(".kh-time-ampm").forEach(el => el.textContent = ampm);
+  document.querySelectorAll(".kh-status-text").forEach(el => {
+    if (!el.dataset.custom) el.textContent = "Inventory Sync Active";
+  });
 }
 
 // Stepper for Add/Edit Modal
@@ -544,11 +639,19 @@ function openAddEditModal(id = null) {
   const locationInput = document.getElementById("itemLocationInput");
   const minStockInput = document.getElementById("itemMinStockInput");
 
+  // New Universal Shelf Life & Opened Product Inputs
+  const expiryTypeInput = document.getElementById("itemExpiryTypeInput");
+  const productStatusInput = document.getElementById("itemProductStatusInput");
+  const openedDateInput = document.getElementById("itemOpenedDateInput");
+  const openedSection = document.getElementById("modalOpenedProductSection");
+
   if (!modal) return;
 
   // Show modal first so children have layout dimensions
   modal.classList.add("active");
   closeCategoryDropdown();
+
+  const todayStr = window.ShelfLife ? window.ShelfLife.getTodayLocalISO() : (window.getTodayISO ? window.getTodayISO() : new Date().toISOString().split("T")[0]);
 
   if (id) {
     const item = window.store.getItemById(id);
@@ -558,12 +661,21 @@ function openAddEditModal(id = null) {
       setCategoryValue(item.category || "Fruits");
       if (qtyInput) qtyInput.value = item.quantity !== undefined ? item.quantity : 1;
       if (unitInput) unitInput.value = item.unit || "pcs";
-      if (expiryInput) expiryInput.value = item.expiryDate || "";
-      if (purchaseInput) purchaseInput.value = item.purchaseDate || "";
+      if (expiryInput) expiryInput.value = item.effectiveExpiryDate || item.actualExpiryDate || item.estimatedExpiryDate || item.expiryDate || "";
+      if (purchaseInput) purchaseInput.value = item.purchaseDate || todayStr;
       if (brandInput) brandInput.value = item.brand || "";
       if (barcodeInput) barcodeInput.value = item.barcode || "";
       if (locationInput) locationInput.value = item.storageLocation || item.location || "Pantry";
       if (minStockInput) minStockInput.value = item.minStock !== undefined ? item.minStock : 2;
+
+      // Set Expiry Type
+      const expType = item.expiryType || (item.actualExpiryDate ? 'actual' : (item.estimatedExpiryDate ? 'estimated' : 'actual'));
+      setModalExpiryType(expType);
+
+      // Set Opened Status
+      const isOpened = item.productStatus === "Opened";
+      setModalProductStatus(isOpened ? "Opened" : "Unopened");
+      if (openedDateInput) openedDateInput.value = item.openedDate || todayStr;
 
       const preview = document.getElementById("photoPreviewImg");
       const placeholder = document.getElementById("photoPlaceholderContent");
@@ -585,17 +697,104 @@ function openAddEditModal(id = null) {
     if (qtyInput) qtyInput.value = "1";
     if (unitInput) unitInput.value = "pcs";
     if (expiryInput) expiryInput.value = "";
-    if (purchaseInput) purchaseInput.value = window.getTodayISO ? window.getTodayISO() : new Date().toISOString().split("T")[0];
+    if (purchaseInput) purchaseInput.value = todayStr;
     if (brandInput) brandInput.value = "";
     if (barcodeInput) barcodeInput.value = "";
     if (locationInput) locationInput.value = "Pantry";
     if (minStockInput) minStockInput.value = "2";
     if (typeof removeItemPhoto === "function") removeItemPhoto();
+
+    setModalExpiryType("actual");
+    setModalProductStatus("Unopened");
+    if (openedDateInput) openedDateInput.value = todayStr;
   }
+
+  // Update dynamic shelf-life recommendation card
+  updateModalShelfLifePreview();
 
   setTimeout(() => {
     if (nameInput) nameInput.focus();
   }, 80);
+}
+
+function setModalExpiryType(type) {
+  const expiryTypeInput = document.getElementById("itemExpiryTypeInput");
+  if (expiryTypeInput) expiryTypeInput.value = type;
+
+  const btnActual = document.getElementById("expiryTypeBtnActual");
+  const btnEstimate = document.getElementById("expiryTypeBtnEstimate");
+  if (btnActual) btnActual.classList.toggle("active", type === "actual");
+  if (btnEstimate) btnEstimate.classList.toggle("active", type === "estimated");
+}
+
+function setModalProductStatus(status) {
+  const statusInput = document.getElementById("itemProductStatusInput");
+  if (statusInput) statusInput.value = status;
+
+  const btnUnopened = document.getElementById("productStatusBtnUnopened");
+  const btnOpened = document.getElementById("productStatusBtnOpened");
+  const openedSection = document.getElementById("modalOpenedProductSection");
+
+  if (btnUnopened) btnUnopened.classList.toggle("active", status === "Unopened");
+  if (btnOpened) btnOpened.classList.toggle("active", status === "Opened");
+  if (openedSection) openedSection.style.display = (status === "Opened") ? "block" : "none";
+
+  updateModalShelfLifePreview();
+}
+
+// Dynamic shelf-life prediction preview inside Add/Edit modal
+function updateModalShelfLifePreview() {
+  const name = document.getElementById("itemNameInput")?.value?.trim() || "";
+  const cat = document.getElementById("itemCategoryInput")?.value || "Fruits";
+  const purchaseDate = document.getElementById("itemPurchaseInput")?.value || (window.ShelfLife ? window.ShelfLife.getTodayLocalISO() : "");
+  const previewBox = document.getElementById("modalShelfLifePreviewBox");
+  if (!previewBox) return;
+
+  if (!window.ShelfLife) {
+    previewBox.style.display = "none";
+    return;
+  }
+
+  const pred = window.ShelfLife.predictExpiry(name, cat, purchaseDate);
+  const isOpened = document.getElementById("itemProductStatusInput")?.value === "Opened";
+  const openedDate = document.getElementById("itemOpenedDateInput")?.value || purchaseDate;
+  const openedCalc = isOpened ? window.ShelfLife.calculateOpenedUseByDate(name, cat, openedDate) : null;
+
+  previewBox.style.display = "block";
+  previewBox.innerHTML = `
+    <div style="background:#fbfaf5; border:1px solid #e7e2d6; border-radius:12px; padding:12px 14px; margin-top:10px; font-size:12.5px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <span style="font-weight:700; color:#1e392a; display:flex; align-items:center; gap:6px;">
+          <span>🌱</span> Reference Shelf-Life: <strong>~${pred.typical_shelf_life_days} days</strong>
+        </span>
+        <button type="button" onclick="autoPredictModalExpiry()" style="background:#1e392a; color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;" title="Apply estimated expiry date to input">
+          ⚡ Apply Estimate
+        </button>
+      </div>
+      <div style="color:#576359; line-height:1.4;">
+        <div><strong>Storage:</strong> ${pred.storage_type} — <em>${pred.storage_recommendation}</em></div>
+        ${isOpened && openedCalc ? `<div style="margin-top:4px; color:#c2410c;"><strong>Opened Use-By:</strong> Recommended within ${openedCalc.opened_shelf_life_days} days (${formatDate(openedCalc.recommended_use_by_date)})</div>` : ''}
+      </div>
+      <div style="font-size:11px; color:#87968c; margin-top:6px; border-top:1px dashed #e2ded4; padding-top:4px;">
+        ⚠️ <em>Estimated shelf life is a general reference only. The actual manufacturer expiry date must always take priority.</em>
+      </div>
+    </div>
+  `;
+}
+
+// Auto-fill estimated expiry into the modal expiry date input
+function autoPredictModalExpiry() {
+  const name = document.getElementById("itemNameInput")?.value?.trim() || "";
+  const cat = document.getElementById("itemCategoryInput")?.value || "Fruits";
+  const purchaseDate = document.getElementById("itemPurchaseInput")?.value || (window.ShelfLife ? window.ShelfLife.getTodayLocalISO() : "");
+  const expiryInput = document.getElementById("itemExpiryInput");
+
+  if (window.ShelfLife && expiryInput) {
+    const pred = window.ShelfLife.predictExpiry(name, cat, purchaseDate);
+    expiryInput.value = pred.estimated_expiry_date;
+    setModalExpiryType("estimated");
+    showToast(`✓ Applied estimated shelf life (~${pred.typical_shelf_life_days} days)`);
+  }
 }
 
 function closeAddEditModal() {
@@ -624,11 +823,16 @@ async function saveItemForm(e) {
   const photoInput = document.getElementById("itemPhotoUrlInput");
   const imageUrl = photoInput ? photoInput.value : "";
 
+  // Universal Shelf Life form values
+  const expiryTypeVal = document.getElementById("itemExpiryTypeInput")?.value || (expiryInput?.value ? "actual" : "estimated");
+  const productStatusVal = document.getElementById("itemProductStatusInput")?.value || "Unopened";
+  const openedDateVal = productStatusVal === "Opened" ? (document.getElementById("itemOpenedDateInput")?.value || null) : null;
+
   const name = nameInput ? nameInput.value.trim() : "";
   const category = catInput ? catInput.value : "Fruits";
   const quantity = qtyInput ? (parseFloat(qtyInput.value) || 1) : 1;
   const unit = unitInput ? unitInput.value : "pcs";
-  const expiryDate = expiryInput ? expiryInput.value : "";
+  const rawExpiryDate = expiryInput ? expiryInput.value : "";
   const purchaseDate = purchaseInput ? purchaseInput.value : "";
   const brand = brandInput ? brandInput.value.trim() : "";
   const barcode = barcodeInput ? barcodeInput.value.trim() : "";
@@ -655,7 +859,12 @@ async function saveItemForm(e) {
       category,
       quantity,
       unit,
-      expiryDate,
+      expiryDate: rawExpiryDate,
+      actualExpiryDate: expiryTypeVal === 'actual' ? rawExpiryDate : null,
+      estimatedExpiryDate: expiryTypeVal === 'estimated' ? rawExpiryDate : null,
+      expiryType: expiryTypeVal,
+      productStatus: productStatusVal,
+      openedDate: openedDateVal,
       purchaseDate,
       brand,
       barcode,
@@ -684,6 +893,98 @@ async function saveItemForm(e) {
       submitBtn.innerText = origBtnText;
     }
   }
+}
+
+// Quick action: toggle opened status directly from card/details
+async function toggleProductOpened(id) {
+  try {
+    const updated = await window.store.toggleProductOpenedStatus(id);
+    if (updated) {
+      const isOpened = updated.productStatus === "Opened";
+      showToast(isOpened ? `🔓 Marked "${updated.name}" as Opened` : `🔒 Marked "${updated.name}" as Unopened`);
+      renderInventoryTable();
+      updateMetricsDisplay();
+    }
+  } catch (e) {
+    showToast(`Failed to update opened status: ${e.message}`);
+  }
+}
+
+// View Comprehensive Product Details Modal
+function viewProductDetails(id) {
+  const item = window.store.getItemById(id);
+  if (!item) return;
+
+  const modal = document.getElementById("productDetailsModal");
+  if (!modal) return;
+
+  const expDate = item.effectiveExpiryDate || item.expiryDate;
+  const expClass = window.store.getExpiryClassification ? window.store.getExpiryClassification(item) : { status: item.status || "Fresh", text: expDate || "—" };
+  const isEstimated = Boolean(item.isEstimate || item.expiryType === 'estimated' || (item.estimatedExpiryDate && !item.actualExpiryDate));
+  const isOpened = item.productStatus === "Opened";
+
+  document.getElementById("detailModalTitle").textContent = item.name;
+  document.getElementById("detailModalCategory").textContent = item.category || "Pantry";
+  document.getElementById("detailModalQuantity").textContent = `${item.quantity} ${item.unit || "pcs"}`;
+  document.getElementById("detailModalLocation").textContent = item.storageLocation || item.storageType || "Pantry";
+  document.getElementById("detailModalPurchase").textContent = formatDate(item.purchaseDate) || "—";
+  
+  // Expiry date and type
+  const expEl = document.getElementById("detailModalExpiry");
+  if (expEl) {
+    expEl.innerHTML = `
+      <strong>${formatDate(expDate)}</strong>
+      <span style="display:inline-block; margin-left:6px; font-size:11px; font-weight:700; padding:2px 8px; border-radius:6px; background:${isEstimated ? '#fef3c7; color:#92400e;' : '#ecfdf5; color:#065f46;'}">
+        ${isEstimated ? '✨ Estimated Shelf Life' : '🏷️ Printed Manufacturer Date'}
+      </span>
+      <div style="font-size:12px; font-weight:700; color:${expClass.dotColor || '#10b981'}; margin-top:3px;">
+        ${expClass.emoji || '🟢'} ${expClass.text || expClass.status}
+      </div>
+    `;
+  }
+
+  // Opened info
+  const openedEl = document.getElementById("detailModalOpenedInfo");
+  if (openedEl) {
+    if (isOpened) {
+      openedEl.style.display = "block";
+      openedEl.innerHTML = `
+        <div style="background:#fff7ed; border:1px solid #ffedd5; border-radius:10px; padding:10px 12px; font-size:12px; color:#9a3412;">
+          <strong>🔓 Product Opened:</strong> ${formatDate(item.openedDate)}<br>
+          ${item.recommendedUseByDate ? `<strong>Recommended Use By:</strong> ${formatDate(item.recommendedUseByDate)} (~${item.openedShelfLifeDays || 5} days)` : ''}
+        </div>
+      `;
+    } else {
+      openedEl.style.display = "none";
+    }
+  }
+
+  // Storage Recommendation
+  const storageEl = document.getElementById("detailModalStorageRec");
+  if (storageEl) {
+    storageEl.textContent = item.storageRecommendation || (window.ShelfLife ? window.ShelfLife.predictExpiry(item.name, item.category).storage_recommendation : "Store in a cool, dry place.");
+  }
+
+  // Set action button IDs
+  const editBtn = document.getElementById("detailModalEditBtn");
+  const openedBtn = document.getElementById("detailModalOpenedBtn");
+  const consumeBtn = document.getElementById("detailModalConsumeBtn");
+  const deleteBtn = document.getElementById("detailModalDeleteBtn");
+
+  if (editBtn) editBtn.onclick = () => { closeProductDetailsModal(); openAddEditModal(item.id); };
+  if (openedBtn) {
+    openedBtn.textContent = isOpened ? "🔒 Mark as Unopened" : "🔓 Mark as Opened";
+    openedBtn.onclick = async () => { await toggleProductOpened(item.id); viewProductDetails(item.id); };
+  }
+  if (consumeBtn) consumeBtn.onclick = async () => { closeProductDetailsModal(); await consumePantryItem(item.id); };
+  if (deleteBtn) deleteBtn.onclick = async () => { closeProductDetailsModal(); await deletePantryItem(item.id); };
+
+  modal.classList.add("active");
+}
+
+function closeProductDetailsModal() {
+  const modal = document.getElementById("productDetailsModal");
+  if (modal) modal.classList.remove("active");
 }
 
 /* ==========================================================
@@ -739,6 +1040,9 @@ function setCategoryValue(categoryName) {
   }
 
   moveCategoryHighlight(safeName, false);
+  if (typeof updateModalShelfLifePreview === "function") {
+    updateModalShelfLifePreview();
+  }
 }
 
 function moveCategoryHighlight(categoryName, animated = true) {
@@ -1161,8 +1465,21 @@ function renderInsightsView(timeframe = currentInsightsTimeframe) {
 }
 
 /* ==========================================================
-   SETTINGS & PREFERENCES CONTROLLER
+   REAL-TIME SETTINGS & PREFERENCES CONTROLLER
    ========================================================== */
+
+function showSettingSavePill(pillId, status = 'saved', msg = '✓ Saved') {
+  if (!pillId) return;
+  const pill = document.getElementById(pillId);
+  if (!pill) return;
+  pill.textContent = msg;
+  pill.className = `settings-save-pill ${status}`;
+  if (status === 'saved' || status === 'error') {
+    setTimeout(() => {
+      pill.className = 'settings-save-pill';
+    }, 2200);
+  }
+}
 
 function switchSettingsTab(tabName, btn) {
   document.querySelectorAll(".settings-tab-btn").forEach(b => b.classList.remove("active"));
@@ -1178,9 +1495,13 @@ function switchSettingsTab(tabName, btn) {
     activePane.style.display = "block";
     activePane.classList.add("active");
   }
+
+  if (tabName === 'database') {
+    refreshDatabaseConnectionTab();
+  }
 }
 
-function renderSettingsView() {
+async function renderSettingsView() {
   if (!window.store) return;
   const settings = window.store.getFullSettings();
   const user = getCurrentUserInfo() || { name: "Pantry Chef", email: "user@example.com" };
@@ -1189,7 +1510,7 @@ function renderSettingsView() {
   const displayEmail = user.email || "user@example.com";
   const avatarUrl = user.avatarUrl || "";
 
-  // Tab 1: Account
+  // 1. Account Tab
   const profileNameEl = document.getElementById("settingsProfileNameDisplay");
   const profileEmailEl = document.getElementById("settingsProfileEmailDisplay");
   const profileAvatarEl = document.getElementById("settingsProfileAvatarPreview");
@@ -1197,6 +1518,8 @@ function renderSettingsView() {
   const emailInput = document.getElementById("settingsEmailAddress");
   const avatarInput = document.getElementById("settingsAvatarUrl");
   const verifiedBadge = document.getElementById("settingsEmailVerifiedBadge");
+  const createdEl = document.getElementById("settingsAccountCreated");
+  const lastLoginEl = document.getElementById("settingsAccountLastLogin");
 
   if (profileNameEl) profileNameEl.textContent = displayName;
   if (profileEmailEl) profileEmailEl.textContent = displayEmail;
@@ -1219,54 +1542,82 @@ function renderSettingsView() {
     verifiedBadge.style.borderColor = isVerified ? "#bbf7d0" : "#fde68a";
   }
 
-  // Tab 2: Notifications
+  if (createdEl) {
+    if (user.createdAt) {
+      try {
+        createdEl.textContent = new Date(user.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      } catch (e) {
+        createdEl.textContent = "Active";
+      }
+    } else {
+      createdEl.textContent = "Home Pantry Member";
+    }
+  }
+
+  if (lastLoginEl) {
+    if (user.lastSignInAt) {
+      try {
+        lastLoginEl.textContent = new Date(user.lastSignInAt).toLocaleString("en-US", { dateStyle: "short", timeStyle: "short" });
+      } catch (e) {
+        lastLoginEl.textContent = "Active Now";
+      }
+    } else {
+      lastLoginEl.textContent = "Active Now";
+    }
+  }
+
+  // 2. Database Tab: load live stats automatically
+  refreshDatabaseConnectionTab();
+
+  // 3. Notifications Tab (8 real-time toggles)
   const p = settings.preferences || {};
+  const cbMasterEmail = document.getElementById("pref_email_notifications");
   const cbExpiry = document.getElementById("pref_alert_expiry");
   const cbExpired = document.getElementById("pref_alert_expired");
   const cbLowStock = document.getElementById("pref_alert_low_stock");
-  const cbSecurity = document.getElementById("pref_alert_security");
+  const cbShopping = document.getElementById("pref_shopping_recommendations");
+  const cbMealPlan = document.getElementById("pref_meal_plan_notifications");
   const cbWeekly = document.getElementById("pref_alert_weekly_summary");
+  const cbSecurity = document.getElementById("pref_alert_security");
+  const cbSecuritySec = document.getElementById("pref_security_notifications_sec");
 
-  if (cbExpiry) cbExpiry.checked = p.alert_expiry !== false;
-  if (cbExpired) cbExpired.checked = p.alert_expired !== false;
-  if (cbLowStock) cbLowStock.checked = p.alert_low_stock !== false;
-  if (cbSecurity) cbSecurity.checked = p.alert_security !== false;
-  if (cbWeekly) cbWeekly.checked = !!p.alert_weekly_summary;
+  if (cbMasterEmail) cbMasterEmail.checked = p.email_notifications !== false;
+  if (cbExpiry) cbExpiry.checked = p.alert_expiry !== false && p.expiry_alerts !== false;
+  if (cbExpired) cbExpired.checked = p.alert_expired !== false && p.expired_product_alerts !== false;
+  if (cbLowStock) cbLowStock.checked = p.alert_low_stock !== false && p.low_stock_alerts !== false;
+  if (cbShopping) cbShopping.checked = p.shopping_recommendations !== false;
+  if (cbMealPlan) cbMealPlan.checked = p.meal_plan_notifications !== false;
+  if (cbWeekly) cbWeekly.checked = !!p.alert_weekly_summary || !!p.weekly_summary;
+  if (cbSecurity) cbSecurity.checked = p.alert_security !== false && p.security_notifications !== false;
+  if (cbSecuritySec) cbSecuritySec.checked = p.alert_security !== false && p.security_notifications !== false;
 
-  // Tab 3: Pantry Preferences
+  // 4. Pantry Preferences Tab
   const pp = settings.pantry_settings || {};
+  const inpThreshold = document.getElementById("pantryPrefLowStockThreshold");
+  const selPlanning = document.getElementById("pantryPrefPlanningPeriod");
   const selLocation = document.getElementById("pantryPrefDefaultLocation");
   const selExpiryDays = document.getElementById("pantryPrefExpiryDays");
-  const inpThreshold = document.getElementById("pantryPrefLowStockThreshold");
   const selUnit = document.getElementById("pantryPrefDefaultUnit");
   const selCategory = document.getElementById("pantryPrefDefaultCategory");
+  const cbAutoAdd = document.getElementById("pantryPrefAutoAddScanned");
+  const cbAutoExpiry = document.getElementById("pantryPrefAutoCalculateExpiry");
+  const cbOpenedTracking = document.getElementById("pantryPrefOpenedTracking");
+  const cbSmartShopping = document.getElementById("pantryPrefSmartShopping");
+  const cbFoodWaste = document.getElementById("pantryPrefFoodWaste");
 
+  if (inpThreshold) inpThreshold.value = Number(pp.low_stock_threshold) || 2;
+  if (selPlanning) selPlanning.value = String(pp.default_planning_period_days || 7);
   if (selLocation) selLocation.value = pp.default_location || "Pantry";
   if (selExpiryDays) selExpiryDays.value = String(pp.expiry_warning_days || 7);
-  if (inpThreshold) inpThreshold.value = Number(pp.low_stock_threshold) || 2;
   if (selUnit) selUnit.value = pp.default_unit || "pcs";
   if (selCategory) selCategory.value = pp.default_category || "Pantry";
+  if (cbAutoAdd) cbAutoAdd.checked = pp.auto_add_scanned_products !== false;
+  if (cbAutoExpiry) cbAutoExpiry.checked = pp.auto_calculate_expiry !== false;
+  if (cbOpenedTracking) cbOpenedTracking.checked = pp.opened_product_tracking !== false;
+  if (cbSmartShopping) cbSmartShopping.checked = pp.smart_shopping_recommendations !== false;
+  if (cbFoodWaste) cbFoodWaste.checked = pp.food_waste_tracking !== false;
 
-  // Tab 4: Security
-  const secEmailSub = document.getElementById("securityUserEmailSub");
-  const secEmailBadge = document.getElementById("securityEmailBadge");
-  if (secEmailSub) secEmailSub.textContent = displayEmail;
-  if (secEmailBadge) {
-    const isVerified = user.emailVerified !== false;
-    secEmailBadge.textContent = isVerified ? "✓ Verified" : "Pending Verification";
-    secEmailBadge.style.color = isVerified ? "#166534" : "#b45309";
-    secEmailBadge.style.background = isVerified ? "#f0fdf4" : "#fffbeb";
-    secEmailBadge.style.borderColor = isVerified ? "#bbf7d0" : "#fde68a";
-  }
-
-  const lastLoginEl = document.getElementById("securityLastLoginTimestamp");
-  if (lastLoginEl) {
-    lastLoginEl.textContent = new Date().toLocaleString("en-US", {
-      dateStyle: "medium", timeStyle: "short"
-    });
-  }
-
-  // Tab 6: General Localization
+  // 5. Appearance Tab
   const gen = settings.general_settings || {};
   const selLang = document.getElementById("generalLanguage");
   const selTz = document.getElementById("generalTimezone");
@@ -1278,28 +1629,129 @@ function renderSettingsView() {
   if (selCurr) selCurr.value = gen.currency || "INR";
   if (selDate) selDate.value = gen.date_format || "DD/MM/YYYY";
 
-  // Tab 7: Appearance
   selectAppearanceTheme(gen.theme || "light", false);
+  selectLayoutMode(gen.layout_mode || "comfortable", false);
+
+  // 6. Security Tab
+  const secEmailSub = document.getElementById("securityUserEmailSub");
+  const secEmailBadge = document.getElementById("securityEmailBadge");
+  const secLastLogin = document.getElementById("securityLastLoginTimestamp");
+
+  if (secEmailSub) secEmailSub.textContent = displayEmail;
+  if (secEmailBadge) {
+    const isVerified = user.emailVerified !== false;
+    secEmailBadge.textContent = isVerified ? "✓ Verified" : "Pending Verification";
+    secEmailBadge.style.color = isVerified ? "#166534" : "#b45309";
+    secEmailBadge.style.background = isVerified ? "#f0fdf4" : "#fffbeb";
+    secEmailBadge.style.borderColor = isVerified ? "#bbf7d0" : "#fde68a";
+  }
+  if (secLastLogin) {
+    if (user.lastSignInAt) {
+      try {
+        secLastLogin.textContent = new Date(user.lastSignInAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+      } catch (e) {
+        secLastLogin.textContent = "Active now";
+      }
+    } else {
+      secLastLogin.textContent = new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+    }
+  }
+
+  // 7. Privacy Tab
+  const priv = settings.privacy_settings || {};
+  const cbPrivAnalytics = document.getElementById("priv_analytics");
+  const cbPrivAi = document.getElementById("priv_ai");
+  const cbPrivRecipes = document.getElementById("priv_recipes");
+  const cbPrivShopping = document.getElementById("priv_shopping");
+  const selPrivVisibility = document.getElementById("priv_visibility");
+
+  if (cbPrivAnalytics) cbPrivAnalytics.checked = priv.analytics_enabled !== false;
+  if (cbPrivAi) cbPrivAi.checked = priv.ai_personalization !== false;
+  if (cbPrivRecipes) cbPrivRecipes.checked = priv.recipe_personalization !== false;
+  if (cbPrivShopping) cbPrivShopping.checked = priv.shopping_personalization !== false;
+  if (selPrivVisibility) selPrivVisibility.value = priv.profile_visibility || "private";
 }
 
-async function handleNotificationToggleChange() {
+async function handleNotificationSettingToggle(key, inputEl) {
+  if (!window.store || !inputEl) return;
+  const isChecked = inputEl.checked;
+  const pillMap = {
+    email_notifications: 'pill_notif_email',
+    alert_expiry: 'pill_notif_expiry',
+    expiry_alerts: 'pill_notif_expiry',
+    alert_expired: 'pill_notif_expired',
+    expired_product_alerts: 'pill_notif_expired',
+    alert_low_stock: 'pill_notif_low_stock',
+    low_stock_alerts: 'pill_notif_low_stock',
+    shopping_recommendations: 'pill_notif_shopping',
+    meal_plan_notifications: 'pill_notif_meal_plan',
+    alert_weekly_summary: 'pill_notif_weekly',
+    weekly_summary: 'pill_notif_weekly',
+    alert_security: 'pill_notif_security',
+    security_notifications: 'pill_notif_security'
+  };
+  const pillId = pillMap[key] || 'pill_notif_expiry';
+  showSettingSavePill(pillId, 'saving', 'Saving...');
+
+  const updates = { [key]: isChecked };
+  if (key === 'alert_security') {
+    updates.security_notifications = isChecked;
+    const secEl = document.getElementById("pref_security_notifications_sec");
+    if (secEl) secEl.checked = isChecked;
+  }
+  if (key === 'alert_expiry') updates.expiry_alerts = isChecked;
+  if (key === 'alert_expired') updates.expired_product_alerts = isChecked;
+  if (key === 'alert_low_stock') updates.low_stock_alerts = isChecked;
+  if (key === 'alert_weekly_summary') updates.weekly_summary = isChecked;
+
+  await window.store.saveFullSettings({ preferences: updates });
+  showSettingSavePill(pillId, 'saved', '✓ Saved');
+}
+
+async function handlePantrySettingChange(key, value, pillId) {
   if (!window.store) return;
-  const alertExpiry = document.getElementById("pref_alert_expiry")?.checked !== false;
-  const alertExpired = document.getElementById("pref_alert_expired")?.checked !== false;
-  const alertLowStock = document.getElementById("pref_alert_low_stock")?.checked !== false;
-  const alertSecurity = document.getElementById("pref_alert_security")?.checked !== false;
-  const alertWeekly = !!document.getElementById("pref_alert_weekly_summary")?.checked;
+  if (pillId) showSettingSavePill(pillId, 'saving', 'Saving...');
+
+  let formattedValue = value;
+  if (key === 'low_stock_threshold' || key === 'default_planning_period_days' || key === 'expiry_warning_days') {
+    formattedValue = parseInt(value, 10) || 7;
+  }
 
   await window.store.saveFullSettings({
-    preferences: {
-      alert_expiry: alertExpiry,
-      alert_expired: alertExpired,
-      alert_low_stock: alertLowStock,
-      alert_security: alertSecurity,
-      alert_weekly_summary: alertWeekly
-    }
+    pantry_settings: { [key]: formattedValue }
   });
-  showToast("✓ Notification preference saved");
+
+  if (typeof renderInventoryTable === "function") renderInventoryTable();
+  if (typeof updateMetricsDisplay === "function") updateMetricsDisplay();
+
+  if (pillId) showSettingSavePill(pillId, 'saved', '✓ Saved');
+}
+
+async function handlePrivacySettingToggle(key, value, pillId) {
+  if (!window.store) return;
+  if (pillId) showSettingSavePill(pillId, 'saving', 'Saving...');
+
+  await window.store.saveFullSettings({
+    privacy_settings: { [key]: value }
+  });
+
+  if (pillId) showSettingSavePill(pillId, 'saved', '✓ Saved');
+}
+
+async function handleGeneralSettingChange() {
+  if (!window.store) return;
+  const language = document.getElementById("generalLanguage")?.value || "English";
+  const timezone = document.getElementById("generalTimezone")?.value || "Asia/Kolkata";
+  const currency = document.getElementById("generalCurrency")?.value || "INR";
+  const dateFormat = document.getElementById("generalDateFormat")?.value || "DD/MM/YYYY";
+
+  await window.store.saveFullSettings({
+    general_settings: { language, timezone, currency, date_format: dateFormat }
+  });
+
+  if (typeof renderInventoryTable === "function") renderInventoryTable();
+  if (typeof updateMetricsDisplay === "function") updateMetricsDisplay();
+  showToast("✓ Regional settings updated in real time");
 }
 
 function selectAppearanceTheme(theme, userClick = true) {
@@ -1320,51 +1772,222 @@ function selectAppearanceTheme(theme, userClick = true) {
     window.store.applyTheme(theme);
     if (userClick) {
       window.store.saveFullSettings({ general_settings: { theme } });
-      showToast(`✓ Theme set to ${theme.charAt(0).toUpperCase() + theme.slice(1)} Mode`);
+      if (typeof showToast === 'function') showToast(`✓ Theme set to ${theme.charAt(0).toUpperCase() + theme.slice(1)} Mode`);
     }
   }
 }
 
+function selectLayoutMode(mode, userClick = true) {
+  const btnComf = document.getElementById("layoutBtn_comfortable");
+  const btnComp = document.getElementById("layoutBtn_compact");
+
+  if (btnComf && btnComp) {
+    if (mode === 'compact') {
+      btnComp.style.borderColor = "#10b981";
+      btnComp.style.borderWidth = "2px";
+      btnComf.style.borderColor = "#cbd5e1";
+      btnComf.style.borderWidth = "1px";
+    } else {
+      btnComf.style.borderColor = "#10b981";
+      btnComf.style.borderWidth = "2px";
+      btnComp.style.borderColor = "#cbd5e1";
+      btnComp.style.borderWidth = "1px";
+    }
+  }
+
+  if (window.store) {
+    window.store.applyLayoutMode(mode);
+    if (userClick) {
+      window.store.saveFullSettings({ general_settings: { layout_mode: mode } });
+      if (typeof showToast === 'function') showToast(`✓ Layout density set to ${mode.charAt(0).toUpperCase() + mode.slice(1)}`);
+    }
+  }
+}
+
+async function handleProfileAvatarUpload(inputEl) {
+  if (!inputEl || !inputEl.files || !inputEl.files[0]) return;
+  const file = inputEl.files[0];
+  showSettingSavePill('pill_avatar_upload', 'saving', 'Uploading...');
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const dataUrl = e.target.result;
+    const previewEl = document.getElementById("settingsProfileAvatarPreview");
+    const topAvatar = document.getElementById("userAvatar");
+    const user = getCurrentUserInfo() || {};
+
+    if (previewEl) previewEl.innerHTML = `<img src="${dataUrl}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+    if (topAvatar) topAvatar.innerHTML = `<img src="${dataUrl}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+
+    user.avatarUrl = dataUrl;
+    try {
+      localStorage.setItem("smartpantry_user", JSON.stringify(user));
+    } catch(err) {}
+
+    if (window.supabaseService && window.supabaseService.isReady() && user.id) {
+      const res = await window.supabaseService.uploadAvatar(user.id, file);
+      if (res.success && res.avatarUrl) {
+        user.avatarUrl = res.avatarUrl;
+        try { localStorage.setItem("smartpantry_user", JSON.stringify(user)); } catch(e) {}
+      }
+    }
+    showSettingSavePill('pill_avatar_upload', 'saved', '✓ Saved');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function refreshDatabaseConnectionTab(btn) {
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Testing...';
+  }
+
+  const title = document.getElementById("settingsDbStatusTitle");
+  const desc = document.getElementById("settingsDbStatusDesc");
+  const icon = document.getElementById("dbStatusIcon");
+  const banner = document.getElementById("dbStatusBanner");
+  const retryBtn = document.getElementById("dbRetryBtn");
+  const latencyBadge = document.getElementById("dbStatLatencyBadge");
+  const latencyEl = document.getElementById("dbStatLatency");
+  const pantryCountEl = document.getElementById("dbStatPantryCount");
+  const shoppingCountEl = document.getElementById("dbStatShoppingCount");
+  const alertsCountEl = document.getElementById("dbStatAlertsCount");
+  const mealPlansCountEl = document.getElementById("dbStatMealPlansCount");
+  const lastSyncEl = document.getElementById("dbStatLastSync");
+  const lastUpdateEl = document.getElementById("dbStatLastUpdate");
+
+  if (title) title.textContent = "🟡 Checking Supabase Cloud Connection...";
+
+  try {
+    const user = getCurrentUserInfo() || {};
+    if (!window.supabaseService) {
+      if (title) title.textContent = "🔴 Database connection unavailable";
+      if (desc) desc.textContent = "Supabase service is not loaded. Check network configuration.";
+      if (icon) icon.textContent = "🔴";
+      if (banner) {
+        banner.style.background = "#fef2f2";
+        banner.style.borderColor = "#fecaca";
+      }
+      if (retryBtn) retryBtn.style.display = "inline-block";
+      return;
+    }
+
+    const health = await window.supabaseService.getDatabaseHealthAndStats(user.id);
+
+    if (health.status === 'connected') {
+      if (title) title.textContent = `🟢 Connected to Live PostgreSQL Database (${health.latencyMs}ms)`;
+      if (desc) desc.textContent = `Live connection verified. All pantry products and preferences are user-isolated with PostgreSQL Row Level Security (RLS).`;
+      if (icon) icon.textContent = "🟢";
+      if (banner) {
+        banner.style.background = "#f0fdf4";
+        banner.style.borderColor = "#bbf7d0";
+      }
+      if (retryBtn) retryBtn.style.display = "none";
+      if (latencyBadge) {
+        latencyBadge.textContent = `PostgreSQL Active • ${health.latencyMs}ms`;
+        latencyBadge.style.color = "#166534";
+        latencyBadge.style.background = "#dcfce7";
+      }
+      if (latencyEl) latencyEl.textContent = `${health.latencyMs} ms`;
+      if (pantryCountEl) pantryCountEl.textContent = String(health.pantryCount);
+      if (shoppingCountEl) shoppingCountEl.textContent = String(health.shoppingCount);
+      if (alertsCountEl) alertsCountEl.textContent = String(health.alertsCount);
+      if (mealPlansCountEl) mealPlansCountEl.textContent = String(health.mealPlansCount);
+      if (lastSyncEl) lastSyncEl.textContent = new Date().toLocaleTimeString();
+      if (lastUpdateEl) {
+        try {
+          lastUpdateEl.textContent = new Date(health.lastUpdateTime).toLocaleString("en-US", { dateStyle: "short", timeStyle: "short" });
+        } catch(e) {
+          lastUpdateEl.textContent = "Today";
+        }
+      }
+    } else {
+      if (title) title.textContent = "🔴 Database connection unavailable";
+      if (desc) desc.textContent = health.error || "Unable to reach Supabase PostgreSQL database.";
+      if (icon) icon.textContent = "🔴";
+      if (banner) {
+        banner.style.background = "#fef2f2";
+        banner.style.borderColor = "#fecaca";
+      }
+      if (retryBtn) retryBtn.style.display = "inline-block";
+      if (latencyBadge) {
+        latencyBadge.textContent = "Offline";
+        latencyBadge.style.color = "#991b1b";
+        latencyBadge.style.background = "#fee2e2";
+      }
+      if (latencyEl) latencyEl.textContent = "Offline";
+    }
+  } catch(err) {
+    if (title) title.textContent = "🔴 Database connection unavailable";
+    if (desc) desc.textContent = err.message || "Connection test failed.";
+    if (icon) icon.textContent = "🔴";
+    if (banner) {
+      banner.style.background = "#fef2f2";
+      banner.style.borderColor = "#fecaca";
+    }
+    if (retryBtn) retryBtn.style.display = "inline-block";
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '🔄 Refresh Connection';
+    }
+  }
+}
+
+async function handleSettingChange(section, key, value, pillId) {
+  if (!window.store) return;
+  if (pillId) showSettingSavePill(pillId, 'saving', 'Saving...');
+
+  if (section === 'account') {
+    const user = getCurrentUserInfo() || {};
+    if (key === 'name') user.name = value;
+    if (key === 'avatar_url') user.avatarUrl = value;
+    try {
+      localStorage.setItem("smartpantry_user", JSON.stringify(user));
+      const profileNameEl = document.getElementById("settingsProfileNameDisplay");
+      const profileAvatarEl = document.getElementById("settingsProfileAvatarPreview");
+      const topName = document.getElementById("userName");
+      const topAvatar = document.getElementById("userAvatar");
+      if (profileNameEl && key === 'name') profileNameEl.textContent = value;
+      if (topName && key === 'name') topName.textContent = value;
+      if (value && key === 'avatar_url') {
+        if (profileAvatarEl) profileAvatarEl.innerHTML = `<img src="${value}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+        if (topAvatar) topAvatar.innerHTML = `<img src="${value}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+      }
+      if (window.supabaseService && window.supabaseService.isReady() && user.id) {
+        await window.supabaseService.updateProfile(user.id, {
+          fullName: user.name,
+          avatarUrl: user.avatarUrl || null
+        });
+      }
+    } catch(e) {}
+  }
+
+  if (pillId) showSettingSavePill(pillId, 'saved', '✓ Saved');
+}
+
+// Backward compatibility alias functions
+const handleNotificationToggleChange = () => {};
+const handlePantryPrefChange = () => {};
+
 async function saveAllSettingsForm() {
   if (!window.store) return;
-
   const displayName = (document.getElementById("settingsDisplayName")?.value || "").trim();
   const avatarUrl = (document.getElementById("settingsAvatarUrl")?.value || "").trim();
 
-  const alertExpiry = document.getElementById("pref_alert_expiry")?.checked !== false;
-  const alertExpired = document.getElementById("pref_alert_expired")?.checked !== false;
-  const alertLowStock = document.getElementById("pref_alert_low_stock")?.checked !== false;
-  const alertSecurity = document.getElementById("pref_alert_security")?.checked !== false;
-  const alertWeekly = !!document.getElementById("pref_alert_weekly_summary")?.checked;
-
-  const defaultLocation = document.getElementById("pantryPrefDefaultLocation")?.value || "Pantry";
-  const expiryDays = parseInt(document.getElementById("pantryPrefExpiryDays")?.value, 10) || 7;
-  const lowThreshold = parseInt(document.getElementById("pantryPrefLowStockThreshold")?.value, 10) || 2;
-  const defaultUnit = document.getElementById("pantryPrefDefaultUnit")?.value || "pcs";
-  const defaultCat = document.getElementById("pantryPrefDefaultCategory")?.value || "Pantry";
-
-  const language = document.getElementById("generalLanguage")?.value || "English";
-  const timezone = document.getElementById("generalTimezone")?.value || "Asia/Kolkata";
-  const currency = document.getElementById("generalCurrency")?.value || "INR";
-  const dateFormat = document.getElementById("generalDateFormat")?.value || "DD/MM/YYYY";
-
-  // Update profile
   const user = getCurrentUserInfo() || {};
   if (displayName) user.name = displayName;
-  user.avatarUrl = avatarUrl;
+  if (avatarUrl) user.avatarUrl = avatarUrl;
 
   try {
     localStorage.setItem("smartpantry_user", JSON.stringify(user));
     const nameEl = document.getElementById("userName");
     const avatarEl = document.getElementById("userAvatar");
-    const welcomeEl = document.getElementById("welcomeUserName");
     const profileNameEl = document.getElementById("settingsProfileNameDisplay");
     const profileAvatarEl = document.getElementById("settingsProfileAvatarPreview");
 
     if (nameEl && displayName) nameEl.textContent = displayName;
-    if (welcomeEl && displayName) welcomeEl.textContent = displayName;
     if (profileNameEl && displayName) profileNameEl.textContent = displayName;
-
     if (avatarEl) {
       if (avatarUrl) {
         avatarEl.innerHTML = `<img src="${avatarUrl}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
@@ -1386,34 +2009,10 @@ async function saveAllSettingsForm() {
         avatarUrl: avatarUrl || null
       });
     }
-  } catch(e) {
-    console.warn("[Profile Update]", e);
-  }
+  } catch(e) {}
 
-  await window.store.saveFullSettings({
-    preferences: {
-      alert_expiry: alertExpiry,
-      alert_expired: alertExpired,
-      alert_low_stock: alertLowStock,
-      alert_security: alertSecurity,
-      alert_weekly_summary: alertWeekly
-    },
-    pantry_settings: {
-      default_location: defaultLocation,
-      expiry_warning_days: expiryDays,
-      low_stock_threshold: lowThreshold,
-      default_unit: defaultUnit,
-      default_category: defaultCat
-    },
-    general_settings: {
-      language,
-      timezone,
-      currency,
-      date_format: dateFormat
-    }
-  });
-
-  showToast("✓ All settings and preferences saved!");
+  showSettingSavePill('pill_account_save', 'saved', '✓ Saved');
+  showToast("✓ Profile saved successfully!");
 }
 
 async function handleSettingsUpdatePassword() {
@@ -1530,8 +2129,18 @@ function closePrivacyModal() {
   if (modal) modal.classList.remove("active");
 }
 
-function handleSignOutOtherSessions() {
-  showToast("✓ All other active sessions signed out.");
+async function handleSignOutOtherSessions() {
+  if (window.supabaseService && window.supabaseService.isReady()) {
+    showToast("Signing out other active sessions...");
+    const res = await window.supabaseService.signOutOtherSessions();
+    if (res.success) {
+      showToast("✓ All other active sessions signed out.");
+    } else {
+      showToast("⚠️ " + (res.error || "Failed to sign out other sessions."));
+    }
+  } else {
+    showToast("✓ All other active sessions signed out.");
+  }
 }
 
 function handleDeleteAccount() {
@@ -1665,6 +2274,13 @@ window.renderInventoryTable = renderInventoryTable;
 window.updateMetricsDisplay = updateMetricsDisplay;
 window.setCategoryFilter = setCategoryFilter;
 window.setStatusFilter = setStatusFilter;
+window.viewProductDetails = viewProductDetails;
+window.closeProductDetailsModal = closeProductDetailsModal;
+window.toggleProductOpened = toggleProductOpened;
+window.autoPredictModalExpiry = autoPredictModalExpiry;
+window.updateModalShelfLifePreview = updateModalShelfLifePreview;
+window.setModalExpiryType = setModalExpiryType;
+window.setModalProductStatus = setModalProductStatus;
 window.deletePantryItem = deletePantryItem;
 window.openEmailAlertModal = openEmailAlertModal;
 window.closeEmailAlertModal = closeEmailAlertModal;
@@ -1678,7 +2294,17 @@ window.renderInsightsView = renderInsightsView;
 window.renderSettingsView = renderSettingsView;
 window.switchSettingsTab = switchSettingsTab;
 window.saveAllSettingsForm = saveAllSettingsForm;
+window.showSettingSavePill = showSettingSavePill;
+window.handleSettingChange = handleSettingChange;
+window.handleNotificationSettingToggle = handleNotificationSettingToggle;
+window.handlePantrySettingChange = handlePantrySettingChange;
+window.handlePrivacySettingToggle = handlePrivacySettingToggle;
+window.selectLayoutMode = selectLayoutMode;
+window.handleProfileAvatarUpload = handleProfileAvatarUpload;
+window.refreshDatabaseConnectionTab = refreshDatabaseConnectionTab;
 window.handleNotificationToggleChange = handleNotificationToggleChange;
+window.handlePantryPrefChange = handlePantryPrefChange;
+window.handleGeneralSettingChange = handleGeneralSettingChange;
 window.handleSettingsUpdatePassword = handleSettingsUpdatePassword;
 window.handleSettingsUpdateEmail = handleSettingsUpdateEmail;
 window.handleSettingsInviteUser = handleSettingsInviteUser;

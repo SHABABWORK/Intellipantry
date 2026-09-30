@@ -146,18 +146,18 @@ async function supabaseFetch(url, authHeaderKey, token = null, method = "GET", b
 
 // HTML Email Generator
 function buildAlertEmailHtml(userName, alertsData) {
-  const { expired = [], expiring = [], lowStock = [] } = alertsData;
+  const { expired = [], expiresToday = [], verySoon = [], expiring = [], openedUseBy = [], lowStock = [] } = alertsData;
 
   const appBaseUrl = (process.env.SITE_URL || "https://www.intellipantry.in").replace(/\/+$/, "");
 
   let sectionsHtml = "";
 
-  // 1. Expired Items Section
+  // 1. Expired Items Section (🔴)
   if (expired.length > 0) {
     sectionsHtml += `
       <div style="background:#fff5f5; border:1px solid #fed7d7; border-radius:14px; padding:18px 20px; margin-bottom:20px;">
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-          <span style="font-size:18px;">⚠️</span>
+          <span style="font-size:18px;">🔴</span>
           <h3 style="margin:0; font-size:15px; font-weight:700; color:#c53030;">Expired Products (${expired.length})</h3>
         </div>
         <p style="margin:0 0 12px; font-size:13px; color:#742a2a; line-height:1.5;">
@@ -170,7 +170,8 @@ function buildAlertEmailHtml(userName, alertsData) {
               <span style="color:#e53e3e; font-weight:600; font-size:12px; background:#fff; padding:2px 6px; border-radius:6px; border:1px solid #feb2b2; margin-left:6px;">
                 Expired: ${i.expiryDate || "Past date"}
               </span>
-              ${i.location ? `<span style="color:#718096; font-size:12px;"> • Location: ${i.location}</span>` : ""}
+              ${i.isEstimate ? `<span style="color:#b45309; font-size:11px; background:#fef3c7; padding:2px 6px; border-radius:4px;">✨ Estimated</span>` : ''}
+              ${i.location ? `<span style="color:#718096; font-size:12px;"> • ${i.location}</span>` : ""}
             </li>
           `).join("")}
         </ul>
@@ -178,25 +179,80 @@ function buildAlertEmailHtml(userName, alertsData) {
     `;
   }
 
-  // 2. Expiring Soon Section
+  // 2. Expires Today Section (⚠️)
+  if (expiresToday.length > 0) {
+    sectionsHtml += `
+      <div style="background:#fef2f2; border:1.5px solid #f87171; border-radius:14px; padding:18px 20px; margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <span style="font-size:18px;">⚠️</span>
+          <h3 style="margin:0; font-size:15px; font-weight:700; color:#b91c1c;">Expires Today! (${expiresToday.length})</h3>
+        </div>
+        <p style="margin:0 0 12px; font-size:13px; color:#7f1d1d; line-height:1.5;">
+          These items reach their expiration date today. Cook or consume them today to avoid food waste:
+        </p>
+        <ul style="margin:0; padding-left:20px; font-size:13.5px; color:#450a0a;">
+          ${expiresToday.map(i => `
+            <li style="padding:4px 0;">
+              <strong>${i.name}</strong> — ${i.quantity} ${i.unit}
+              <span style="color:#b91c1c; font-weight:700; font-size:12px; background:#fee2e2; padding:2px 6px; border-radius:6px; border:1px solid #fca5a5; margin-left:6px;">
+                Expires Today
+              </span>
+              ${i.isEstimate ? `<span style="color:#b45309; font-size:11px; background:#fef3c7; padding:2px 6px; border-radius:4px;">✨ Estimated</span>` : ''}
+              ${i.location ? `<span style="color:#718096; font-size:12px;"> • ${i.location}</span>` : ""}
+            </li>
+          `).join("")}
+        </ul>
+      </div>
+    `;
+  }
+
+  // 3. Very Soon Section (🟠 1–7 days)
+  if (verySoon.length > 0) {
+    sectionsHtml += `
+      <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:14px; padding:18px 20px; margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <span style="font-size:18px;">🟠</span>
+          <h3 style="margin:0; font-size:15px; font-weight:700; color:#c2410c;">Urgent: Expiring Very Soon (${verySoon.length})</h3>
+        </div>
+        <p style="margin:0 0 12px; font-size:13px; color:#7c2d12; line-height:1.5;">
+          These products have only 1 to 7 days remaining. Prioritize them in your meal planning this week:
+        </p>
+        <ul style="margin:0; padding-left:20px; font-size:13.5px; color:#7c2d12;">
+          ${verySoon.map(i => `
+            <li style="padding:4px 0;">
+              <strong>${i.name}</strong> — ${i.quantity} ${i.unit}
+              <span style="color:#ea580c; font-weight:600; font-size:12px; background:#fff; padding:2px 6px; border-radius:6px; border:1px solid #fdba74; margin-left:6px;">
+                ${i.daysLeft === 1 ? "1 day left (Tomorrow)" : `${i.daysLeft} days left`} (${i.expiryDate})
+              </span>
+              ${i.isEstimate ? `<span style="color:#b45309; font-size:11px; background:#fef3c7; padding:2px 6px; border-radius:4px;">✨ Estimated</span>` : ''}
+              ${i.location ? `<span style="color:#718096; font-size:12px;"> • ${i.location}</span>` : ""}
+            </li>
+          `).join("")}
+        </ul>
+      </div>
+    `;
+  }
+
+  // 4. Expiring Soon Section (🟡 8–30 days)
   if (expiring.length > 0) {
     sectionsHtml += `
       <div style="background:#fffaf0; border:1px solid #feebc8; border-radius:14px; padding:18px 20px; margin-bottom:20px;">
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-          <span style="font-size:18px;">⏰</span>
-          <h3 style="margin:0; font-size:15px; font-weight:700; color:#c05621;">Approaching Expiry (${expiring.length})</h3>
+          <span style="font-size:18px;">🟡</span>
+          <h3 style="margin:0; font-size:15px; font-weight:700; color:#b45309;">Approaching Expiry (${expiring.length})</h3>
         </div>
-        <p style="margin:0 0 12px; font-size:13px; color:#7b341e; line-height:1.5;">
-          These products will expire soon. Plan your meals to use them before they go to waste:
+        <p style="margin:0 0 12px; font-size:13px; color:#78350f; line-height:1.5;">
+          These products will expire in the next 8 to 30 days:
         </p>
-        <ul style="margin:0; padding-left:20px; font-size:13.5px; color:#552817;">
+        <ul style="margin:0; padding-left:20px; font-size:13.5px; color:#78350f;">
           ${expiring.map(i => `
             <li style="padding:4px 0;">
               <strong>${i.name}</strong> — ${i.quantity} ${i.unit}
-              <span style="color:#d69e2e; font-weight:600; font-size:12px; background:#fff; padding:2px 6px; border-radius:6px; border:1px solid #fbd38d; margin-left:6px;">
-                ${i.daysLeft <= 0 ? "Expires today!" : `Expires in ${i.daysLeft} day${i.daysLeft > 1 ? "s" : ""}`} (${i.expiryDate})
+              <span style="color:#d97706; font-weight:600; font-size:12px; background:#fff; padding:2px 6px; border-radius:6px; border:1px solid #fde68a; margin-left:6px;">
+                ${i.daysLeft} days left (${i.expiryDate})
               </span>
-              ${i.location ? `<span style="color:#718096; font-size:12px;"> • Location: ${i.location}</span>` : ""}
+              ${i.isEstimate ? `<span style="color:#b45309; font-size:11px; background:#fef3c7; padding:2px 6px; border-radius:4px;">✨ Estimated</span>` : ''}
+              ${i.location ? `<span style="color:#718096; font-size:12px;"> • ${i.location}</span>` : ""}
             </li>
           `).join("")}
         </ul>
@@ -204,7 +260,33 @@ function buildAlertEmailHtml(userName, alertsData) {
     `;
   }
 
-  // 3. Low Stock Section
+  // 5. Opened Products Section (🔓)
+  if (openedUseBy.length > 0) {
+    sectionsHtml += `
+      <div style="background:#faf5ff; border:1px solid #e9d5ff; border-radius:14px; padding:18px 20px; margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <span style="font-size:18px;">🔓</span>
+          <h3 style="margin:0; font-size:15px; font-weight:700; color:#7e22ce;">Opened Products to Consume (${openedUseBy.length})</h3>
+        </div>
+        <p style="margin:0 0 12px; font-size:13px; color:#581c87; line-height:1.5;">
+          These items were opened and have reached or are nearing their recommended opened shelf life:
+        </p>
+        <ul style="margin:0; padding-left:20px; font-size:13.5px; color:#581c87;">
+          ${openedUseBy.map(i => `
+            <li style="padding:4px 0;">
+              <strong>${i.name}</strong> — ${i.quantity} ${i.unit}
+              <span style="color:#9333ea; font-weight:600; font-size:12px; background:#fff; padding:2px 6px; border-radius:6px; border:1px solid #d8b4fe; margin-left:6px;">
+                Use by: ${i.useByDate || "Soon"}
+              </span>
+              ${i.storageTip ? `<span style="color:#7e22ce; font-size:11.5px; font-style:italic;"> • ${i.storageTip}</span>` : ""}
+            </li>
+          `).join("")}
+        </ul>
+      </div>
+    `;
+  }
+
+  // 6. Low Stock Section (🛒)
   if (lowStock.length > 0) {
     sectionsHtml += `
       <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:14px; padding:18px 20px; margin-bottom:20px;">
@@ -268,9 +350,8 @@ function buildAlertEmailHtml(userName, alertsData) {
         </a>
       </div>
 
-      <p style="font-size:12.5px; color:#718096; line-height:1.5; margin-top:20px; border-top:1px dashed #e2e8f0; padding-top:14px;">
-        💡 <strong>Tip:</strong> You can manage your alert preferences, notification thresholds, and warning days anytime in your
-        <a href="${appBaseUrl}/settings" style="color:#2e9e5b; text-decoration:none; font-weight:600;">Settings &gt; Notifications</a>.
+      <p style="font-size:12px; color:#718096; line-height:1.5; margin-top:20px; border-top:1px dashed #e2e8f0; padding-top:14px;">
+        ℹ️ <em>Estimated shelf life is a general reference only. The actual manufacturer expiry date must always take priority.</em>
       </p>
     </div>
     <div class="footer">
@@ -285,23 +366,47 @@ function buildAlertEmailHtml(userName, alertsData) {
 
 // Plain Text Email Generator
 function buildAlertEmailText(userName, alertsData) {
-  const { expired = [], expiring = [], lowStock = [] } = alertsData;
+  const { expired = [], expiresToday = [], verySoon = [], expiring = [], openedUseBy = [], lowStock = [] } = alertsData;
   const appBaseUrl = (process.env.SITE_URL || "https://www.intellipantry.in").replace(/\/+$/, "");
 
   let text = `Hello ${userName || "Pantry Chef"},\n\nHere is your automated IntelliPantry inventory update:\n\n`;
 
   if (expired.length > 0) {
-    text += `⚠️ EXPIRED PRODUCTS (${expired.length}):\n`;
+    text += `🔴 EXPIRED PRODUCTS (${expired.length}):\n`;
     expired.forEach(i => {
       text += `- ${i.name}: ${i.quantity} ${i.unit} (Expired: ${i.expiryDate || "Past date"})\n`;
     });
     text += "\n";
   }
 
+  if (expiresToday.length > 0) {
+    text += `⚠️ EXPIRES TODAY (${expiresToday.length}):\n`;
+    expiresToday.forEach(i => {
+      text += `- ${i.name}: ${i.quantity} ${i.unit} (Expires today!)\n`;
+    });
+    text += "\n";
+  }
+
+  if (verySoon.length > 0) {
+    text += `🟠 URGENT: EXPIRING IN 1-7 DAYS (${verySoon.length}):\n`;
+    verySoon.forEach(i => {
+      text += `- ${i.name}: ${i.quantity} ${i.unit} (${i.daysLeft} days left - ${i.expiryDate})\n`;
+    });
+    text += "\n";
+  }
+
   if (expiring.length > 0) {
-    text += `⏰ PRODUCTS APPROACHING EXPIRY (${expiring.length}):\n`;
+    text += `🟡 EXPIRING SOON in 8-30 DAYS (${expiring.length}):\n`;
     expiring.forEach(i => {
-      text += `- ${i.name}: ${i.quantity} ${i.unit} (${i.daysLeft <= 0 ? "Expires today" : `Expires in ${i.daysLeft} days`} on ${i.expiryDate})\n`;
+      text += `- ${i.name}: ${i.quantity} ${i.unit} (${i.daysLeft} days left - ${i.expiryDate})\n`;
+    });
+    text += "\n";
+  }
+
+  if (openedUseBy.length > 0) {
+    text += `🔓 OPENED PRODUCTS TO CONSUME (${openedUseBy.length}):\n`;
+    openedUseBy.forEach(i => {
+      text += `- ${i.name}: ${i.quantity} ${i.unit} (Use by: ${i.useByDate || "Soon"})\n`;
     });
     text += "\n";
   }
@@ -315,7 +420,7 @@ function buildAlertEmailText(userName, alertsData) {
   }
 
   text += `Manage your pantry online anytime at: ${appBaseUrl}/\n\n`;
-  text += `You can adjust or disable email alerts in your Settings > Notifications.\n\n`;
+  text += `Estimated shelf life is a general reference only. Manufacturer printed dates always take priority.\n\n`;
   text += `IntelliPantry — Fresh Food, Zero Waste.\n`;
 
   return text;
@@ -499,7 +604,7 @@ module.exports = async function handler(req, res) {
 
       // 3. Fetch Deduplication Records (Alerts sent with email in the last 24 hours)
       const dedupResp = await supabaseFetch(
-        `${supabaseUrl}/rest/v1/alerts?user_id=eq.${user.id}&email_sent=eq.true&email_sent_at=gte.${twentyFourHoursAgo}&select=product_id,type,email_sent_at`,
+        `${supabaseUrl}/rest/v1/alerts?user_id=eq.${user.id}&email_sent=eq.true&email_sent_at=gte.${twentyFourHoursAgo}&select=product_id,type,message,email_sent_at`,
         activeKey,
         activeToken
       );
@@ -509,16 +614,23 @@ module.exports = async function handler(req, res) {
         dedupResp.data.forEach(a => {
           if (a.product_id && a.type) {
             sentAlertsSet.add(`${a.type}:${a.product_id}`);
+            // Also extract dedup key signature if present in message: [DEDUP:...]
+            if (a.message && a.message.includes("[DEDUP:")) {
+              const m = a.message.match(/\[DEDUP:([^\]]+)\]/);
+              if (m && m[1]) sentAlertsSet.add(m[1]);
+            }
           }
         });
       }
 
-      // 4. Identify Alert Candidates
+      // 4. Identify Alert Candidates across Universal Shelf-Life Categories
       const warningDays = prefs.expiry_warning_days || 7;
-      const warningLimitDate = new Date(todayDate.getTime() + warningDays * 86400000);
 
       const candidateExpired = [];
+      const candidateExpiresToday = [];
+      const candidateVerySoon = [];
       const candidateExpiring = [];
+      const candidateOpenedUseBy = [];
       const candidateLowStock = [];
 
       for (const item of items) {
@@ -526,49 +638,114 @@ module.exports = async function handler(req, res) {
         const itemName = item.product_name || item.name || "Pantry Item";
         const itemQty = Number(item.quantity) || 0;
         const itemUnit = item.quantity_unit || item.unit || "pcs";
-        const itemLocation = item.storage_location || item.location || "Pantry";
+        const itemLocation = item.storage_location || item.storage_type || item.location || "Pantry";
+        const isEstimate = Boolean(item.expiry_type === 'estimated' || (item.estimated_expiry_date && !item.actual_expiry_date));
         const itemThreshold = (item.low_stock_threshold !== null && item.low_stock_threshold !== undefined && !isNaN(Number(item.low_stock_threshold)))
           ? Number(item.low_stock_threshold)
           : ((item.minimum_stock !== null && item.minimum_stock !== undefined && !isNaN(Number(item.minimum_stock)))
             ? Number(item.minimum_stock)
             : prefs.low_stock_threshold);
 
-        const expStr = parseDateString(item.expiry_date);
+        // Effective expiry date resolution (Manufacturer actual > Opened use-by > Estimated)
+        const effDateStr = parseDateString(item.effective_expiry_date || item.actual_expiry_date || item.estimated_expiry_date || item.expiry_date);
+        const openedUseByStr = parseDateString(item.recommended_use_by_date);
+        const isOpened = item.product_status === 'Opened' || Boolean(item.opened_date);
 
-        // A. Expired Check
-        if (expStr && prefs.alert_expired) {
-          const itemExpDate = new Date(expStr);
-          if (itemExpDate < todayDate) {
-            const dedupKey = `expired:${itemId}`;
-            if (!sentAlertsSet.has(dedupKey)) {
-              candidateExpired.push({
+        // A. Opened Product Use-By Alert
+        if (isOpened && openedUseByStr && prefs.alert_expiry) {
+          const openedUseByDate = new Date(openedUseByStr);
+          const diffMs = openedUseByDate.getTime() - todayDate.getTime();
+          const daysLeft = Math.round(diffMs / 86400000);
+
+          if (daysLeft <= warningDays) {
+            const dedupKey = `${user.id}:${itemId}:opened_use_by:${openedUseByStr}`;
+            if (!sentAlertsSet.has(dedupKey) && !sentAlertsSet.has(`opened_use_by:${itemId}`)) {
+              candidateOpenedUseBy.push({
                 id: itemId,
                 name: itemName,
                 quantity: itemQty,
                 unit: itemUnit,
-                expiryDate: expStr,
-                location: itemLocation
+                useByDate: openedUseByStr,
+                daysLeft: daysLeft,
+                storageTip: item.storage_recommendation || "Consume promptly after opening",
+                location: itemLocation,
+                dedupKey: dedupKey
               });
             }
           }
         }
 
-        // B. Approaching Expiry Check
-        if (expStr && prefs.alert_expiry) {
-          const itemExpDate = new Date(expStr);
-          if (itemExpDate >= todayDate && itemExpDate <= warningLimitDate) {
-            const dedupKey = `expiry:${itemId}`;
-            if (!sentAlertsSet.has(dedupKey)) {
-              const diffMs = itemExpDate.getTime() - todayDate.getTime();
-              const daysLeft = Math.round(diffMs / 86400000);
+        // B. Expiry Status Checks based on effective expiry date
+        if (effDateStr) {
+          const expDate = new Date(effDateStr);
+          const diffMs = expDate.getTime() - todayDate.getTime();
+          const daysLeft = Math.round(diffMs / 86400000);
+
+          // 1. Expired Check (< 0 days)
+          if (daysLeft < 0 && prefs.alert_expired) {
+            const dedupKey = `${user.id}:${itemId}:expired:${effDateStr}`;
+            if (!sentAlertsSet.has(dedupKey) && !sentAlertsSet.has(`expired:${itemId}`)) {
+              candidateExpired.push({
+                id: itemId,
+                name: itemName,
+                quantity: itemQty,
+                unit: itemUnit,
+                expiryDate: effDateStr,
+                daysAgo: Math.abs(daysLeft),
+                isEstimate: isEstimate,
+                location: itemLocation,
+                dedupKey: dedupKey
+              });
+            }
+          }
+          // 2. Expires Today (0 days)
+          else if (daysLeft === 0 && prefs.alert_expiry) {
+            const dedupKey = `${user.id}:${itemId}:expires_today:${effDateStr}`;
+            if (!sentAlertsSet.has(dedupKey) && !sentAlertsSet.has(`expires_today:${itemId}`)) {
+              candidateExpiresToday.push({
+                id: itemId,
+                name: itemName,
+                quantity: itemQty,
+                unit: itemUnit,
+                expiryDate: effDateStr,
+                daysLeft: 0,
+                isEstimate: isEstimate,
+                location: itemLocation,
+                dedupKey: dedupKey
+              });
+            }
+          }
+          // 3. Very Soon (1–7 days)
+          else if (daysLeft >= 1 && daysLeft <= 7 && prefs.alert_expiry) {
+            const dedupKey = `${user.id}:${itemId}:very_soon:${effDateStr}`;
+            if (!sentAlertsSet.has(dedupKey) && !sentAlertsSet.has(`very_soon:${itemId}`)) {
+              candidateVerySoon.push({
+                id: itemId,
+                name: itemName,
+                quantity: itemQty,
+                unit: itemUnit,
+                expiryDate: effDateStr,
+                daysLeft: daysLeft,
+                isEstimate: isEstimate,
+                location: itemLocation,
+                dedupKey: dedupKey
+              });
+            }
+          }
+          // 4. Expiring Soon (8 to warningDays)
+          else if (daysLeft >= 8 && daysLeft <= warningDays && prefs.alert_expiry) {
+            const dedupKey = `${user.id}:${itemId}:expiring_soon:${effDateStr}`;
+            if (!sentAlertsSet.has(dedupKey) && !sentAlertsSet.has(`expiry:${itemId}`)) {
               candidateExpiring.push({
                 id: itemId,
                 name: itemName,
                 quantity: itemQty,
                 unit: itemUnit,
-                expiryDate: expStr,
-                daysLeft: Math.max(0, daysLeft),
-                location: itemLocation
+                expiryDate: effDateStr,
+                daysLeft: daysLeft,
+                isEstimate: isEstimate,
+                location: itemLocation,
+                dedupKey: dedupKey
               });
             }
           }
@@ -576,21 +753,22 @@ module.exports = async function handler(req, res) {
 
         // C. Low-Stock Check
         if (prefs.alert_low_stock && itemQty <= itemThreshold) {
-          const dedupKey = `low_stock:${itemId}`;
-          if (!sentAlertsSet.has(dedupKey)) {
+          const dedupKey = `${user.id}:${itemId}:low_stock:${todayStr}`;
+          if (!sentAlertsSet.has(dedupKey) && !sentAlertsSet.has(`low_stock:${itemId}`)) {
             candidateLowStock.push({
               id: itemId,
               name: itemName,
               quantity: itemQty,
               unit: itemUnit,
               threshold: itemThreshold,
-              location: itemLocation
+              location: itemLocation,
+              dedupKey: dedupKey
             });
           }
         }
       }
 
-      const totalAlertsCount = candidateExpired.length + candidateExpiring.length + candidateLowStock.length;
+      const totalAlertsCount = candidateExpired.length + candidateExpiresToday.length + candidateVerySoon.length + candidateExpiring.length + candidateOpenedUseBy.length + candidateLowStock.length;
 
       if (totalAlertsCount === 0) {
         results.userSummaries.push({ userId: user.id, email: user.email, status: "clean_or_recently_alerted" });
@@ -603,11 +781,15 @@ module.exports = async function handler(req, res) {
 
       // Subject line generation
       let subject = "IntelliPantry Daily Inventory Alert";
-      if (candidateExpired.length > 0 && candidateExpiring.length === 0 && candidateLowStock.length === 0) {
+      if (candidateExpired.length > 0 && candidateExpiresToday.length === 0 && candidateVerySoon.length === 0 && candidateExpiring.length === 0 && candidateLowStock.length === 0) {
         subject = `⚠️ Expired Products Notice (${candidateExpired.length} item${candidateExpired.length > 1 ? "s" : ""}) — IntelliPantry`;
-      } else if (candidateExpiring.length > 0 && candidateExpired.length === 0 && candidateLowStock.length === 0) {
-        subject = `⏰ Items Expiring Soon (${candidateExpiring.length} item${candidateExpiring.length > 1 ? "s" : ""}) — IntelliPantry`;
-      } else if (candidateLowStock.length > 0 && candidateExpired.length === 0 && candidateExpiring.length === 0) {
+      } else if (candidateExpiresToday.length > 0) {
+        subject = `🚨 Products Expire Today (${candidateExpiresToday.length} item${candidateExpiresToday.length > 1 ? "s" : ""}) — IntelliPantry`;
+      } else if (candidateVerySoon.length > 0) {
+        subject = `⏰ Urgent: ${candidateVerySoon.length} item(s) expiring within 7 days — IntelliPantry`;
+      } else if (candidateExpiring.length > 0) {
+        subject = `🟡 Items Expiring Soon (${candidateExpiring.length} item${candidateExpiring.length > 1 ? "s" : ""}) — IntelliPantry`;
+      } else if (candidateLowStock.length > 0 && totalAlertsCount === candidateLowStock.length) {
         subject = `🛒 Low Stock Alert: Restock Needed (${candidateLowStock.length} item${candidateLowStock.length > 1 ? "s" : ""}) — IntelliPantry`;
       } else {
         subject = `🍃 Pantry Update: ${totalAlertsCount} item(s) need your attention — IntelliPantry`;
@@ -615,13 +797,19 @@ module.exports = async function handler(req, res) {
 
       const htmlContent = buildAlertEmailHtml(user.fullName, {
         expired: candidateExpired,
+        expiresToday: candidateExpiresToday,
+        verySoon: candidateVerySoon,
         expiring: candidateExpiring,
+        openedUseBy: candidateOpenedUseBy,
         lowStock: candidateLowStock
       });
 
       const textContent = buildAlertEmailText(user.fullName, {
         expired: candidateExpired,
+        expiresToday: candidateExpiresToday,
+        verySoon: candidateVerySoon,
         expiring: candidateExpiring,
+        openedUseBy: candidateOpenedUseBy,
         lowStock: candidateLowStock
       });
 
@@ -667,8 +855,36 @@ module.exports = async function handler(req, res) {
           product_id: i.id,
           product_name: i.name,
           title: `Expired: ${i.name}`,
-          message: `${i.name} (${i.quantity} ${i.unit}) passed expiration date on ${i.expiryDate}.`,
+          message: `${i.name} (${i.quantity} ${i.unit}) passed expiration date on ${i.expiryDate}. [DEDUP:${i.dedupKey}]`,
           type: "expired",
+          is_read: false,
+          email_sent: emailSuccess,
+          email_sent_at: emailSuccess ? new Date().toISOString() : null
+        });
+      });
+
+      candidateExpiresToday.forEach(i => {
+        alertRecords.push({
+          user_id: user.id,
+          product_id: i.id,
+          product_name: i.name,
+          title: `Expires Today: ${i.name}`,
+          message: `${i.name} (${i.quantity} ${i.unit}) expires today (${i.expiryDate}). Prioritize cooking today! [DEDUP:${i.dedupKey}]`,
+          type: "expiry",
+          is_read: false,
+          email_sent: emailSuccess,
+          email_sent_at: emailSuccess ? new Date().toISOString() : null
+        });
+      });
+
+      candidateVerySoon.forEach(i => {
+        alertRecords.push({
+          user_id: user.id,
+          product_id: i.id,
+          product_name: i.name,
+          title: `Expiring Very Soon: ${i.name}`,
+          message: `${i.name} (${i.quantity} ${i.unit}) expires in ${i.daysLeft} day${i.daysLeft > 1 ? "s" : ""} (${i.expiryDate}). [DEDUP:${i.dedupKey}]`,
+          type: "expiry",
           is_read: false,
           email_sent: emailSuccess,
           email_sent_at: emailSuccess ? new Date().toISOString() : null
@@ -681,7 +897,21 @@ module.exports = async function handler(req, res) {
           product_id: i.id,
           product_name: i.name,
           title: `Expiring Soon: ${i.name}`,
-          message: `${i.name} (${i.quantity} ${i.unit}) expires in ${i.daysLeft} day${i.daysLeft > 1 ? "s" : ""} (${i.expiryDate}).`,
+          message: `${i.name} (${i.quantity} ${i.unit}) expires in ${i.daysLeft} days (${i.expiryDate}). [DEDUP:${i.dedupKey}]`,
+          type: "expiry",
+          is_read: false,
+          email_sent: emailSuccess,
+          email_sent_at: emailSuccess ? new Date().toISOString() : null
+        });
+      });
+
+      candidateOpenedUseBy.forEach(i => {
+        alertRecords.push({
+          user_id: user.id,
+          product_id: i.id,
+          product_name: i.name,
+          title: `Opened Item Use-By: ${i.name}`,
+          message: `Opened product "${i.name}" has recommended use-by date on ${i.useByDate} (${i.daysLeft <= 0 ? 'Due now' : i.daysLeft + ' days left'}). [DEDUP:${i.dedupKey}]`,
           type: "expiry",
           is_read: false,
           email_sent: emailSuccess,
@@ -695,7 +925,7 @@ module.exports = async function handler(req, res) {
           product_id: i.id,
           product_name: i.name,
           title: `Low Stock: ${i.name}`,
-          message: `${i.name} has only ${i.quantity} ${i.unit} remaining (low stock threshold: ${i.threshold}).`,
+          message: `${i.name} has only ${i.quantity} ${i.unit} remaining (low stock threshold: ${i.threshold}). [DEDUP:${i.dedupKey}]`,
           type: "low_stock",
           is_read: false,
           email_sent: emailSuccess,
@@ -744,7 +974,10 @@ module.exports = async function handler(req, res) {
         status: emailSuccess ? "alert_email_sent" : (resendApiKey ? "email_failed" : "recorded_without_email"),
         emailId: emailId,
         expiredCount: candidateExpired.length,
+        expiresTodayCount: candidateExpiresToday.length,
+        verySoonCount: candidateVerySoon.length,
         expiringCount: candidateExpiring.length,
+        openedUseByCount: candidateOpenedUseBy.length,
         lowStockCount: candidateLowStock.length
       });
     }

@@ -6,12 +6,15 @@
   <title>Smart Pantry — Good Food Lasts Longer</title>
 
   <!-- Favicon & App Icons -->
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="icon" href="/favicon.png">
   <link rel="shortcut icon" href="/favicon.ico">
-  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#1e392a">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -71,12 +74,33 @@
     .nav-brand {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       text-decoration: none;
       color: var(--forest);
       font-size: 20px;
       font-weight: 800;
       letter-spacing: -0.02em;
+    }
+
+    .brand-logo-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(30, 57, 42, 0.12);
+      border: 1.5px solid rgba(230, 227, 218, 0.9);
+      flex-shrink: 0;
+    }
+
+    .brand-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
 
     .brand-leaf {
@@ -276,27 +300,29 @@
       font-size: 11px;
     }
 
-    /* Stats Row */
+    /* Stats Row (Removed fake user count, focused on authentic kitchen impact) */
     .hero-stats-row {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 28px;
       padding-top: 24px;
       border-top: 1px solid var(--border);
       margin-bottom: 28px;
+      max-width: 440px;
     }
 
     .stat-item h4 {
-      font-size: 26px;
+      font-size: 28px;
       font-weight: 800;
       color: var(--forest);
       line-height: 1.1;
+      letter-spacing: -0.02em;
     }
 
     .stat-item p {
-      font-size: 13px;
+      font-size: 13.5px;
       color: var(--text-muted);
-      font-weight: 500;
+      font-weight: 600;
       margin-top: 4px;
     }
 
@@ -311,71 +337,487 @@
     }
 
     /* ==========================================
-       HERO VISUAL SHOWCASE RIGHT (Matches Mockup)
+       HERO SMART PANTRY HUD & VIDEO INTERFACE
+       (Matches User Reference Images & Tech Aesthetics)
        ========================================== */
     .hero-visual-right {
       position: relative;
     }
 
-    .hero-image-card {
+    .hero-hud-card {
       position: relative;
-      border-radius: 40px 40px 40px 120px;
+      border-radius: 36px;
       overflow: hidden;
-      box-shadow: 0 24px 60px rgba(30, 57, 42, 0.12);
-      border: 4px solid #ffffff;
-      background: #ffffff;
+      box-shadow: 0 24px 65px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(46, 158, 91, 0.25);
+      border: 3.5px solid rgba(255, 255, 255, 0.95);
+      background: #090e0b;
+      min-height: 520px;
+      display: flex;
+      flex-direction: column;
     }
 
-    .hero-main-photo {
+    /* Top HUD Mode Control Bar */
+    .hud-control-header {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      pointer-events: auto;
+    }
+
+    .hud-live-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(10, 18, 13, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(52, 211, 153, 0.45);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #34d399;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+
+    .hud-live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 8px #34d399;
+      animation: hudPulse 1.8s infinite;
+    }
+
+    @keyframes hudPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* Mode Switcher Buttons */
+    .hud-mode-switcher {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(10, 18, 13, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+      padding: 3px;
+      gap: 3px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+
+    .hud-tab-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 13px;
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .hud-tab-btn:hover {
+      color: #ffffff;
+    }
+
+    .hud-tab-btn.active {
+      background: #2e9e5b;
+      color: #ffffff;
+      box-shadow: 0 2px 10px rgba(46, 158, 91, 0.45);
+    }
+
+    /* View Stage Containers */
+    .hud-view-stage {
+      position: relative;
       width: 100%;
       height: 520px;
+      overflow: hidden;
+    }
+
+    .hud-view-pane {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.32s ease, transform 0.32s ease;
+      transform: scale(0.98);
+    }
+
+    .hud-view-pane.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1);
+    }
+
+    /* AI Vision HUD View Elements */
+    .hud-bg-img {
+      width: 100%;
+      height: 100%;
       object-fit: cover;
       display: block;
     }
 
-    .floating-fresh-badge {
+    .hud-overlay-gradient {
       position: absolute;
-      bottom: 32px;
-      left: 32px;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      padding: 12px 20px;
-      border-radius: 999px;
+      inset: 0;
+      background: radial-gradient(circle at center, transparent 40%, rgba(9, 13, 11, 0.65) 100%);
+      pointer-events: none;
+    }
+
+    /* Scanning Laser Line */
+    .hud-laser-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(52, 211, 153, 0) 0%, rgba(52, 211, 153, 0.85) 20%, #34d399 50%, rgba(52, 211, 153, 0.85) 80%, rgba(52, 211, 153, 0) 100%);
+      box-shadow: 0 0 16px #34d399, 0 0 28px rgba(52, 211, 153, 0.7);
+      z-index: 4;
+      pointer-events: none;
+      animation: hudScanLaser 3.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes hudScanLaser {
+      0% { top: 12%; opacity: 0; }
+      8% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { top: 88%; opacity: 0; }
+    }
+
+    /* AR Bounding Box & Floating Tag */
+    .hud-ar-box {
+      position: absolute;
+      border: 1.5px solid rgba(52, 211, 153, 0.75);
+      border-radius: 12px;
+      background: rgba(52, 211, 153, 0.08);
+      pointer-events: auto;
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+
+    .hud-ar-box::before, .hud-ar-box::after {
+      content: "";
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-color: #34d399;
+      pointer-events: none;
+    }
+    .hud-ar-box::before {
+      top: -1px; left: -1px;
+      border-top: 2px solid #34d399;
+      border-left: 2px solid #34d399;
+      border-top-left-radius: 4px;
+    }
+    .hud-ar-box::after {
+      bottom: -1px; right: -1px;
+      border-bottom: 2px solid #34d399;
+      border-right: 2px solid #34d399;
+      border-bottom-right-radius: 4px;
+    }
+
+    .hud-ar-box:hover {
+      border-color: #34d399;
+      background: rgba(52, 211, 153, 0.18);
+      transform: translateY(-2px);
+      box-shadow: 0 0 20px rgba(52, 211, 153, 0.4);
+    }
+
+    .hud-ar-tag {
+      position: absolute;
+      top: -34px;
+      left: 0;
+      white-space: nowrap;
+      background: rgba(10, 18, 13, 0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(52, 211, 153, 0.5);
+      border-radius: 8px;
+      padding: 4px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    }
+
+    .hud-tag-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .hud-tag-dot.green { background: #34d399; box-shadow: 0 0 6px #34d399; }
+    .hud-tag-dot.yellow { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; }
+
+    /* Target Positions for Demo Boxes */
+    .hud-ar-box-apples {
+      top: 36%;
+      left: 12%;
+      width: 130px;
+      height: 120px;
+    }
+
+    .hud-ar-box-milk {
+      top: 30%;
+      right: 14%;
+      width: 120px;
+      height: 150px;
+      border-color: rgba(251, 191, 36, 0.75);
+      background: rgba(251, 191, 36, 0.08);
+    }
+    .hud-ar-box-milk::before { border-color: #fbbf24; }
+    .hud-ar-box-milk::after { border-color: #fbbf24; }
+    .hud-ar-box-milk .hud-ar-tag { border-color: rgba(251, 191, 36, 0.6); }
+
+    .hud-ar-box-greens {
+      bottom: 18%;
+      left: 36%;
+      width: 140px;
+      height: 90px;
+    }
+
+    /* Bottom Telemetry Bar in AI Mode */
+    .hud-bottom-telemetry {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      right: 14px;
+      z-index: 5;
+      background: rgba(10, 18, 13, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 8px 16px;
       display: flex;
       align-items: center;
+      justify-content: space-between;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 600;
       gap: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-      border: 1px solid rgba(230, 227, 218, 0.8);
-      text-decoration: none;
-      color: var(--forest);
-      transition: transform 0.2s ease;
     }
 
-    .floating-fresh-badge:hover {
-      transform: scale(1.04);
+    .hud-telemetry-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-
-    .floating-badge-leaf {
-      font-size: 20px;
-    }
-
-    .floating-badge-text {
-      font-size: 13.5px;
+    .hud-telemetry-val {
+      color: #f1f5f9;
       font-weight: 700;
-      line-height: 1.2;
     }
 
-    .floating-badge-arrow {
-      width: 26px;
-      height: 26px;
+    /* Mobile Sync View Highlights */
+    .hud-mobile-overlay-card {
+      position: absolute;
+      top: 68px;
+      left: 18px;
+      right: 18px;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #f8fafc;
+      font-size: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Video Demo View */
+    .hud-video-player {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .hud-video-controls {
+      position: absolute;
+      bottom: 14px;
+      right: 14px;
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+    }
+
+    .hud-video-btn {
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
-      background: var(--forest-light);
+      background: rgba(10, 18, 13, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+      font-size: 13px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s ease;
+    }
+    .hud-video-btn:hover {
+      background: #2e9e5b;
+      border-color: #2e9e5b;
+      transform: scale(1.08);
+    }
+
+    /* Kitchen Hub Digital Display Clock in Hero (Matches User Reference Image Exactly) */
+    .kitchen-hub-clock-card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 12px 20px;
+      border: 1px solid rgba(226, 232, 240, 0.95);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+      display: inline-flex;
+      align-items: center;
+      user-select: none;
+      text-decoration: none;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+    }
+
+    .kitchen-hub-clock-card:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.35);
+    }
+
+    .hero-hud-clock-card {
+      position: absolute;
+      bottom: 18px;
+      left: 18px;
+      z-index: 10;
+    }
+
+    .kh-date-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      text-align: center;
+    }
+
+    .kh-month-label {
+      font-size: 16px;
       font-weight: 700;
+      color: #475569;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+    }
+
+    .kh-day-number {
+      font-size: 34px;
+      font-weight: 800;
+      color: #1e293b;
+      line-height: 0.92;
+      letter-spacing: -0.03em;
+      margin-top: 2px;
+    }
+
+    .kh-divider {
+      width: 1px;
+      height: 44px;
+      background: #e2e8f0;
+      margin: 0 18px;
+      flex-shrink: 0;
+    }
+
+    .kh-time-block {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .kh-time-row {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+      line-height: 1;
+    }
+
+    .kh-time-digits {
+      font-size: 36px;
+      font-weight: 800;
+      color: #1e293b;
+      letter-spacing: -0.025em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .kh-time-ampm {
+      font-size: 18px;
+      font-weight: 800;
+      color: #475569;
+      letter-spacing: 0.01em;
+      line-height: 1;
+      margin-left: 2px;
+    }
+
+    .kh-status-row {
+      display: flex;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    .kh-status-text {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #64748b;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+
+    /* Floating CTA Pill in Hero Card (legacy fallback) */
+    .hero-hud-cta-pill {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 10px 18px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(230, 227, 218, 0.9);
+      text-decoration: none;
+      color: var(--forest);
+      font-weight: 700;
+      font-size: 13px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .hero-hud-cta-pill:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
     }
 
     /* ==========================================
@@ -393,6 +835,160 @@
       margin: 0 auto;
     }
 
+    /* ==========================================
+       FEATURES SHOWCASE (Matches User Screenshot)
+       ========================================== */
+    .features-dark-section {
+      background: #090d0b;
+      color: #ffffff;
+      padding: 96px 48px 108px;
+      position: relative;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .features-container {
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+
+    .features-header {
+      text-align: center;
+      max-width: 720px;
+      margin: 0 auto 56px;
+    }
+
+    .features-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(46, 158, 91, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(46, 158, 91, 0.3);
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 999px;
+      margin-bottom: 18px;
+    }
+
+    .features-main-title {
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: #ffffff;
+      line-height: 1.18;
+      margin-bottom: 16px;
+    }
+
+    .features-main-title span {
+      background: linear-gradient(135deg, #34d399 0%, #10b981 50%, #6ee7b7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .features-subtitle {
+      font-size: 16px;
+      color: #94a3b8;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+    }
+
+    .feature-card {
+      background: #131815;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 30px 26px;
+      transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .feature-card:hover {
+      background: #171f1a;
+      border-color: rgba(46, 158, 91, 0.45);
+      transform: translateY(-3px);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45), 0 0 20px rgba(46, 158, 91, 0.12);
+    }
+
+    .feature-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    .feature-card:hover .feature-icon-box {
+      background: rgba(46, 158, 91, 0.16);
+      border-color: rgba(46, 158, 91, 0.3);
+    }
+
+    .feature-card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 12px;
+      letter-spacing: -0.01em;
+    }
+
+    .feature-card-desc {
+      font-size: 14px;
+      color: #94a3b8;
+      line-height: 1.65;
+      font-weight: 400;
+      margin: 0;
+    }
+
+    .feature-card-cta {
+      background: linear-gradient(135deg, rgba(30, 57, 42, 0.75) 0%, rgba(19, 24, 21, 0.95) 100%);
+      border: 1.5px dashed rgba(46, 158, 91, 0.45);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .feature-card-cta:hover {
+      border-style: solid;
+      border-color: #2e9e5b;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45), 0 0 24px rgba(46, 158, 91, 0.2);
+    }
+
+    .btn-cta-card {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #2e9e5b;
+      color: #ffffff;
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 13.5px;
+      font-weight: 700;
+      text-decoration: none;
+      margin-top: 18px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-cta-card:hover {
+      background: #24824a;
+      transform: translateY(-1px);
+    }
+
     @media (max-width: 1024px) {
       .landing-nav { padding: 16px 24px; }
       .hero-section {
@@ -400,13 +996,20 @@
         padding: 32px 24px 60px;
         gap: 36px;
       }
-      .hero-image-card {
+      .hero-hud-card {
         border-radius: 28px;
-        max-width: 540px;
+        max-width: 580px;
         margin: 0 auto;
+        min-height: 440px;
       }
-      .hero-main-photo { height: 380px; }
+      .hud-view-stage { height: 440px; }
       .nav-links-center { display: none; }
+      .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .features-dark-section {
+        padding: 72px 28px 84px;
+      }
       .landing-footer { padding: 24px; flex-direction: column; gap: 12px; text-align: center; }
     }
 
@@ -416,7 +1019,35 @@
       .hero-stats-row { grid-template-columns: 1fr 1fr; gap: 16px; }
       .hero-buttons-row { flex-direction: column; align-items: stretch; }
       .btn-hero-primary, .btn-hero-video { justify-content: center; }
-      .floating-fresh-badge { bottom: 16px; left: 16px; right: 16px; justify-content: center; }
+      .hud-control-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .hud-mode-switcher {
+        width: 100%;
+        justify-content: space-around;
+      }
+      .hud-tab-btn {
+        padding: 5px 9px;
+        font-size: 11px;
+      }
+      .hud-view-stage { height: 380px; }
+      .hud-bottom-telemetry { display: none; }
+      .hero-hud-cta-pill {
+        bottom: 12px;
+        left: 12px;
+        right: 12px;
+        justify-content: center;
+        padding: 8px 14px;
+        font-size: 12px;
+      }
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+      .features-dark-section {
+        padding: 56px 20px 64px;
+      }
     }
   </style>
 </head>
@@ -427,13 +1058,10 @@
        ========================================== -->
   <nav class="landing-nav">
     <a href="#" class="nav-brand">
-      <div class="brand-leaf">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
-          <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
-        </svg>
+      <div class="brand-logo-wrap">
+        <img src="assets/images/brand-logo.png" alt="IntelliPantry Logo" class="brand-logo-img">
       </div>
-      <span>Smart Pantry</span>
+      <span>IntelliPantry</span>
     </a>
 
     <div class="nav-links-center">
@@ -468,20 +1096,20 @@
         <a href="dashboard.html" class="btn-hero-primary">
           Open Pantry Now ➔
         </a>
+        <a href="#features" class="btn-hero-video">
+          <span class="play-icon">✨</span> What's Included
+        </a>
       </div>
 
+      <!-- Real-Time Metrics (10K+ Active Users removed per user request) -->
       <div class="hero-stats-row">
-        <div class="stat-item">
-          <h4>10K+</h4>
-          <p>Active Users</p>
-        </div>
         <div class="stat-item">
           <h4>50%</h4>
           <p>Less Food Waste</p>
         </div>
         <div class="stat-item">
-          <h4>1M+</h4>
-          <p>Items Tracked</p>
+          <h4>₹3,000+</h4>
+          <p>Monthly Savings</p>
         </div>
       </div>
 
@@ -490,25 +1118,247 @@
       </div>
     </div>
 
-    <!-- Right Column Visual Video Card (Replaced Image with Looping Pantry Video) -->
+    <!-- Right Column: Smart Pantry System Video & AR HUD Interface -->
     <div class="hero-visual-right">
-      <div class="hero-image-card">
-        <video class="hero-main-photo hero-main-video" autoplay muted loop playsinline poster="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80" style="width:100%; height:520px; object-fit:cover; display:block;">
-          <source src="https://player.vimeo.com/external/371433846.sd.mp4?s=236da2f3c0fd273d2c6d9a064f3ae35579b2bbdf&profile_id=164&oauth2_token_id=57447761" type="video/mp4">
-          <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4">
-          <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80" alt="Kitchen Pantry Glass Jars" class="hero-main-photo">
-        </video>
+      <div class="hero-hud-card">
+        
+        <!-- Top HUD Mode Control Header -->
+        <div class="hud-control-header">
+          <div class="hud-live-pill">
+            <span class="hud-live-dot"></span>
+            <span id="hudStatusText">LIVE AR HUD</span>
+          </div>
 
-        <!-- Floating Fresh Pill Badge -->
-        <a href="dashboard.html" class="floating-fresh-badge">
-          <span class="floating-badge-leaf">🍃</span>
-          <span class="floating-badge-text">Fresh Food<br>Happier You</span>
-          <span class="floating-badge-arrow">➔</span>
+          <div class="hud-mode-switcher" role="tablist" aria-label="Smart Pantry System View Mode">
+            <button class="hud-tab-btn active" id="tabBtnAI" onclick="switchHudMode('ai')" title="AR Vision Scanner">
+              <span>📡</span> AI Vision
+            </button>
+            <button class="hud-tab-btn" id="tabBtnMobile" onclick="switchHudMode('mobile')" title="Mobile App Sync">
+              <span>📱</span> Mobile
+            </button>
+            <button class="hud-tab-btn" id="tabBtnVideo" onclick="switchHudMode('video')" title="Video Demo">
+              <span>▶</span> Video
+            </button>
+          </div>
+        </div>
+
+        <!-- View Stage Panes -->
+        <div class="hud-view-stage">
+
+          <!-- PANE 1: AI VISION HUD (Default Mode) -->
+          <div class="hud-view-pane active" id="paneAI">
+            <img src="assets/images/smart-pantry-hud.png" alt="Smart Pantry AR HUD Scanner" class="hud-bg-img">
+            <div class="hud-overlay-gradient"></div>
+            
+            <!-- Animated Green Laser Scanline -->
+            <div class="hud-laser-line"></div>
+
+            <!-- AR Bounding Box 1: Honeycrisp Apples -->
+            <div class="hud-ar-box hud-ar-box-apples" title="Honeycrisp Apples: Fresh for 5 days">
+              <div class="hud-ar-tag">
+                <span class="hud-tag-dot green"></span>
+                <span>Apples • 5 Days Left</span>
+              </div>
+            </div>
+
+            <!-- AR Bounding Box 2: Milk Expiry Alert -->
+            <div class="hud-ar-box hud-ar-box-milk" title="Organic Milk: Expires tomorrow">
+              <div class="hud-ar-tag">
+                <span class="hud-tag-dot yellow"></span>
+                <span>Milk • Expires Tomorrow</span>
+              </div>
+            </div>
+
+            <!-- AR Bounding Box 3: Fresh Greens -->
+            <div class="hud-ar-box hud-ar-box-greens" title="Fresh Greens: 4 days remaining">
+              <div class="hud-ar-tag">
+                <span class="hud-tag-dot green"></span>
+                <span>Fresh Greens • 4 Days Left</span>
+              </div>
+            </div>
+
+            <!-- HUD Bottom Telemetry Data Bar -->
+            <div class="hud-bottom-telemetry">
+              <div class="hud-telemetry-item">
+                <span>📦 TRACKED:</span> <span class="hud-telemetry-val">14 Items</span>
+              </div>
+              <div class="hud-telemetry-item">
+                <span>🎯 ACCURACY:</span> <span class="hud-telemetry-val">99.2%</span>
+              </div>
+              <div class="hud-telemetry-item">
+                <span>⚡ SYNC:</span> <span class="hud-telemetry-val">Real-Time</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANE 2: MOBILE APP SYNC -->
+          <div class="hud-view-pane" id="paneMobile">
+            <img src="assets/images/smart-pantry-mobile.png" alt="Smart Pantry Mobile App Interface" class="hud-bg-img">
+            <div class="hud-overlay-gradient"></div>
+
+            <!-- Floating Mobile Alert Banner -->
+            <div class="hud-mobile-overlay-card">
+              <span style="font-size:18px;">⚡</span>
+              <div>
+                <strong style="color:#38bdf8;">Real-Time Mobile Sync:</strong>
+                <p style="margin:2px 0 0; color:#cbd5e1; font-size:11px;">Instant barcode scan, expiry alerts & AI meal plans in your hand.</p>
+              </div>
+            </div>
+
+            <!-- Bottom Telemetry Bar for Mobile View -->
+            <div class="hud-bottom-telemetry">
+              <div class="hud-telemetry-item">
+                <span>📱 APP:</span> <span class="hud-telemetry-val">PWA & Mobile</span>
+              </div>
+              <div class="hud-telemetry-item">
+                <span>🔔 NOTIFICATIONS:</span> <span class="hud-telemetry-val">Active</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANE 3: SMART PANTRY VIDEO DEMO -->
+          <div class="hud-view-pane" id="paneVideo">
+            <video id="heroPromoVideo" class="hud-video-player" loop muted playsinline poster="assets/images/smart-pantry-hud.png">
+              <source src="assets/videos/pantry-promo.mp4" type="video/mp4">
+              <source src="assets/pantry-promo.mp4" type="video/mp4">
+              <img src="assets/images/smart-pantry-hud.png" alt="Smart Pantry Video Preview" class="hud-bg-img">
+            </video>
+            
+            <div class="hud-video-controls">
+              <button class="hud-video-btn" id="btnVideoPlayPause" onclick="toggleHeroVideoPlay(event)" title="Play / Pause">
+                ▶
+              </button>
+              <button class="hud-video-btn" id="btnVideoMute" onclick="toggleHeroVideoMute(event)" title="Mute / Unmute">
+                🔇
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Kitchen Hub Digital Display Clock (Matches User Uploaded Reference Image Exactly) -->
+        <a href="dashboard.html" class="kitchen-hub-clock-card hero-hud-clock-card" title="Kitchen Hub Digital Display • Open Live Dashboard">
+          <div class="kh-date-block">
+            <div class="kh-month-label" id="khLandingMonth">Oct</div>
+            <div class="kh-day-number" id="khLandingDay">01</div>
+          </div>
+          <div class="kh-divider"></div>
+          <div class="kh-time-block">
+            <div class="kh-time-row">
+              <span class="kh-time-digits" id="khLandingTime">01:55</span>
+              <span class="kh-time-ampm" id="khLandingAmPm">AM</span>
+            </div>
+            <div class="kh-status-row">
+              <span class="kh-status-text">Inventory Sync Active</span>
+            </div>
+          </div>
         </a>
+
       </div>
     </div>
 
   </main>
+
+  <!-- ==========================================
+       FEATURES SHOWCASE (Matches User Screenshot)
+       ========================================== -->
+  <section class="features-dark-section" id="features">
+    <div class="features-container">
+      <div class="features-header">
+        <div class="features-badge">✨ WHAT'S INCLUDED</div>
+        <h2 class="features-main-title">Smart Features Built for <span>Modern Kitchens</span></h2>
+        <p class="features-subtitle">
+          Everything you need to organize inventory, track expiry dates, plan meals, and eliminate food waste — all synced in real time.
+        </p>
+      </div>
+
+      <div class="features-grid">
+        <!-- 1. NFC Zone Tags -->
+        <div class="feature-card">
+          <div class="feature-icon-box">📡</div>
+          <h3 class="feature-card-title">NFC Zone Tags</h3>
+          <p class="feature-card-desc">
+            Tap a tag on your fridge, freezer, or pantry shelf. Instantly see what's in that zone and mark what you took — no opening the app, no hunting through lists.
+          </p>
+        </div>
+
+        <!-- 2. Pantry Tracking -->
+        <div class="feature-card">
+          <div class="feature-icon-box">📦</div>
+          <h3 class="feature-card-title">Pantry Tracking</h3>
+          <p class="feature-card-desc">
+            Add items by barcode scan or manually. Track quantities, expiry dates, and get alerts before food goes bad. Never throw out forgotten groceries again.
+          </p>
+        </div>
+
+        <!-- 3. AI Meal Planning -->
+        <div class="feature-card">
+          <div class="feature-icon-box">🤖</div>
+          <h3 class="feature-card-title">AI Meal Planning</h3>
+          <p class="feature-card-desc">
+            Generate a full week of meal plans based on what's actually in your pantry. No more "what's for dinner?" — the AI sees your inventory and plans around it.
+          </p>
+        </div>
+
+        <!-- 4. Family Sharing -->
+        <div class="feature-card">
+          <div class="feature-icon-box">👨‍👩‍👧‍👦</div>
+          <h3 class="feature-card-title">Family Sharing</h3>
+          <p class="feature-card-desc">
+            Invite up to 4 household members. Everyone sees the same pantry in real time — no more duplicate grocery runs because someone didn't know you already bought it.
+          </p>
+        </div>
+
+        <!-- 5. Barcode Scanner -->
+        <div class="feature-card">
+          <div class="feature-icon-box">📷</div>
+          <h3 class="feature-card-title">Barcode Scanner</h3>
+          <p class="feature-card-desc">
+            Scan any grocery barcode and get the product name, brand, and calories pulled in automatically. Adding groceries after a shopping trip takes seconds.
+          </p>
+        </div>
+
+        <!-- 6. Recipe Suggestions -->
+        <div class="feature-card">
+          <div class="feature-icon-box">🍽️</div>
+          <h3 class="feature-card-title">Recipe Suggestions</h3>
+          <p class="feature-card-desc">
+            AI-generated recipes built from your current pantry. Save favorites, plan around dietary needs, and always cook with what you already have on hand.
+          </p>
+        </div>
+
+        <!-- 7. Smart Shopping List -->
+        <div class="feature-card">
+          <div class="feature-icon-box">🛒</div>
+          <h3 class="feature-card-title">Smart Shopping List</h3>
+          <p class="feature-card-desc">
+            Items that run out auto-appear on your shopping list. Add anything manually, check things off at the store, and keep the whole household in sync.
+          </p>
+        </div>
+
+        <!-- 8. Cart Total + Tax Tracker -->
+        <div class="feature-card">
+          <div class="feature-icon-box">🧾</div>
+          <h3 class="feature-card-title">Cart Total + Tax Tracker</h3>
+          <p class="feature-card-desc">
+            See a running total of your cart as you shop, with tax calculated in real time. No more checkout surprises — know exactly what you're spending before you hit the register.
+          </p>
+        </div>
+
+        <!-- 9. CTA Card (Completes the 3x3 layout) -->
+        <div class="feature-card feature-card-cta">
+          <div class="feature-icon-box" style="background: rgba(46, 158, 91, 0.2); border-color: rgba(46, 158, 91, 0.4);">🌿</div>
+          <h3 class="feature-card-title">Ready to Modernize Your Kitchen?</h3>
+          <p class="feature-card-desc">
+            Join households saving ₹3,000+ monthly, reducing waste, and enjoying fresh meals every single day.
+          </p>
+          <a href="login.html" class="btn-cta-card">
+            Get Started Free ➔
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- ==========================================
        FOOTER
@@ -524,8 +1374,92 @@
   </footer>
 
   <script>
+    // Smart Pantry HUD & Video View Mode Switcher
+    function switchHudMode(mode) {
+      const panes = {
+        ai: document.getElementById('paneAI'),
+        mobile: document.getElementById('paneMobile'),
+        video: document.getElementById('paneVideo')
+      };
+      const btns = {
+        ai: document.getElementById('tabBtnAI'),
+        mobile: document.getElementById('tabBtnMobile'),
+        video: document.getElementById('tabBtnVideo')
+      };
+      const statusText = document.getElementById('hudStatusText');
+      const video = document.getElementById('heroPromoVideo');
+
+      Object.keys(panes).forEach(k => {
+        if (panes[k]) panes[k].classList.remove('active');
+        if (btns[k]) btns[k].classList.remove('active');
+      });
+
+      if (panes[mode]) panes[mode].classList.add('active');
+      if (btns[mode]) btns[mode].classList.add('active');
+
+      if (statusText) {
+        if (mode === 'ai') statusText.textContent = 'LIVE AR HUD';
+        else if (mode === 'mobile') statusText.textContent = 'MOBILE SYNC';
+        else if (mode === 'video') statusText.textContent = 'VIDEO DEMO';
+      }
+
+      if (video) {
+        if (mode === 'video') {
+          video.play().catch(() => {});
+          const playBtn = document.getElementById('btnVideoPlayPause');
+          if (playBtn) playBtn.textContent = '⏸';
+        } else {
+          video.pause();
+        }
+      }
+    }
+
+    function toggleHeroVideoPlay(e) {
+      if (e) e.stopPropagation();
+      const video = document.getElementById('heroPromoVideo');
+      const btn = document.getElementById('btnVideoPlayPause');
+      if (!video) return;
+      if (video.paused) {
+        video.play();
+        if (btn) btn.textContent = '⏸';
+      } else {
+        video.pause();
+        if (btn) btn.textContent = '▶';
+      }
+    }
+
+    function toggleHeroVideoMute(e) {
+      if (e) e.stopPropagation();
+      const video = document.getElementById('heroPromoVideo');
+      const btn = document.getElementById('btnVideoMute');
+      if (!video) return;
+      video.muted = !video.muted;
+      if (btn) btn.textContent = video.muted ? '🔇' : '🔊';
+    }
+
+    // Real-Time Kitchen Hub Digital Clock Display (Matches User Reference Image Exactly)
+    function updateLandingClock() {
+      const now = new Date();
+      const monthShort = now.toLocaleDateString("en-US", { month: "short" });
+      const dayTwoDigit = String(now.getDate()).padStart(2, "0");
+      const rawHours = now.getHours();
+      const ampm = rawHours >= 12 ? "PM" : "AM";
+      const h12 = rawHours % 12 || 12;
+      const hoursStr = String(h12).padStart(2, "0");
+      const minutesStr = String(now.getMinutes()).padStart(2, "0");
+      const timeDigits = `${hoursStr}:${minutesStr}`;
+
+      document.querySelectorAll(".kh-month-label").forEach(el => el.textContent = monthShort);
+      document.querySelectorAll(".kh-day-number").forEach(el => el.textContent = dayTwoDigit);
+      document.querySelectorAll(".kh-time-digits").forEach(el => el.textContent = timeDigits);
+      document.querySelectorAll(".kh-time-ampm").forEach(el => el.textContent = ampm);
+    }
+    updateLandingClock();
+    setInterval(updateLandingClock, 1000);
+
     // Update button labels dynamically if user is logged in
     document.addEventListener('DOMContentLoaded', () => {
+      updateLandingClock();
       const token = localStorage.getItem('smartpantry_token');
       const user = localStorage.getItem('smartpantry_user');
       if (token && user) {
