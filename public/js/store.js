@@ -1310,16 +1310,35 @@ class PantryStore {
 
   applyTheme(theme) {
     const root = document.documentElement;
-    if (theme === 'dark') {
+    const body = document.body;
+    const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    
+    if (isDark) {
       root.classList.add('dark-theme');
-    } else if (theme === 'system') {
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        root.classList.add('dark-theme');
-      } else {
-        root.classList.remove('dark-theme');
+      root.setAttribute('data-theme', 'dark');
+      if (body) {
+        body.classList.add('dark-theme');
+        body.setAttribute('data-theme', 'dark');
       }
     } else {
       root.classList.remove('dark-theme');
+      root.removeAttribute('data-theme');
+      if (body) {
+        body.classList.remove('dark-theme');
+        body.removeAttribute('data-theme');
+      }
+    }
+
+    if (theme === 'system' && window.matchMedia && !this._systemThemeBound) {
+      this._systemThemeBound = true;
+      try {
+        const mq = window.matchMedia('(prefers-color-scheme: dark)');
+        mq.addEventListener('change', () => {
+          if (this.fullSettings?.general_settings?.theme === 'system') {
+            this.applyTheme('system');
+          }
+        });
+      } catch (err) {}
     }
   }
 

@@ -1757,13 +1757,25 @@ async function handleGeneralSettingChange() {
 function selectAppearanceTheme(theme, userClick = true) {
   ["light", "dark", "system"].forEach(t => {
     const btn = document.getElementById(`themeBtn_${t}`);
+    const check = document.getElementById(`themeCheck_${t}`);
     if (btn) {
       if (t === theme) {
-        btn.style.borderColor = "#10b981";
+        btn.classList.add("active", "selected");
+        btn.style.borderColor = "#6FAF82";
         btn.style.borderWidth = "2px";
       } else {
-        btn.style.borderColor = "#cbd5e1";
-        btn.style.borderWidth = "1px";
+        btn.classList.remove("active", "selected");
+        btn.style.borderColor = "";
+        btn.style.borderWidth = "";
+      }
+    }
+    if (check) {
+      if (t === theme) {
+        check.className = "theme-check-indicator checked";
+        check.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+      } else {
+        check.className = "theme-check-indicator circle";
+        check.innerHTML = "";
       }
     }
   });
@@ -1780,18 +1792,40 @@ function selectAppearanceTheme(theme, userClick = true) {
 function selectLayoutMode(mode, userClick = true) {
   const btnComf = document.getElementById("layoutBtn_comfortable");
   const btnComp = document.getElementById("layoutBtn_compact");
+  const checkComf = document.getElementById("densityCheck_comfortable");
+  const checkComp = document.getElementById("densityCheck_compact");
 
   if (btnComf && btnComp) {
     if (mode === 'compact') {
-      btnComp.style.borderColor = "#10b981";
+      btnComp.classList.add("active", "selected");
+      btnComf.classList.remove("active", "selected");
+      btnComp.style.borderColor = "#6FAF82";
       btnComp.style.borderWidth = "2px";
-      btnComf.style.borderColor = "#cbd5e1";
-      btnComf.style.borderWidth = "1px";
+      btnComf.style.borderColor = "";
+      btnComf.style.borderWidth = "";
+      if (checkComp) {
+        checkComp.className = "density-check-indicator checked";
+        checkComp.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+      }
+      if (checkComf) {
+        checkComf.className = "density-check-indicator circle";
+        checkComf.innerHTML = "";
+      }
     } else {
-      btnComf.style.borderColor = "#10b981";
+      btnComf.classList.add("active", "selected");
+      btnComp.classList.remove("active", "selected");
+      btnComf.style.borderColor = "#6FAF82";
       btnComf.style.borderWidth = "2px";
-      btnComp.style.borderColor = "#cbd5e1";
-      btnComp.style.borderWidth = "1px";
+      btnComp.style.borderColor = "";
+      btnComp.style.borderWidth = "";
+      if (checkComf) {
+        checkComf.className = "density-check-indicator checked";
+        checkComf.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+      }
+      if (checkComp) {
+        checkComp.className = "density-check-indicator circle";
+        checkComp.innerHTML = "";
+      }
     }
   }
 

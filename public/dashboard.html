@@ -355,9 +355,11 @@
 
       <!-- Small Sustainability/Food-Waste Message at the Bottom -->
       <div class="sidebar-sustainability-card">
-        <div class="sustainability-icon">🌱</div>
+        <div class="sustainability-icon">
+          <img src="assets/images/features/dark-leaf.png" alt="Leaf" style="width:26px; height:auto; object-fit:contain; display:block;">
+        </div>
         <div>
-          <div style="font-weight:700; font-size:12.5px; color:#19251e;">IntelliPantry</div>
+          <div class="sustainability-title" style="font-weight:700; font-size:12.5px;">IntelliPantry</div>
           <p class="sustainability-text">Smart grocery management. Reduce waste & save money.</p>
         </div>
       </div>
@@ -1240,28 +1242,59 @@
         <!-- Settings Header -->
         <div class="settings-header-box">
           <div>
-            <h2 style="font-size:24px; font-weight:800; color:#1e392a; display:flex; align-items:center; gap:10px;">
-              ⚙️ Settings
+            <h2 class="settings-header-title">
+              <span class="settings-gear-badge">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C9B79C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </span>
+              Settings
             </h2>
-            <p style="font-size:13.5px; color:#64748b; margin-top:2px;">
+            <p class="settings-header-subtitle">
               Manage your IntelliPantry account and preferences.
             </p>
           </div>
-          <button type="button" class="btn-forest-submit" onclick="saveAllSettingsForm()" style="width:auto; padding:10px 22px; border-radius:12px; font-size:13.5px; font-weight:700;">
-            ✓ Save Changes
+          <button type="button" class="btn-forest-submit settings-save-pill-btn" onclick="saveAllSettingsForm()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Save Changes
           </button>
         </div>
 
         <!-- Consumer Settings Navigation Tabs -->
         <div class="settings-nav-tabs">
-          <button type="button" class="settings-tab-btn active" onclick="switchSettingsTab('account', this)">👤 Account</button>
-          <button type="button" class="settings-tab-btn" onclick="switchSettingsTab('database', this)">⚡ Database</button>
-          <button type="button" class="settings-tab-btn" onclick="switchSettingsTab('notifications', this)">🔔 Notifications</button>
-          <button type="button" class="settings-tab-btn" onclick="switchSettingsTab('preferences', this)">🎯 Pantry</button>
-          <button type="button" class="settings-tab-btn" onclick="switchSettingsTab('appearance', this)">🎨 Appearance</button>
-          <button type="button" class="settings-tab-btn" onclick="switchSettingsTab('security', this)">🔐 Security</button>
-          <button type="button" class="settings-tab-btn" onclick="switchSettingsTab('privacy', this)">🛡️ Privacy</button>
-          <button type="button" class="settings-tab-btn" onclick="switchSettingsTab('about', this)">ℹ️ About</button>
+          <button type="button" class="settings-tab-btn active" id="tabBtn_account" onclick="switchSettingsTab('account', this)">
+            <svg class="tab-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            Account
+          </button>
+          <button type="button" class="settings-tab-btn" id="tabBtn_database" onclick="switchSettingsTab('database', this)">
+            <svg class="tab-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+            Database
+          </button>
+          <button type="button" class="settings-tab-btn" id="tabBtn_notifications" onclick="switchSettingsTab('notifications', this)">
+            <svg class="tab-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            Notifications
+          </button>
+          <button type="button" class="settings-tab-btn" id="tabBtn_preferences" onclick="switchSettingsTab('preferences', this)">
+            <svg class="tab-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+            Pantry
+          </button>
+          <button type="button" class="settings-tab-btn" id="tabBtn_appearance" onclick="switchSettingsTab('appearance', this)">
+            <svg class="tab-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z"></path></svg>
+            Appearance
+          </button>
+          <button type="button" class="settings-tab-btn" id="tabBtn_security" onclick="switchSettingsTab('security', this)">
+            <svg class="tab-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            Security
+          </button>
+          <button type="button" class="settings-tab-btn" id="tabBtn_privacy" onclick="switchSettingsTab('privacy', this)">
+            <svg class="tab-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            Privacy
+          </button>
+          <button type="button" class="settings-tab-btn" id="tabBtn_about" onclick="switchSettingsTab('about', this)">
+            <svg class="tab-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            About
+          </button>
         </div>
 
         <form id="masterSettingsForm" onsubmit="event.preventDefault(); saveAllSettingsForm();">
@@ -1735,101 +1768,237 @@
 
           <!-- TAB 5: APPEARANCE -->
           <div class="settings-card settings-tab-pane" id="settingsTab_appearance" style="display:none;">
-            <div class="settings-card-header">
-              <h3>🎨 Appearance</h3>
-              <p>Customize visual interface theme, layout density, and regional localization in real time.</p>
+            <!-- Header -->
+            <div class="settings-card-header appearance-header-flex">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div class="appearance-header-badge">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C9B79C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="13.5" cy="6.5" r=".5" fill="#C9B79C"></circle>
+                    <circle cx="17.5" cy="10.5" r=".5" fill="#C9B79C"></circle>
+                    <circle cx="8.5" cy="7.5" r=".5" fill="#C9B79C"></circle>
+                    <circle cx="6.5" cy="12.5" r=".5" fill="#C9B79C"></circle>
+                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h3 style="margin:0; font-size:18px; font-weight:700;">Appearance</h3>
+                  <p style="margin:2px 0 0; font-size:12.5px;">Customize your visual interface theme, layout density, and regional localization in real time.</p>
+                </div>
+              </div>
             </div>
 
-            <div class="space-y-6" style="max-width:560px;">
-              <!-- Theme Selection -->
+            <div class="appearance-content-stack">
+              <!-- Color Theme Row: 3 theme cards on left, 1 promo card on right -->
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-2">Color Theme</label>
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:12px;">
-                  <button type="button" class="theme-choice-btn active" id="themeBtn_light" onclick="selectAppearanceTheme('light', this)" style="padding:18px 16px; border-radius:14px; border:2px solid #10b981; background:#ffffff; text-align:center; cursor:pointer;">
-                    <div style="font-size:26px; margin-bottom:8px;">☀️</div>
-                    <div style="font-size:14px; font-weight:700; color:#1e293b;">Light</div>
-                    <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Clean default</div>
-                  </button>
+                <label class="appearance-section-label">Color Theme</label>
+                <div class="theme-layout-row">
+                  <div class="theme-cards-grid">
+                    <!-- Light Card -->
+                    <button type="button" class="theme-choice-btn" id="themeBtn_light" onclick="selectAppearanceTheme('light', this)">
+                      <div class="theme-card-top">
+                        <span class="theme-check-indicator circle" id="themeCheck_light"></span>
+                      </div>
+                      <div class="theme-icon-wrap light-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C98A2C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="5"></circle>
+                          <line x1="12" y1="1" x2="12" y2="3"></line>
+                          <line x1="12" y1="21" x2="12" y2="23"></line>
+                          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                          <line x1="1" y1="12" x2="3" y2="12"></line>
+                          <line x1="21" y1="12" x2="23" y2="12"></line>
+                          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                      </div>
+                      <div class="theme-card-title">Light</div>
+                      <div class="theme-card-sub">Clean and bright</div>
+                    </button>
 
-                  <button type="button" class="theme-choice-btn" id="themeBtn_dark" onclick="selectAppearanceTheme('dark', this)" style="padding:18px 16px; border-radius:14px; border:1px solid #cbd5e1; background:#0f172a; text-align:center; cursor:pointer;">
-                    <div style="font-size:26px; margin-bottom:8px;">🌙</div>
-                    <div style="font-size:14px; font-weight:700; color:#f8fafc;">Dark</div>
-                    <div style="font-size:11.5px; color:#94a3b8; margin-top:2px;">Comfortable at night</div>
-                  </button>
+                    <!-- Dark Card (Selected by default in dark mode) -->
+                    <button type="button" class="theme-choice-btn active" id="themeBtn_dark" onclick="selectAppearanceTheme('dark', this)">
+                      <div class="theme-card-top">
+                        <span class="theme-check-indicator checked" id="themeCheck_dark">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </span>
+                      </div>
+                      <div class="theme-icon-wrap dark-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6FAF82" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                      </div>
+                      <div class="theme-card-title">Dark</div>
+                      <div class="theme-card-sub">Comfortable at night</div>
+                    </button>
 
-                  <button type="button" class="theme-choice-btn" id="themeBtn_system" onclick="selectAppearanceTheme('system', this)" style="padding:18px 16px; border-radius:14px; border:1px solid #cbd5e1; background:#f8fafc; text-align:center; cursor:pointer;">
-                    <div style="font-size:26px; margin-bottom:8px;">💻</div>
-                    <div style="font-size:14px; font-weight:700; color:#1e293b;">System</div>
-                    <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Auto syncs device</div>
-                  </button>
+                    <!-- System Card -->
+                    <button type="button" class="theme-choice-btn" id="themeBtn_system" onclick="selectAppearanceTheme('system', this)">
+                      <div class="theme-card-top">
+                        <span class="theme-check-indicator circle" id="themeCheck_system"></span>
+                      </div>
+                      <div class="theme-icon-wrap system-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#A9ADA7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                          <line x1="8" y1="21" x2="16" y2="21"></line>
+                          <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </svg>
+                      </div>
+                      <div class="theme-card-title">System</div>
+                      <div class="theme-card-sub">Auto syncs with device</div>
+                    </button>
+                  </div>
+
+                  <!-- Kitchen Theme Promo Card -->
+                  <div class="appearance-kitchen-promo-card">
+                    <div class="promo-content">
+                      <div class="promo-bulb-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9B79C" stroke-width="2">
+                          <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"></path>
+                        </svg>
+                      </div>
+                      <h4 class="promo-title">A theme<br>that fits<br>your kitchen</h4>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <!-- Layout Mode: Comfortable vs Compact -->
+              <!-- Layout Density Row -->
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-2">Layout Density</label>
-                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px;">
-                  <button type="button" id="layoutBtn_comfortable" onclick="selectLayoutMode('comfortable', this)" style="padding:14px; border-radius:12px; border:2px solid #10b981; background:#ffffff; text-align:left; cursor:pointer;">
-                    <div style="font-size:13.5px; font-weight:700; color:#1e293b;">✨ Comfortable</div>
-                    <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Spacious cards and relaxed padding</div>
+                <label class="appearance-section-label">Layout Density</label>
+                <div class="density-cards-grid">
+                  <!-- Comfortable Card -->
+                  <button type="button" class="density-choice-btn active" id="layoutBtn_comfortable" onclick="selectLayoutMode('comfortable', this)">
+                    <div class="density-btn-inner">
+                      <div class="density-icon-wrap">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="3" y="3" width="7" height="7"></rect>
+                          <rect x="14" y="3" width="7" height="7"></rect>
+                          <rect x="14" y="14" width="7" height="7"></rect>
+                          <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                      </div>
+                      <div class="density-text-block">
+                        <div class="density-title">Comfortable</div>
+                        <div class="density-sub">Spacious cards and relaxed padding</div>
+                      </div>
+                    </div>
+                    <span class="density-check-indicator checked" id="densityCheck_comfortable">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </span>
                   </button>
-                  <button type="button" id="layoutBtn_compact" onclick="selectLayoutMode('compact', this)" style="padding:14px; border-radius:12px; border:1px solid #cbd5e1; background:#f8fafc; text-align:left; cursor:pointer;">
-                    <div style="font-size:13.5px; font-weight:700; color:#1e293b;">⚡ Compact</div>
-                    <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Dense tables for power pantry management</div>
+
+                  <!-- Compact Card -->
+                  <button type="button" class="density-choice-btn" id="layoutBtn_compact" onclick="selectLayoutMode('compact', this)">
+                    <div class="density-btn-inner">
+                      <div class="density-icon-wrap">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="8" y1="6" x2="21" y2="6"></line>
+                          <line x1="8" y1="12" x2="21" y2="12"></line>
+                          <line x1="8" y1="18" x2="21" y2="18"></line>
+                          <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                          <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                          <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                        </svg>
+                      </div>
+                      <div class="density-text-block">
+                        <div class="density-title">Compact</div>
+                        <div class="density-sub">Dense tables for power pantry management</div>
+                      </div>
+                    </div>
+                    <span class="density-check-indicator circle" id="densityCheck_compact"></span>
                   </button>
                 </div>
               </div>
 
               <!-- Regional & Localization Settings -->
-              <div style="padding-top:16px; border-top:1px solid #e2e8f0;">
-                <h4 style="font-size:13.5px; font-weight:800; color:#1e293b; margin-bottom:4px;">🌐 Regional & Localization</h4>
-                <p style="font-size:11.5px; color:#64748b; margin-bottom:12px;">Configure date format, currency, and local timezone for real-time calendar calculations.</p>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Interface Language</label>
-                    <select id="generalLanguage" onchange="handleGeneralSettingChange()" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
-                      <option value="English" selected>English</option>
-                      <option value="Hindi">हिंदी (Hindi)</option>
-                      <option value="Spanish">Español (Spanish)</option>
-                      <option value="French">Français (French)</option>
-                    </select>
+              <div class="regional-section-box">
+                <div class="regional-header">
+                  <div class="regional-globe-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9B79C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="2" y1="12" x2="22" y2="12"></line>
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
                   </div>
-
                   <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Timezone</label>
-                    <select id="generalTimezone" onchange="handleGeneralSettingChange()" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
-                      <option value="Asia/Kolkata" selected>Asia/Kolkata (IST, UTC+5:30)</option>
-                      <option value="America/New_York">America/New_York (EST, UTC-5)</option>
-                      <option value="America/Los_Angeles">America/Los_Angeles (PST, UTC-8)</option>
-                      <option value="Europe/London">Europe/London (GMT, UTC+0)</option>
-                      <option value="UTC">UTC (Universal)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Currency</label>
-                    <select id="generalCurrency" onchange="handleGeneralSettingChange()" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
-                      <option value="INR" selected>₹ INR (Indian Rupee)</option>
-                      <option value="USD">$ USD (US Dollar)</option>
-                      <option value="EUR">€ EUR (Euro)</option>
-                      <option value="GBP">£ GBP (British Pound)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Date Format</label>
-                    <select id="generalDateFormat" onchange="handleGeneralSettingChange()" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-slate-50 focus:bg-white outline-none">
-                      <option value="DD/MM/YYYY" selected>DD/MM/YYYY (30/09/2026)</option>
-                      <option value="YYYY-MM-DD">YYYY-MM-DD (2026-09-30)</option>
-                      <option value="MM/DD/YYYY">MM/DD/YYYY (09/30/2026)</option>
-                    </select>
+                    <h4 class="regional-title">Regional & Localization</h4>
+                    <p class="regional-sub">Configure date format, currency, and local timezone for real-time calendar calculations.</p>
                   </div>
                 </div>
 
-                <div style="display:flex; align-items:center; gap:6px; margin-top:12px;">
-                  <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;"></span>
-                  <span style="font-size:11px; font-weight:700; color:#10b981;">Changes persist immediately across your browser session</span>
+                <div class="regional-grid-4">
+                  <!-- Interface Language -->
+                  <div class="regional-field-group">
+                    <label class="regional-label">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                      Interface Language
+                    </label>
+                    <div class="custom-select-wrap">
+                      <select id="generalLanguage" onchange="handleGeneralSettingChange()" class="dark-custom-select">
+                        <option value="English" selected>English</option>
+                        <option value="Hindi">हिंदी (Hindi)</option>
+                        <option value="Spanish">Español (Spanish)</option>
+                        <option value="French">Français (French)</option>
+                      </select>
+                      <span class="select-chevron">▾</span>
+                    </div>
+                  </div>
+
+                  <!-- Timezone -->
+                  <div class="regional-field-group">
+                    <label class="regional-label">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                      Timezone
+                    </label>
+                    <div class="custom-select-wrap">
+                      <select id="generalTimezone" onchange="handleGeneralSettingChange()" class="dark-custom-select">
+                        <option value="Asia/Kolkata" selected>Asia/Kolkata (IST, UTC+5:30)</option>
+                        <option value="America/New_York">America/New_York (EST, UTC-5)</option>
+                        <option value="America/Los_Angeles">America/Los_Angeles (PST, UTC-8)</option>
+                        <option value="Europe/London">Europe/London (GMT, UTC+0)</option>
+                        <option value="UTC">UTC (Universal)</option>
+                      </select>
+                      <span class="select-chevron">▾</span>
+                    </div>
+                  </div>
+
+                  <!-- Currency -->
+                  <div class="regional-field-group">
+                    <label class="regional-label">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+                      Currency
+                    </label>
+                    <div class="custom-select-wrap">
+                      <select id="generalCurrency" onchange="handleGeneralSettingChange()" class="dark-custom-select">
+                        <option value="INR" selected>₹ INR (Indian Rupee)</option>
+                        <option value="USD">$ USD (US Dollar)</option>
+                        <option value="EUR">€ EUR (Euro)</option>
+                        <option value="GBP">£ GBP (British Pound)</option>
+                      </select>
+                      <span class="select-chevron">▾</span>
+                    </div>
+                  </div>
+
+                  <!-- Date Format -->
+                  <div class="regional-field-group">
+                    <label class="regional-label">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                      Date Format
+                    </label>
+                    <div class="custom-select-wrap">
+                      <select id="generalDateFormat" onchange="handleGeneralSettingChange()" class="dark-custom-select">
+                        <option value="DD/MM/YYYY" selected>DD/MM/YYYY (30/09/2026)</option>
+                        <option value="YYYY-MM-DD">YYYY-MM-DD (2026-09-30)</option>
+                        <option value="MM/DD/YYYY">MM/DD/YYYY (09/30/2026)</option>
+                      </select>
+                      <span class="select-chevron">▾</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="settings-realtime-badge">
+                  <span class="realtime-dot"></span>
+                  <span>Changes persist immediately across your browser session</span>
                 </div>
               </div>
             </div>
