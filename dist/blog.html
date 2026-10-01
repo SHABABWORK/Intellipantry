@@ -1,0 +1,975 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Blog & Resource Center — IntelliPantry</title>
+
+  <!-- Favicon & App Icons -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#1e392a">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :root {
+      --bg-warm: #fbfaf5;
+      --surface: #ffffff;
+      --forest: #1e392a;
+      --forest-hover: #15291e;
+      --forest-light: #eef6f0;
+      --border: #e6e3da;
+      --text-main: #1f2823;
+      --text-muted: #6b756e;
+      --accent-green: #2e9e5b;
+      --accent-gold: #c28829;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg-warm);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* TOP NAVIGATION */
+    .landing-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 48px;
+      background: rgba(251, 250, 245, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(230, 227, 218, 0.7);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--forest);
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-logo-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(30, 57, 42, 0.12);
+      border: 1.5px solid rgba(230, 227, 218, 0.9);
+      flex-shrink: 0;
+    }
+
+    .brand-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .nav-links-center {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .nav-links-center a {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 14.5px;
+      font-weight: 600;
+      transition: color 0.2s ease;
+      position: relative;
+    }
+
+    .nav-links-center a:hover {
+      color: var(--forest);
+    }
+
+    .nav-links-center a.nav-link-active {
+      color: var(--forest);
+      font-weight: 700;
+    }
+
+    .nav-links-center a.nav-link-active::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      right: 0;
+      height: 2.5px;
+      background: var(--accent-green);
+      border-radius: 4px;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .btn-nav-login {
+      text-decoration: none;
+      color: var(--forest);
+      font-size: 14px;
+      font-weight: 700;
+      padding: 8px 18px;
+      border-radius: 999px;
+      transition: background 0.2s ease;
+    }
+
+    .btn-nav-login:hover {
+      background: var(--forest-light);
+    }
+
+    .btn-nav-getstarted {
+      text-decoration: none;
+      background: var(--forest);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 10px 22px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 14px rgba(30, 57, 42, 0.2);
+      transition: all 0.2s ease;
+    }
+
+    .btn-nav-getstarted:hover {
+      background: var(--forest-hover);
+      transform: translateY(-1px);
+    }
+
+    /* BLOG HEADER */
+    .blog-hero {
+      max-width: 900px;
+      margin: 0 auto;
+      text-align: center;
+      padding: 64px 24px 32px;
+    }
+
+    .blog-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--forest-light);
+      color: var(--forest);
+      border: 1px solid rgba(46, 158, 91, 0.3);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .blog-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 52px;
+      line-height: 1.15;
+      font-weight: 700;
+      color: var(--forest);
+      letter-spacing: -0.02em;
+      margin-bottom: 18px;
+    }
+
+    .blog-subtitle {
+      font-size: 19px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* CATEGORY FILTER BAR */
+    .filter-bar-wrap {
+      max-width: 1140px;
+      margin: 0 auto 40px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .cat-pill {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 700;
+      padding: 9px 20px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cat-pill:hover {
+      border-color: var(--forest);
+      color: var(--forest);
+      transform: translateY(-1px);
+    }
+
+    .cat-pill.active {
+      background: var(--forest);
+      color: #ffffff;
+      border-color: var(--forest);
+      box-shadow: 0 4px 14px rgba(30, 57, 42, 0.25);
+    }
+
+    /* ARTICLES GRID */
+    .blog-grid-section {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+
+    .articles-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+    }
+
+    .article-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+      transition: transform 0.22s ease, box-shadow 0.22s ease;
+      cursor: pointer;
+    }
+
+    .article-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.1);
+      border-color: rgba(46, 158, 91, 0.4);
+    }
+
+    .article-thumb-wrap {
+      width: 100%;
+      height: 200px;
+      position: relative;
+      overflow: hidden;
+      background: #e2e8f0;
+    }
+
+    .article-thumb-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.35s ease;
+    }
+
+    .article-card:hover .article-thumb-img {
+      transform: scale(1.05);
+    }
+
+    .article-cat-badge {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(10, 18, 13, 0.88);
+      backdrop-filter: blur(8px);
+      color: #34d399;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      text-transform: uppercase;
+    }
+
+    .article-body {
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .article-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .article-meta-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+
+    .article-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 21px;
+      font-weight: 700;
+      color: var(--forest);
+      line-height: 1.35;
+      margin-bottom: 10px;
+      transition: color 0.2s ease;
+    }
+
+    .article-card:hover .article-title {
+      color: var(--accent-green);
+    }
+
+    .article-excerpt {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 20px;
+      flex: 1;
+    }
+
+    .article-footer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--forest);
+    }
+
+    .read-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--accent-green);
+      text-decoration: none;
+    }
+
+    /* NEWSLETTER HOOK SECTION */
+    .newsletter-section {
+      max-width: 1140px;
+      margin: 20px auto 80px;
+      padding: 0 24px;
+    }
+
+    .newsletter-card {
+      background: linear-gradient(135deg, #172a1f 0%, #0d1712 100%);
+      color: #ffffff;
+      border-radius: 32px;
+      padding: 56px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+    }
+
+    .newsletter-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #34d399;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+
+    .newsletter-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .newsletter-sub {
+      font-size: 16px;
+      color: #cbd5e1;
+      max-width: 580px;
+      margin: 0 auto 28px;
+    }
+
+    .newsletter-form {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      max-width: 480px;
+      margin: 0 auto;
+      flex-wrap: wrap;
+    }
+
+    .newsletter-input {
+      flex: 1;
+      min-width: 260px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      border-radius: 999px;
+      padding: 13px 22px;
+      color: #ffffff;
+      font-size: 14.5px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .newsletter-input:focus {
+      border-color: #34d399;
+      background: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 0 16px rgba(52, 211, 153, 0.3);
+    }
+
+    .newsletter-input::placeholder {
+      color: #94a3b8;
+    }
+
+    .btn-newsletter {
+      background: #2e9e5b;
+      color: #ffffff;
+      border: none;
+      padding: 13px 28px;
+      border-radius: 999px;
+      font-family: inherit;
+      font-size: 14.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-newsletter:hover {
+      background: #25834b;
+      transform: translateY(-1px);
+    }
+
+    .newsletter-feedback {
+      margin-top: 14px;
+      font-size: 13px;
+      font-weight: 600;
+      display: none;
+    }
+
+    /* ARTICLE READER MODAL */
+    .article-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(10, 18, 13, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .article-modal-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .article-modal-card {
+      background: var(--surface);
+      border-radius: 24px;
+      max-width: 720px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 36px 40px;
+      position: relative;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border);
+    }
+
+    .btn-modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--forest-light);
+      border: none;
+      color: var(--forest);
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .btn-modal-close:hover {
+      background: #e2e8f0;
+    }
+
+    .modal-article-cat {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--accent-green);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .modal-article-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--forest);
+      line-height: 1.25;
+      margin-bottom: 12px;
+    }
+
+    .modal-article-meta {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-article-content {
+      font-size: 15.5px;
+      color: var(--text-main);
+      line-height: 1.75;
+    }
+
+    .modal-article-content p {
+      margin-bottom: 16px;
+    }
+
+    .modal-key-takeaways {
+      background: var(--forest-light);
+      border-left: 4px solid var(--accent-green);
+      padding: 16px 20px;
+      border-radius: 0 12px 12px 0;
+      margin: 20px 0;
+      font-size: 14.5px;
+    }
+
+    /* FOOTER */
+    .landing-footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 48px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-muted);
+      background: #faf8f2;
+    }
+
+    @media (max-width: 960px) {
+      .articles-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .landing-nav { padding: 16px 24px; }
+      .nav-links-center { display: none; }
+      .articles-grid { grid-template-columns: 1fr; }
+      .blog-title { font-size: 38px; }
+      .newsletter-title { font-size: 28px; }
+      .newsletter-card { padding: 40px 20px; }
+      .article-modal-card { padding: 28px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar (Contains only How It Works and Blog per user request) -->
+  <nav class="landing-nav">
+    <a href="landing.html" class="nav-brand">
+      <div class="brand-logo-wrap">
+        <img src="assets/images/brand-logo.png" alt="IntelliPantry Logo" class="brand-logo-img">
+      </div>
+      <span>IntelliPantry</span>
+    </a>
+
+    <div class="nav-links-center">
+      <a href="how-it-works.html">How It Works</a>
+      <a href="blog.html" class="nav-link-active">Blog</a>
+    </div>
+
+    <div class="nav-actions">
+      <a href="login.html" class="btn-nav-login">Sign In</a>
+      <a href="dashboard.html" class="btn-nav-getstarted">Open Pantry ➔</a>
+    </div>
+  </nav>
+
+  <!-- Hero Header -->
+  <header class="blog-hero">
+    <div class="blog-badge">📚 SMART KITCHEN JOURNAL</div>
+    <h1 class="blog-title">Fresh Ideas For Every Kitchen</h1>
+    <p class="blog-subtitle">
+      Practical guides on cutting food waste, organizing your fridge, product updates, and cooking gourmet meals with everyday pantry staples.
+    </p>
+  </header>
+
+  <!-- Category Filter Bar -->
+  <nav class="filter-bar-wrap" aria-label="Blog Category Filter">
+    <button class="cat-pill active" onclick="filterArticles('all', event)">All Posts</button>
+    <button class="cat-pill" onclick="filterArticles('app-updates', event)">App Updates</button>
+    <button class="cat-pill" onclick="filterArticles('food-waste', event)">Food Waste Reduction</button>
+    <button class="cat-pill" onclick="filterArticles('kitchen-org', event)">Kitchen Organization</button>
+    <button class="cat-pill" onclick="filterArticles('recipes', event)">Smart Recipes</button>
+  </nav>
+
+  <!-- Article Card Grid -->
+  <main class="blog-grid-section">
+    <div class="articles-grid" id="articlesGrid">
+
+      <!-- Article 1: Food Waste -->
+      <article class="article-card" data-category="food-waste" onclick="openArticleModal(1)">
+        <div class="article-thumb-wrap">
+          <img src="assets/images/pantry-video-poster.jpg" alt="Fresh Pantry Produce" class="article-thumb-img">
+          <span class="article-cat-badge">Food Waste Reduction</span>
+        </div>
+        <div class="article-body">
+          <div class="article-meta-row">
+            <span>Oct 01, 2026</span>
+            <span class="article-meta-dot"></span>
+            <span>⏱ 4 min read</span>
+          </div>
+          <h2 class="article-title">How AI Vision is Cutting Household Food Waste in Half</h2>
+          <p class="article-excerpt">
+            The average household tosses out ₹3,000+ in spoiled groceries every month. Learn how automatic camera detection and proactive shelf-life countdowns solve the root cause of kitchen waste.
+          </p>
+          <div class="article-footer-row">
+            <span>By Chef Arjun • Kitchen Scientist</span>
+            <span class="read-link">Read ➔</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Article 2: Kitchen Org -->
+      <article class="article-card" data-category="kitchen-org" onclick="openArticleModal(2)">
+        <div class="article-thumb-wrap">
+          <img src="assets/images/features/kitchen-ambience-topright.png" alt="Organized Modern Kitchen" class="article-thumb-img">
+          <span class="article-cat-badge">Kitchen Organization</span>
+        </div>
+        <div class="article-body">
+          <div class="article-meta-row">
+            <span>Sep 28, 2026</span>
+            <span class="article-meta-dot"></span>
+            <span>⏱ 5 min read</span>
+          </div>
+          <h2 class="article-title">5 Habits for an Ultra-Organized Kitchen & Fridge</h2>
+          <p class="article-excerpt">
+            From designated "Eat First" baskets to smart temperature zoning, discover five simple layout techniques professional organizers use to keep perishables visible and fresh.
+          </p>
+          <div class="article-footer-row">
+            <span>By Priya S. • Organization Lead</span>
+            <span class="read-link">Read ➔</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Article 3: App Updates -->
+      <article class="article-card" data-category="app-updates" onclick="openArticleModal(3)">
+        <div class="article-thumb-wrap">
+          <img src="assets/images/features/barcode-scanner-phone.png" alt="Mobile Barcode Scanner" class="article-thumb-img">
+          <span class="article-cat-badge">App Updates</span>
+        </div>
+        <div class="article-body">
+          <div class="article-meta-row">
+            <span>Sep 24, 2026</span>
+            <span class="article-meta-dot"></span>
+            <span>⏱ 3 min read</span>
+          </div>
+          <h2 class="article-title">IntelliPantry 2.0: Instant Barcode Scanning & Offline PWA Sync</h2>
+          <p class="article-excerpt">
+            Our latest release introduces multi-barcode scanning, full supermarket receipt OCR, and offline Progressive Web App capabilities for lightning-fast inventory entry anywhere.
+          </p>
+          <div class="article-footer-row">
+            <span>By Tech Team • Release Notes</span>
+            <span class="read-link">Read ➔</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Article 4: Recipes -->
+      <article class="article-card" data-category="recipes" onclick="openArticleModal(4)">
+        <div class="article-thumb-wrap">
+          <img src="assets/images/features/dish-stirfry-clean.png" alt="Zero-Waste Stirfry Dinner" class="article-thumb-img">
+          <span class="article-cat-badge">Smart Recipes</span>
+        </div>
+        <div class="article-body">
+          <div class="article-meta-row">
+            <span>Sep 20, 2026</span>
+            <span class="article-meta-dot"></span>
+            <span>⏱ 6 min read</span>
+          </div>
+          <h2 class="article-title">Zero-Waste Cooking: 7 Creative Dinners from Leftover Produce</h2>
+          <p class="article-excerpt">
+            Don't discard wilted greens, soft tomatoes, or lone carrots! Explore seven delicious, chef-crafted recipes that turn kitchen odds and ends into culinary masterpieces.
+          </p>
+          <div class="article-footer-row">
+            <span>By Chef Maya • Culinary Advisor</span>
+            <span class="read-link">Read ➔</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Article 5: Food Waste -->
+      <article class="article-card" data-category="food-waste" onclick="openArticleModal(5)">
+        <div class="article-thumb-wrap">
+          <img src="assets/images/features/pantry-jars.png" alt="Pantry Storage Jars" class="article-thumb-img">
+          <span class="article-cat-badge">Food Waste Reduction</span>
+        </div>
+        <div class="article-body">
+          <div class="article-meta-row">
+            <span>Sep 15, 2026</span>
+            <span class="article-meta-dot"></span>
+            <span>⏱ 4 min read</span>
+          </div>
+          <h2 class="article-title">Understanding Expiration Dates: 'Best By' vs 'Use By'</h2>
+          <p class="article-excerpt">
+            Millions of edible groceries are thrown away prematurely due to date label confusion. Here is the definitive food scientist guide on what food labels really mean.
+          </p>
+          <div class="article-footer-row">
+            <span>By Dr. Kevin Lee • Food Safety</span>
+            <span class="read-link">Read ➔</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Article 6: Kitchen Org -->
+      <article class="article-card" data-category="kitchen-org" onclick="openArticleModal(6)">
+        <div class="article-thumb-wrap">
+          <img src="assets/images/features/nfc-tag-fridge.png" alt="Smart Refrigerator Technology" class="article-thumb-img">
+          <span class="article-cat-badge">Kitchen Organization</span>
+        </div>
+        <div class="article-body">
+          <div class="article-meta-row">
+            <span>Sep 10, 2026</span>
+            <span class="article-meta-dot"></span>
+            <span>⏱ 5 min read</span>
+          </div>
+          <h2 class="article-title">Restock Smarter: How Automated Shopping Lists Save ₹3,000/mo</h2>
+          <p class="article-excerpt">
+            Impulse buys and duplicate purchases account for 35% of supermarket spending. See how automated inventory depletion tracking keeps your grocery runs laser-focused.
+          </p>
+          <div class="article-footer-row">
+            <span>By Finance & Home Team</span>
+            <span class="read-link">Read ➔</span>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </main>
+
+  <!-- Newsletter Capture Hook -->
+  <section class="newsletter-section">
+    <div class="newsletter-card">
+      <div class="newsletter-badge">✉️ WEEKLY PANTRY DIGEST</div>
+      <h2 class="newsletter-title">Never Miss A Zero-Waste Kitchen Tip</h2>
+      <p class="newsletter-sub">
+        Join over 15,000 mindful home cooks. Receive weekly seasonal recipes, kitchen storage hacks, and product updates right in your inbox.
+      </p>
+      <form class="newsletter-form" onsubmit="handleNewsletterSubmit(event)">
+        <input type="email" class="newsletter-input" id="newsletterEmail" placeholder="Enter your email address..." required>
+        <button type="submit" class="btn-newsletter">Subscribe Free</button>
+      </form>
+      <div class="newsletter-feedback" id="newsletterFeedback"></div>
+    </div>
+  </section>
+
+  <!-- Interactive Article Modal -->
+  <div class="article-modal-backdrop" id="articleModal" onclick="closeArticleModal(event)">
+    <div class="article-modal-card" onclick="event.stopPropagation()">
+      <button class="btn-modal-close" onclick="closeArticleModal()" aria-label="Close article modal">✕</button>
+      <div class="modal-article-cat" id="mCat">Category</div>
+      <h2 class="modal-article-title" id="mTitle">Article Title</h2>
+      <div class="modal-article-meta" id="mMeta">Published Date • 5 min read</div>
+      <div class="modal-article-content" id="mContent">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="landing-footer">
+    <p>© 2026 IntelliPantry. Designed for Mobile & Web.</p>
+    <p style="margin-top: 6px; font-size: 13.5px; color: var(--text-muted);">
+      Contact & Support: <a href="mailto:intellipantrynotify@gmail.com" style="color: var(--forest); font-weight: 700; text-decoration: none;">intellipantrynotify@gmail.com</a>
+    </p>
+    <div style="margin-top: 10px;">
+      <a href="dashboard.html" style="color:var(--forest); font-weight:700; text-decoration:none;">Open Pantry Dashboard ➔</a>
+    </div>
+  </footer>
+
+  <script>
+    // Full Article Content Repository
+    const ARTICLES_DB = {
+      1: {
+        cat: "Food Waste Reduction",
+        title: "How AI Vision is Cutting Household Food Waste in Half",
+        meta: "Published Oct 01, 2026 • 4 min read • By Chef Arjun",
+        content: `
+          <p>Household food waste is an invisible drain on family budgets. In the average home, over 30% of perishable produce and dairy purchased ends up in the compost or garbage bin before it can ever be cooked.</p>
+          <div class="modal-key-takeaways">
+            <strong>Key Insight:</strong> The primary reason food spoils isn't neglect; it's visual invisibility. Items hidden behind jars or in opaque drawers are forgotten until it's too late.
+          </div>
+          <p>By leveraging computer vision, IntelliPantry gives every item a digital identity. When groceries are logged via barcode or receipt, the system immediately applies shelf-life countdowns based on food biology and refrigeration guidelines.</p>
+          <p>Combined with proactive push alerts sent at dinner preparation time, families receive gentle reminders to incorporate ingredients before they cross into the critical expiry window.</p>
+        `
+      },
+      2: {
+        cat: "Kitchen Organization",
+        title: "5 Habits for an Ultra-Organized Kitchen & Fridge",
+        meta: "Published Sep 28, 2026 • 5 min read • By Priya S.",
+        content: `
+          <p>A well-organized kitchen isn't just aesthetically pleasing—it saves valuable minutes every day and prevents food spoilage. Here are five golden rules implemented by top kitchen organizers:</p>
+          <p><strong>1. The 'Eat First' Bin:</strong> Designate a clear acrylic bin on the eye-level shelf for any open cheeses, sliced vegetables, or herbs nearing expiry.</p>
+          <p><strong>2. Temperature Zoning:</strong> Keep milk and dairy on the main middle shelf where temperatures are consistently coldest, never in the refrigerator door.</p>
+          <p><strong>3. Clear Glass Containers:</strong> Replace opaque plastic tubs with transparent glass containers so leftovers remain immediately visible.</p>
+          <p><strong>4. FIFO Protocol:</strong> Adopt the culinary 'First In, First Out' system. When buying fresh groceries, rotate older produce to the front.</p>
+          <p><strong>5. Digital Sync:</strong> Use IntelliPantry's Kitchen Hub on your tablet or smartphone to keep a glanceable inventory without opening the fridge door.</p>
+        `
+      },
+      3: {
+        cat: "App Updates",
+        title: "IntelliPantry 2.0: Instant Barcode Scanning & Offline PWA Sync",
+        meta: "Published Sep 24, 2026 • 3 min read • By Tech Team",
+        content: `
+          <p>We are thrilled to roll out IntelliPantry 2.0, our biggest upgrade yet focused on speed, offline reliability, and intelligent scanning.</p>
+          <div class="modal-key-takeaways">
+            <strong>What's New:</strong> Multi-format barcode scanning, 1-second supermarket receipt OCR, and full offline Progressive Web App caching.
+          </div>
+          <p>Now, when you return from the supermarket, you can scan your entire checkout receipt in under 2 seconds. Our OCR engine automatically extracts item descriptions, weights, and quantities, categorizing them directly into Fridge, Freezer, and Pantry.</p>
+          <p>Even without an internet connection in basement pantries or while traveling, your inventory stays fully accessible and syncs automatically once reconnected.</p>
+        `
+      },
+      4: {
+        cat: "Smart Recipes",
+        title: "Zero-Waste Cooking: 7 Creative Dinners from Leftover Produce",
+        meta: "Published Sep 20, 2026 • 6 min read • By Chef Maya",
+        content: `
+          <p>Wilted spinach, soft tomatoes, and lonely half-onions are culinary goldmines if you know the right culinary techniques. Here are seven versatile formulas to rescue near-expiry produce:</p>
+          <p><strong>1. The Refrigerator Shakshuka:</strong> Sauté soft tomatoes, peppers, and garlic in olive oil, make wells, crack eggs in, and cover for 8 minutes.</p>
+          <p><strong>2. Cast-Iron Frittata:</strong> Whisk eggs with milk, toss in whatever greens, roasted potatoes, or cheeses you have, and bake until golden.</p>
+          <p><strong>3. Pantry Stir-Fry:</strong> A hot wok, sesame oil, and soy sauce can revitalize carrots, cabbage, and broccoli into a crispy restaurant-quality dinner.</p>
+          <p><strong>4. Minestrone Soup:</strong> Dice vegetables, simmer with canned beans and vegetable broth for 20 minutes for a comforting, zero-waste soup.</p>
+        `
+      },
+      5: {
+        cat: "Food Waste Reduction",
+        title: "Understanding Expiration Dates: 'Best By' vs 'Use By'",
+        meta: "Published Sep 15, 2026 • 4 min read • By Dr. Kevin Lee",
+        content: `
+          <p>Did you know that in most countries, 'Best If Used By' dates are manufacturer indicators of peak flavor and quality, NOT safety? Confusing these labels leads to billions of pounds of wholesome food being discarded unnecessarily.</p>
+          <div class="modal-key-takeaways">
+            <strong>Rule of Thumb:</strong> 'Use By' is a safety deadline for perishable meats and fish. 'Best By' refers to quality and texture for dry goods and pantry staples.
+          </div>
+          <p>IntelliPantry intelligently distinguishes between strict safety thresholds and quality windows, helping you enjoy food safely while avoiding premature disposal.</p>
+        `
+      },
+      6: {
+        cat: "Kitchen Organization",
+        title: "Restock Smarter: How Automated Shopping Lists Save ₹3,000/mo",
+        meta: "Published Sep 10, 2026 • 5 min read • By Finance & Home Team",
+        content: `
+          <p>Supermarket layouts are scientifically designed to encourage impulse shopping. When shoppers head to the store without a verified inventory, they buy duplicate staples and impulse items that end up spoiling.</p>
+          <p>With IntelliPantry's automated restock checklist, your shopping list builds itself as you cook. When olive oil runs low, it automatically appears on your checklist. Users report saving an average of ₹3,000 to ₹4,500 every single month simply by avoiding duplicate buys.</p>
+        `
+      }
+    };
+
+    // Category Filter Handler
+    function filterArticles(category, event) {
+      document.querySelectorAll('.cat-pill').forEach(btn => btn.classList.remove('active'));
+      if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+      }
+
+      const cards = document.querySelectorAll('.article-card');
+      cards.forEach(card => {
+        if (category === 'all' || card.getAttribute('data-category') === category) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    // Modal Handler
+    function openArticleModal(id) {
+      const article = ARTICLES_DB[id];
+      if (!article) return;
+      document.getElementById('mCat').textContent = article.cat;
+      document.getElementById('mTitle').textContent = article.title;
+      document.getElementById('mMeta').textContent = article.meta;
+      document.getElementById('mContent').innerHTML = article.content;
+      document.getElementById('articleModal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeArticleModal() {
+      document.getElementById('articleModal').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    // Newsletter Form Handler
+    function handleNewsletterSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('newsletterEmail').value;
+      const feedback = document.getElementById('newsletterFeedback');
+      if (email && email.includes('@')) {
+        feedback.style.display = 'block';
+        feedback.style.color = '#34d399';
+        feedback.textContent = `🎉 Thank you! Check ${email} for your welcome guide.`;
+        document.getElementById('newsletterEmail').value = '';
+        setTimeout(() => { feedback.style.display = 'none'; }, 6000);
+      }
+    }
+  </script>
+
+</body>
+</html>
+

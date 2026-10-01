@@ -1,0 +1,893 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>How It Works — IntelliPantry Smart Kitchen System</title>
+
+  <!-- Favicon & App Icons -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#1e392a">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :root {
+      --bg-warm: #fbfaf5;
+      --surface: #ffffff;
+      --forest: #1e392a;
+      --forest-hover: #15291e;
+      --forest-light: #eef6f0;
+      --border: #e6e3da;
+      --text-main: #1f2823;
+      --text-muted: #6b756e;
+      --accent-green: #2e9e5b;
+      --accent-gold: #c28829;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg-warm);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* TOP NAVIGATION */
+    .landing-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 48px;
+      background: rgba(251, 250, 245, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(230, 227, 218, 0.7);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--forest);
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-logo-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(30, 57, 42, 0.12);
+      border: 1.5px solid rgba(230, 227, 218, 0.9);
+      flex-shrink: 0;
+    }
+
+    .brand-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .nav-links-center {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .nav-links-center a {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 14.5px;
+      font-weight: 600;
+      transition: color 0.2s ease;
+      position: relative;
+    }
+
+    .nav-links-center a:hover {
+      color: var(--forest);
+    }
+
+    .nav-links-center a.nav-link-active {
+      color: var(--forest);
+      font-weight: 700;
+    }
+
+    .nav-links-center a.nav-link-active::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      right: 0;
+      height: 2.5px;
+      background: var(--accent-green);
+      border-radius: 4px;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .btn-nav-login {
+      text-decoration: none;
+      color: var(--forest);
+      font-size: 14px;
+      font-weight: 700;
+      padding: 8px 18px;
+      border-radius: 999px;
+      transition: background 0.2s ease;
+    }
+
+    .btn-nav-login:hover {
+      background: var(--forest-light);
+    }
+
+    .btn-nav-getstarted {
+      text-decoration: none;
+      background: var(--forest);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 10px 22px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 14px rgba(30, 57, 42, 0.2);
+      transition: all 0.2s ease;
+    }
+
+    .btn-nav-getstarted:hover {
+      background: var(--forest-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(30, 57, 42, 0.28);
+    }
+
+    /* HERO HEADER */
+    .hiw-hero {
+      max-width: 900px;
+      margin: 0 auto;
+      text-align: center;
+      padding: 64px 24px 40px;
+    }
+
+    .hiw-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--forest-light);
+      color: var(--forest);
+      border: 1px solid rgba(46, 158, 91, 0.3);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .hiw-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 52px;
+      line-height: 1.15;
+      font-weight: 700;
+      color: var(--forest);
+      letter-spacing: -0.02em;
+      margin-bottom: 18px;
+    }
+
+    .hiw-subtitle {
+      font-size: 19px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* 3-STEP VISUAL TIMELINE */
+    .hiw-timeline-section {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 20px 24px 80px;
+    }
+
+    .hiw-step-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 56px;
+      align-items: center;
+      margin-bottom: 84px;
+      position: relative;
+    }
+
+    .hiw-step-row:nth-child(even) {
+      direction: rtl;
+    }
+
+    .hiw-step-row:nth-child(even) > * {
+      direction: ltr;
+    }
+
+    .hiw-step-content {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .step-number-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      align-self: flex-start;
+      background: var(--surface);
+      border: 1.5px solid var(--accent-green);
+      color: var(--forest);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      padding: 6px 14px;
+      border-radius: 999px;
+      box-shadow: 0 2px 8px rgba(46, 158, 91, 0.15);
+    }
+
+    .step-number-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+    }
+
+    .hiw-step-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 34px;
+      font-weight: 700;
+      color: var(--forest);
+      line-height: 1.25;
+    }
+
+    .hiw-step-desc {
+      font-size: 16px;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    .hiw-feature-bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .hiw-feature-bullets li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 15px;
+      color: var(--text-main);
+      font-weight: 500;
+    }
+
+    .hiw-bullet-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--forest-light);
+      color: var(--accent-green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* VISUAL MOCKUP CARDS */
+    .hiw-mockup-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 28px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .hiw-mockup-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 48px rgba(15, 23, 42, 0.12);
+    }
+
+    .mockup-scanner-frame {
+      background: #0b130e;
+      border-radius: 20px;
+      padding: 20px;
+      color: #ffffff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scanner-viewfinder {
+      height: 200px;
+      border: 2px dashed rgba(52, 211, 153, 0.75);
+      border-radius: 14px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle, rgba(16, 28, 20, 0.8) 0%, rgba(10, 18, 13, 0.98) 100%);
+    }
+
+    .scanner-laser-bar {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      height: 2px;
+      background: #34d399;
+      box-shadow: 0 0 12px #34d399, 0 0 20px rgba(52, 211, 153, 0.8);
+      animation: scanLaserAnim 2.5s ease-in-out infinite;
+    }
+
+    @keyframes scanLaserAnim {
+      0%, 100% { top: 15%; opacity: 0.2; }
+      50% { top: 85%; opacity: 1; }
+    }
+
+    .scanner-detected-card {
+      margin-top: 16px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(52, 211, 153, 0.4);
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .detected-item-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .detected-item-sub {
+      font-size: 11.5px;
+      color: #94a3b8;
+    }
+
+    .detected-badge-fresh {
+      background: rgba(52, 211, 153, 0.2);
+      color: #34d399;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid rgba(52, 211, 153, 0.4);
+    }
+
+    /* MOCKUP 2: EXPIRY TIMELINE & ALERTS */
+    .mockup-alert-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .mockup-push-notification {
+      background: #111a14;
+      border: 1px solid rgba(251, 191, 36, 0.5);
+      border-radius: 16px;
+      padding: 14px 18px;
+      color: #ffffff;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .push-icon {
+      font-size: 22px;
+    }
+
+    .push-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fbbf24;
+      margin-bottom: 2px;
+    }
+
+    .push-body {
+      font-size: 12px;
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+
+    .expiry-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 13px;
+    }
+
+    .expiry-tag-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    .expiry-tag-pill.yellow {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .expiry-tag-pill.green {
+      background: #eef6f0;
+      color: #1e392a;
+    }
+
+    .expiry-tag-pill.red {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* MOCKUP 3: AI RECIPES & SHOPPING LIST */
+    .mockup-dual-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .recipe-recommend-card {
+      background: linear-gradient(135deg, #172a1f 0%, #0d1712 100%);
+      color: #ffffff;
+      border-radius: 16px;
+      padding: 18px;
+      border: 1px solid rgba(52, 211, 153, 0.3);
+    }
+
+    .recipe-card-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #34d399;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .recipe-card-name {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .recipe-meta-strip {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 12px;
+      color: #cbd5e1;
+      margin-top: 10px;
+    }
+
+    .smart-restock-widget {
+      background: var(--forest-light);
+      border: 1px dashed rgba(46, 158, 91, 0.5);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .restock-heading {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--forest);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .restock-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12.5px;
+      color: var(--text-main);
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(230, 227, 218, 0.6);
+    }
+
+    .restock-item:last-child {
+      border-bottom: none;
+    }
+
+    /* QUICK START CTA SECTION */
+    .hiw-cta-card {
+      background: var(--forest);
+      color: #ffffff;
+      border-radius: 32px;
+      padding: 64px 40px;
+      text-align: center;
+      max-width: 1000px;
+      margin: 40px auto 80px;
+      box-shadow: 0 24px 64px rgba(30, 57, 42, 0.25);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hiw-cta-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -20%;
+      width: 140%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(52, 211, 153, 0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .hiw-cta-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 42px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+
+    .hiw-cta-sub {
+      font-size: 18px;
+      color: #cbd5e1;
+      max-width: 620px;
+      margin: 0 auto 32px;
+      line-height: 1.55;
+    }
+
+    .hiw-cta-btn-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .btn-cta-primary {
+      background: var(--accent-green);
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 14px 34px;
+      border-radius: 999px;
+      text-decoration: none;
+      box-shadow: 0 4px 18px rgba(46, 158, 91, 0.45);
+      transition: all 0.2s ease;
+    }
+
+    .btn-cta-primary:hover {
+      background: #25834b;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(46, 158, 91, 0.55);
+    }
+
+    .btn-cta-secondary {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 14px 28px;
+      border-radius: 999px;
+      text-decoration: none;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      transition: all 0.2s ease;
+    }
+
+    .btn-cta-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .hiw-cta-guarantee {
+      margin-top: 24px;
+      font-size: 13px;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    /* FOOTER */
+    .landing-footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 48px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-muted);
+      background: #faf8f2;
+    }
+
+    @media (max-width: 900px) {
+      .landing-nav { padding: 16px 24px; }
+      .nav-links-center { display: none; }
+      .hiw-step-row, .hiw-step-row:nth-child(even) {
+        grid-template-columns: 1fr;
+        gap: 36px;
+        direction: ltr;
+      }
+      .hiw-title { font-size: 38px; }
+      .hiw-cta-title { font-size: 32px; }
+      .hiw-cta-card { padding: 48px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar (Contains only How It Works and Blog per user request) -->
+  <nav class="landing-nav">
+    <a href="landing.html" class="nav-brand">
+      <div class="brand-logo-wrap">
+        <img src="assets/images/brand-logo.png" alt="IntelliPantry Logo" class="brand-logo-img">
+      </div>
+      <span>IntelliPantry</span>
+    </a>
+
+    <div class="nav-links-center">
+      <a href="how-it-works.html" class="nav-link-active">How It Works</a>
+      <a href="blog.html">Blog</a>
+    </div>
+
+    <div class="nav-actions">
+      <a href="login.html" class="btn-nav-login">Sign In</a>
+      <a href="dashboard.html" class="btn-nav-getstarted">Open Pantry ➔</a>
+    </div>
+  </nav>
+
+  <!-- Hero Header -->
+  <header class="hiw-hero">
+    <div class="hiw-badge">🌱 THE INTELLIPANTRY WORKFLOW</div>
+    <h1 class="hiw-title">How Smart Pantry Works</h1>
+    <p class="hiw-subtitle">
+      From grocery bags to zero-waste meals in 3 effortless steps. Track freshness, get intelligent expiry alerts, and cook delicious meals with what you already have.
+    </p>
+  </header>
+
+  <!-- 3-Step Visual Scrollable Timeline -->
+  <main class="hiw-timeline-section">
+
+    <!-- STEP 1: Scanning & Ingestion -->
+    <section class="hiw-step-row" id="step1">
+      <div class="hiw-step-content">
+        <div class="step-number-pill">
+          <span class="step-number-dot"></span>
+          <span>STEP 01 • INGESTION</span>
+        </div>
+        <h2 class="hiw-step-title">Scan Groceries In Seconds. Zero Manual Typing.</h2>
+        <p class="hiw-step-desc">
+          Point your smartphone camera at a barcode, scan a printed supermarket receipt, or snap a quick photo of fresh fruits and vegetables. IntelliPantry's computer vision and OCR engine parse items immediately and assign accurate shelf-life countdowns.
+        </p>
+        <ul class="hiw-feature-bullets">
+          <li>
+            <span class="hiw-bullet-icon">✓</span>
+            <div><strong>Instant Receipt OCR:</strong> Add 20+ items from a supermarket bill in under 2 seconds.</div>
+          </li>
+          <li>
+            <span class="hiw-bullet-icon">✓</span>
+            <div><strong>2.5M+ Barcode Database:</strong> Automatic brand, packaging size, and nutritional detection.</div>
+          </li>
+          <li>
+            <span class="hiw-bullet-icon">✓</span>
+            <div><strong>Auto-Location Mapping:</strong> Groceries are organized into Fridge, Freezer, or Dry Pantry.</div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="hiw-mockup-card">
+        <div class="mockup-scanner-frame">
+          <div class="scanner-viewfinder">
+            <div class="scanner-laser-bar"></div>
+            <span style="font-size:38px; margin-bottom:8px;">📸</span>
+            <span style="font-size:12px; color:#94a3b8; font-weight:600;">Point camera at barcode or receipt</span>
+          </div>
+          <div class="scanner-detected-card">
+            <div>
+              <div class="detected-item-title">🥛 Pure Organic Almond Milk (1L)</div>
+              <div class="detected-item-sub">Fridge • 10 Days Fresh • Auto-logged</div>
+            </div>
+            <span class="detected-badge-fresh">Logged ✓</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 2: Expiry Monitoring & Alerts -->
+    <section class="hiw-step-row" id="step2">
+      <div class="hiw-step-content">
+        <div class="step-number-pill">
+          <span class="step-number-dot"></span>
+          <span>STEP 02 • MONITORING</span>
+        </div>
+        <h2 class="hiw-step-title">Color-Coded Freshness & Proactive Push Alerts</h2>
+        <p class="hiw-step-desc">
+          Never let food spoil quietly in the back of the fridge again. IntelliPantry monitors every expiration date with color-coded timelines and delivers smart push alerts right when it's time to cook.
+        </p>
+        <ul class="hiw-feature-bullets">
+          <li>
+            <span class="hiw-bullet-icon">✓</span>
+            <div><strong>Visual Freshness Gauge:</strong> Green (Optimal), Amber (Use Soon), Red (Expires Tomorrow).</div>
+          </li>
+          <li>
+            <span class="hiw-bullet-icon">✓</span>
+            <div><strong>Smart Cooking Alerts:</strong> Gentle notifications delivered at dinner-prep time (5:30 PM).</div>
+          </li>
+          <li>
+            <span class="hiw-bullet-icon">✓</span>
+            <div><strong>Kitchen Hub Clock Sync:</strong> Live countdown widget displayed on your tablet or screen.</div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="hiw-mockup-card">
+        <div class="mockup-alert-list">
+          <!-- Mobile Push Notification Banner -->
+          <div class="mockup-push-notification">
+            <div class="push-icon">🔔</div>
+            <div>
+              <div class="push-title">IntelliPantry Freshness Alert</div>
+              <div class="push-body">
+                2 items expire tomorrow: <strong>Vine Tomatoes</strong> & <strong>Greek Yogurt</strong>. Tap to view a 15-minute dinner recipe.
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Expiry Rows -->
+          <div class="expiry-item-row">
+            <span>🍅 Vine Tomatoes (4 pcs)</span>
+            <span class="expiry-tag-pill red">Expires Tomorrow</span>
+          </div>
+          <div class="expiry-item-row">
+            <span>🫑 Bell Peppers (3 pcs)</span>
+            <span class="expiry-tag-pill yellow">3 Days Remaining</span>
+          </div>
+          <div class="expiry-item-row">
+            <span>🥕 Crisp Baby Carrots (500g)</span>
+            <span class="expiry-tag-pill green">7 Days Fresh</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 3: Zero-Waste AI Recipes & Smart Restocking -->
+    <section class="hiw-step-row" id="step3">
+      <div class="hiw-step-content">
+        <div class="step-number-pill">
+          <span class="step-number-dot"></span>
+          <span>STEP 03 • ACTION & SAVINGS</span>
+        </div>
+        <h2 class="hiw-step-title">Cook What You Have. Restock What You Need.</h2>
+        <p class="hiw-step-desc">
+          Transform near-expiry ingredients into delicious meals. The AI recipe assistant analyzes your exact pantry inventory to suggest delicious dishes with zero grocery store trips required.
+        </p>
+        <ul class="hiw-feature-bullets">
+          <li>
+            <span class="hiw-bullet-icon">✓</span>
+            <div><strong>100% Pantry Match Recipes:</strong> Prioritizes items before they spoil so food is never wasted.</div>
+          </li>
+          <li>
+            <span class="hiw-bullet-icon">✓</span>
+            <div><strong>Automated Shopping Lists:</strong> Low-stock items automatically flow to your grocery checklist.</div>
+          </li>
+          <li>
+            <span class="hiw-bullet-icon">✓</span>
+            <div><strong>Save ₹3,000+ Monthly:</strong> Cut food waste by up to 50% and eliminate duplicate purchases.</div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="hiw-mockup-card">
+        <div class="mockup-dual-grid">
+          <!-- Recipe Card -->
+          <div class="recipe-recommend-card">
+            <div class="recipe-card-badge">✨ AI ZERO-WASTE CHEF</div>
+            <div class="recipe-card-name">Mediterranean Garden Sauté</div>
+            <p style="font-size:12px; color:#cbd5e1; margin:0;">
+              Uses your expiring vine tomatoes & bell peppers with pantry staples.
+            </p>
+            <div class="recipe-meta-strip">
+              <span>⏱ 15 Mins</span>
+              <span>⚡ 100% Match</span>
+              <span>🌱 Vegetarian</span>
+            </div>
+          </div>
+
+          <!-- Automated Restock Checklist -->
+          <div class="smart-restock-widget">
+            <div class="restock-heading">
+              <span>🛒</span> Smart Restock Checklist
+            </div>
+            <div class="restock-item">
+              <span>Olive Oil (Cold Pressed)</span>
+              <span style="color:#ef4444; font-weight:700; font-size:11px;">Depleted</span>
+            </div>
+            <div class="restock-item">
+              <span>Rolled Oats (1kg)</span>
+              <span style="color:#f59e0b; font-weight:700; font-size:11px;">Low (200g left)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Quick Start Call To Action -->
+  <section class="hiw-cta-card">
+    <h2 class="hiw-cta-title">Ready To Transform Your Kitchen?</h2>
+    <p class="hiw-cta-sub">
+      Experience the simplicity of automated food tracking, zero food waste, and personalized AI meal suggestions.
+    </p>
+    <div class="hiw-cta-btn-row">
+      <a href="dashboard.html" class="btn-cta-primary">Open Pantry Now ➔</a>
+      <a href="login.html" class="btn-cta-secondary">Sign In / Create Account</a>
+    </div>
+    <div class="hiw-cta-guarantee">
+      <span>✨ 100% Free Basic Plan</span>
+      <span>🔒 No Credit Card Required</span>
+      <span>📱 Works on iOS, Android & Desktop</span>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="landing-footer">
+    <p>© 2026 IntelliPantry. Designed for Mobile & Web.</p>
+    <p style="margin-top: 6px; font-size: 13.5px; color: var(--text-muted);">
+      Contact & Support: <a href="mailto:intellipantrynotify@gmail.com" style="color: var(--forest); font-weight: 700; text-decoration: none;">intellipantrynotify@gmail.com</a>
+    </p>
+    <div style="margin-top: 10px;">
+      <a href="dashboard.html" style="color:var(--forest); font-weight:700; text-decoration:none;">Open Pantry Dashboard ➔</a>
+    </div>
+  </footer>
+
+</body>
+</html>
+

@@ -21,7 +21,8 @@
     { "source": "/recipes", "destination": "/dashboard.html" },
     { "source": "/insights", "destination": "/dashboard.html" },
     { "source": "/notifications", "destination": "/dashboard.html" },
-    { "source": "/settings", "destination": "/dashboard.html" },
+    { "source": "/how-it-works", "destination": "/how-it-works.html" },
+    { "source": "/blog", "destination": "/blog.html" },
     { "source": "/landing", "destination": "/landing.html" },
     { "source": "/", "destination": "/landing.html" }
   ],

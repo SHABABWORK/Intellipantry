@@ -38,6 +38,8 @@ Inject-Env (Join-Path $root "landing.html") (Join-Path $dist "index.html")
 Inject-Env (Join-Path $root "landing.html") (Join-Path $dist "landing.html")
 Inject-Env (Join-Path $root "login.html") (Join-Path $dist "login.html")
 Inject-Env (Join-Path $root "dashboard.html") (Join-Path $dist "dashboard.html")
+Inject-Env (Join-Path $root "how-it-works.html") (Join-Path $dist "how-it-works.html")
+Inject-Env (Join-Path $root "blog.html") (Join-Path $dist "blog.html")
 
 if (Test-Path (Join-Path $root "vercel.json")) {
     Copy-Item (Join-Path $root "vercel.json") (Join-Path $dist "vercel.json") -Force
