@@ -1761,7 +1761,7 @@ function selectAppearanceTheme(theme, userClick = true) {
     if (btn) {
       if (t === theme) {
         btn.classList.add("active", "selected");
-        btn.style.borderColor = "#6FAF82";
+        btn.style.borderColor = "#D8C3A5";
         btn.style.borderWidth = "2px";
       } else {
         btn.classList.remove("active", "selected");
@@ -1799,7 +1799,7 @@ function selectLayoutMode(mode, userClick = true) {
     if (mode === 'compact') {
       btnComp.classList.add("active", "selected");
       btnComf.classList.remove("active", "selected");
-      btnComp.style.borderColor = "#6FAF82";
+      btnComp.style.borderColor = "#D8C3A5";
       btnComp.style.borderWidth = "2px";
       btnComf.style.borderColor = "";
       btnComf.style.borderWidth = "";
@@ -1814,7 +1814,7 @@ function selectLayoutMode(mode, userClick = true) {
     } else {
       btnComf.classList.add("active", "selected");
       btnComp.classList.remove("active", "selected");
-      btnComf.style.borderColor = "#6FAF82";
+      btnComf.style.borderColor = "#D8C3A5";
       btnComf.style.borderWidth = "2px";
       btnComp.style.borderColor = "";
       btnComp.style.borderWidth = "";
