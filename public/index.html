@@ -687,6 +687,194 @@
       transform: scale(1.08);
     }
 
+    /* Video Tint & Gradient */
+    .hud-video-overlay-tint {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(9, 13, 11, 0.45) 0%, rgba(9, 13, 11, 0.12) 35%, rgba(9, 13, 11, 0.18) 65%, rgba(9, 13, 11, 0.65) 100%);
+      pointer-events: none;
+    }
+
+    /* Multi-Channel Scene Switcher Inside Video Demo */
+    .hud-vchannel-bar {
+      position: absolute;
+      top: 62px;
+      left: 14px;
+      right: 14px;
+      z-index: 9;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .hud-vchan-btn {
+      background: rgba(10, 18, 13, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+      padding: 5px 12px;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .hud-vchan-btn:hover {
+      color: #ffffff;
+      border-color: rgba(52, 211, 153, 0.6);
+      background: rgba(16, 28, 20, 0.95);
+      transform: translateY(-1px);
+    }
+
+    .hud-vchan-btn.active {
+      background: #2e9e5b;
+      border-color: #2e9e5b;
+      color: #ffffff;
+      box-shadow: 0 2px 10px rgba(46, 158, 91, 0.45);
+    }
+
+    /* Video Tag Box positioning */
+    .hud-video-tags-container {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .hud-video-tags-container .hud-ar-box {
+      pointer-events: auto;
+    }
+
+    .hud-var-box-1 {
+      top: 22%;
+      left: 14%;
+      width: 135px;
+      height: 110px;
+    }
+    .hud-var-box-2 {
+      top: 34%;
+      left: 55%;
+      width: 130px;
+      height: 110px;
+      border-color: rgba(251, 191, 36, 0.75);
+      background: rgba(251, 191, 36, 0.08);
+    }
+    .hud-var-box-2::before, .hud-var-box-2::after {
+      border-color: #fbbf24;
+    }
+    .hud-var-box-2 .hud-ar-tag {
+      border-color: rgba(251, 191, 36, 0.6);
+    }
+    .hud-var-box-3 {
+      top: 56%;
+      left: 32%;
+      width: 130px;
+      height: 95px;
+    }
+
+    /* Purpose Floating Banner above Clock in Video Pane */
+    .hud-vpurpose-card {
+      position: absolute;
+      bottom: 104px;
+      left: 16px;
+      max-width: 320px;
+      background: rgba(10, 18, 13, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(52, 211, 153, 0.4);
+      border-radius: 14px;
+      padding: 10px 14px;
+      z-index: 8;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      pointer-events: none;
+    }
+
+    .vpurpose-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: #34d399;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .vpurpose-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.25;
+      margin-bottom: 2px;
+    }
+
+    .vpurpose-desc {
+      font-size: 11px;
+      color: #cbd5e1;
+      line-height: 1.35;
+      margin: 0;
+    }
+
+    /* Hero "What is this website for" 3-Step Grid */
+    .hero-how-it-works-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 18px 0 22px;
+    }
+
+    .how-step-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
+    }
+
+    .how-step-card:hover {
+      border-color: var(--forest);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(30, 57, 42, 0.08);
+    }
+
+    .how-step-badge {
+      width: 22px;
+      height: 22px;
+      min-width: 22px;
+      border-radius: 50%;
+      background: var(--forest-light);
+      color: var(--forest);
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+
+    .how-step-content strong {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.25;
+      margin-bottom: 2px;
+    }
+
+    .how-step-content span {
+      display: block;
+      font-size: 10.5px;
+      color: var(--text-muted);
+      line-height: 1.25;
+    }
+
     /* Kitchen Hub Digital Display Clock in Hero (Matches User Reference Image Exactly) */
     .kitchen-hub-clock-card {
       background: #ffffff;
@@ -1615,6 +1803,41 @@
       }
       .hud-view-stage { height: 380px; }
       .hud-bottom-telemetry { display: none; }
+      .hero-how-it-works-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      .hud-vchannel-bar {
+        top: 86px;
+        gap: 4px;
+      }
+      .hud-vchan-btn {
+        padding: 4px 9px;
+        font-size: 10px;
+      }
+      .hud-vpurpose-card {
+        bottom: 88px;
+        max-width: 220px;
+        padding: 6px 10px;
+      }
+      .vpurpose-desc {
+        display: none;
+      }
+      .hud-var-box-1 {
+        top: 18%;
+        left: 8%;
+        width: 115px;
+        height: 85px;
+      }
+      .hud-var-box-2 {
+        top: 32%;
+        left: 48%;
+        width: 115px;
+        height: 85px;
+      }
+      .hud-var-box-3 {
+        display: none;
+      }
       .hero-hud-cta-pill {
         bottom: 12px;
         left: 12px;
@@ -1686,16 +1909,41 @@
       <h1 class="hero-title">Good Food<br>Lasts Longer</h1>
       <div class="hero-subtitle">Track. Organize. Reduce Waste.</div>
       <p class="hero-description">
-        Smart Pantry helps you manage your food, get timely alerts and build a more sustainable lifestyle.
+        IntelliPantry is your intelligent kitchen manager. Track fridge & pantry ingredients, get smart alerts before food expires, and cook delicious zero-waste meals using what you already have.
       </p>
+
+      <!-- 3-Step Interactive "What is this website for" Feature Grid -->
+      <div class="hero-how-it-works-grid">
+        <div class="how-step-card" onclick="switchHudMode('ai')" title="Click to view AI Vision scanner">
+          <div class="how-step-badge">1</div>
+          <div class="how-step-content">
+            <strong>Scan & Log Groceries</strong>
+            <span>Receipt, barcode or photo in seconds</span>
+          </div>
+        </div>
+        <div class="how-step-card" onclick="switchHudMode('video'); switchVideoChannel('pantry');" title="Click to view Freshness & Expiry Tracking Demo">
+          <div class="how-step-badge">2</div>
+          <div class="how-step-content">
+            <strong>Track Expiry & Freshness</strong>
+            <span>Smart alerts before food spoils</span>
+          </div>
+        </div>
+        <div class="how-step-card" onclick="switchHudMode('video'); switchVideoChannel('cooking');" title="Click to view Zero-Waste AI Kitchen Demo">
+          <div class="how-step-badge">3</div>
+          <div class="how-step-content">
+            <strong>Cook Zero-Waste Meals</strong>
+            <span>AI recipes with what you have</span>
+          </div>
+        </div>
+      </div>
 
       <div class="hero-buttons-row">
         <a href="dashboard.html" class="btn-hero-primary">
           Open Pantry Now ➔
         </a>
-        <a href="#features" class="btn-hero-video">
-          <span class="play-icon">✨</span> What's Included
-        </a>
+        <button type="button" class="btn-hero-video" onclick="switchHudMode('video')" title="Watch Smart Pantry Interactive Video Demo">
+          <span class="play-icon">▶</span> Watch Video Demo
+        </button>
       </div>
 
       <!-- Real-Time Metrics (10K+ Active Users removed per user request) -->
@@ -1815,15 +2063,61 @@
 
           <!-- PANE 3: SMART PANTRY VIDEO DEMO -->
           <div class="hud-view-pane" id="paneVideo">
-            <video id="heroPromoVideo" class="hud-video-player" loop muted playsinline poster="assets/images/smart-pantry-hud.png">
+            <video id="heroPromoVideo" class="hud-video-player" loop muted playsinline poster="assets/images/pantry-video-poster.jpg" data-active-src="assets/videos/pantry-promo.mp4">
               <source src="assets/videos/pantry-promo.mp4" type="video/mp4">
               <source src="assets/pantry-promo.mp4" type="video/mp4">
-              <img src="assets/images/smart-pantry-hud.png" alt="Smart Pantry Video Preview" class="hud-bg-img">
+              <img src="assets/images/pantry-video-poster.jpg" alt="Smart Pantry Video Preview" class="hud-bg-img">
             </video>
             
+            <!-- Video Dark Gradient Overlay for High Contrast -->
+            <div class="hud-video-overlay-tint"></div>
+
+            <!-- Multi-Channel Scene Switcher Inside Video -->
+            <div class="hud-vchannel-bar" role="tablist" aria-label="Smart Pantry Demo Channels">
+              <button class="hud-vchan-btn active" id="vchanPantry" onclick="switchVideoChannel('pantry', event)" title="Channel 1: Fresh Produce & Expiry Tracking">
+                <span>🥗</span> Fresh Pantry
+              </button>
+              <button class="hud-vchan-btn" id="vchanCooking" onclick="switchVideoChannel('cooking', event)" title="Channel 2: Zero-Waste AI Cooking">
+                <span>🍳</span> AI Cooking
+              </button>
+              <button class="hud-vchan-btn" id="vchanShelves" onclick="switchVideoChannel('shelves', event)" title="Channel 3: Smart Restock & Grocery Savings">
+                <span>🛒</span> Smart Restock
+              </button>
+            </div>
+
+            <!-- AR Computer Vision Tags Overlaid on Video -->
+            <div class="hud-video-tags-container" id="videoTagsContainer">
+              <div class="hud-ar-box hud-var-box-1" id="vtagBox1" title="Detected Produce">
+                <div class="hud-ar-tag" id="vtag1">
+                  <span class="hud-tag-dot green" id="vtagDot1"></span>
+                  <span id="vtagText1">🫑 Bell Peppers • 4 Days Left</span>
+                </div>
+              </div>
+              <div class="hud-ar-box hud-var-box-2" id="vtagBox2" title="Freshness Tracking">
+                <div class="hud-ar-tag" id="vtag2">
+                  <span class="hud-tag-dot yellow" id="vtagDot2"></span>
+                  <span id="vtagText2">🍅 Vine Tomatoes • 2 Days Left</span>
+                </div>
+              </div>
+              <div class="hud-ar-box hud-var-box-3" id="vtagBox3" title="Crisp Produce">
+                <div class="hud-ar-tag" id="vtag3">
+                  <span class="hud-tag-dot green" id="vtagDot3"></span>
+                  <span id="vtagText3">🥕 Crisp Carrots • 7 Days Left</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Floating Video Purpose Banner (Positioned above the clock) -->
+            <div class="hud-vpurpose-card" id="hudVpurposeCard">
+              <div class="vpurpose-tag" id="vpurposeTag">💡 HOW INTELLIPANTRY WORKS</div>
+              <div class="vpurpose-title" id="vpurposeTitle">Real-Time Kitchen Shelf-Life Tracking</div>
+              <p class="vpurpose-desc" id="vpurposeDesc">Computer vision detects ingredients, tracks expiry dates, and alerts you before food spoils.</p>
+            </div>
+
+            <!-- Video Player Controls -->
             <div class="hud-video-controls">
               <button class="hud-video-btn" id="btnVideoPlayPause" onclick="toggleHeroVideoPlay(event)" title="Play / Pause">
-                ▶
+                ⏸
               </button>
               <button class="hud-video-btn" id="btnVideoMute" onclick="toggleHeroVideoMute(event)" title="Mute / Unmute">
                 🔇
@@ -2302,6 +2596,48 @@
   </footer>
 
   <script>
+    // Video Channel Definitions for Smart Pantry Interactive Demo
+    const VIDEO_CHANNELS = {
+      pantry: {
+        src: 'assets/videos/pantry-promo.mp4',
+        status: 'SMART PANTRY DEMO',
+        tag: '💡 STEP 1: SCAN & TRACK FRESHNESS',
+        title: 'Real-Time Kitchen Shelf-Life Tracking',
+        desc: 'Computer vision identifies produce, sets countdown timers, and alerts you before food spoils.',
+        boxes: [
+          { dot: 'green', text: '🫑 Bell Peppers • 4 Days Left', top: '22%', left: '14%', w: '135px', h: '110px' },
+          { dot: 'yellow', text: '🍅 Vine Tomatoes • 2 Days Left', top: '34%', left: '55%', w: '130px', h: '110px' },
+          { dot: 'green', text: '🥕 Crisp Carrots • 7 Days Left', top: '56%', left: '32%', w: '130px', h: '95px' }
+        ]
+      },
+      cooking: {
+        src: 'assets/videos/recipe-cooking.mp4',
+        status: 'AI RECIPE COOKING',
+        tag: '🍳 STEP 2: ZERO-WASTE AI KITCHEN',
+        title: 'Cook Gourmet Meals with What You Have',
+        desc: 'Chef-crafted AI recipes match exactly what is in your fridge so no ingredient is ever thrown away.',
+        boxes: [
+          { dot: 'green', text: '🍲 Garden Veggie Stir-Fry', top: '22%', left: '16%', w: '145px', h: '110px' },
+          { dot: 'green', text: '⚡ 100% Pantry Match • 0 Waste', top: '34%', left: '48%', w: '140px', h: '110px' },
+          { dot: 'yellow', text: '⏱ Ready in 15 Minutes', top: '56%', left: '30%', w: '135px', h: '95px' }
+        ]
+      },
+      shelves: {
+        src: 'assets/videos/grocery-shelves.mp4',
+        status: 'SMART RESTOCK',
+        tag: '🛒 STEP 3: AUTOMATED GROCERY SAVINGS',
+        title: 'Shop Smarter & Cut Monthly Grocery Bills',
+        desc: 'Auto-generates restock lists so you only buy what you need, saving ₹3,000+ every month.',
+        boxes: [
+          { dot: 'green', text: '📋 Auto-Generated Grocery List', top: '22%', left: '14%', w: '150px', h: '110px' },
+          { dot: 'yellow', text: '📉 Zero Overbuying Waste', top: '34%', left: '52%', w: '135px', h: '110px' },
+          { dot: 'green', text: '💰 Save ₹3,000/mo on Groceries', top: '56%', left: '26%', w: '145px', h: '95px' }
+        ]
+      }
+    };
+
+    let currentVideoChannel = 'pantry';
+
     // Smart Pantry HUD & Video View Mode Switcher
     function switchHudMode(mode) {
       const panes = {
@@ -2328,16 +2664,81 @@
       if (statusText) {
         if (mode === 'ai') statusText.textContent = 'LIVE AR HUD';
         else if (mode === 'mobile') statusText.textContent = 'MOBILE SYNC';
-        else if (mode === 'video') statusText.textContent = 'VIDEO DEMO';
+        else if (mode === 'video') {
+          const channel = VIDEO_CHANNELS[currentVideoChannel];
+          statusText.textContent = channel ? channel.status : 'SMART PANTRY DEMO';
+        }
       }
 
       if (video) {
         if (mode === 'video') {
-          video.play().catch(() => {});
-          const playBtn = document.getElementById('btnVideoPlayPause');
-          if (playBtn) playBtn.textContent = '⏸';
+          video.play().then(() => {
+            const playBtn = document.getElementById('btnVideoPlayPause');
+            if (playBtn) playBtn.textContent = '⏸';
+          }).catch(() => {});
         } else {
           video.pause();
+          const playBtn = document.getElementById('btnVideoPlayPause');
+          if (playBtn) playBtn.textContent = '▶';
+        }
+      }
+    }
+
+    function switchVideoChannel(channelKey, e) {
+      if (e) e.stopPropagation();
+      const channel = VIDEO_CHANNELS[channelKey];
+      if (!channel) return;
+      currentVideoChannel = channelKey;
+
+      // Update Channel Buttons
+      document.querySelectorAll('.hud-vchan-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById('vchan' + channelKey.charAt(0).toUpperCase() + channelKey.slice(1));
+      if (activeBtn) activeBtn.classList.add('active');
+
+      // Update HUD Status Badge
+      const statusText = document.getElementById('hudStatusText');
+      if (statusText) statusText.textContent = channel.status;
+
+      // Update Purpose Banner
+      const pTag = document.getElementById('vpurposeTag');
+      const pTitle = document.getElementById('vpurposeTitle');
+      const pDesc = document.getElementById('vpurposeDesc');
+      if (pTag) pTag.textContent = channel.tag;
+      if (pTitle) pTitle.textContent = channel.title;
+      if (pDesc) pDesc.textContent = channel.desc;
+
+      // Update AR Boxes
+      channel.boxes.forEach((b, idx) => {
+        const num = idx + 1;
+        const boxEl = document.getElementById('vtagBox' + num);
+        const dotEl = document.getElementById('vtagDot' + num);
+        const textEl = document.getElementById('vtagText' + num);
+        if (boxEl) {
+          boxEl.style.top = b.top;
+          boxEl.style.left = b.left;
+          boxEl.style.width = b.w;
+          boxEl.style.height = b.h;
+        }
+        if (dotEl) {
+          dotEl.className = 'hud-tag-dot ' + b.dot;
+        }
+        if (textEl) {
+          textEl.textContent = b.text;
+        }
+      });
+
+      // Update Video Element Source and Play
+      const video = document.getElementById('heroPromoVideo');
+      if (video) {
+        const currentSrc = video.getAttribute('data-active-src') || '';
+        if (currentSrc !== channel.src) {
+          video.setAttribute('data-active-src', channel.src);
+          video.src = channel.src;
+          video.load();
+          video.play().then(() => {
+            const playBtn = document.getElementById('btnVideoPlayPause');
+            if (playBtn) playBtn.textContent = '⏸';
+          }).catch(() => {});
         }
       }
     }
@@ -2348,8 +2749,9 @@
       const btn = document.getElementById('btnVideoPlayPause');
       if (!video) return;
       if (video.paused) {
-        video.play();
-        if (btn) btn.textContent = '⏸';
+        video.play().then(() => {
+          if (btn) btn.textContent = '⏸';
+        }).catch(() => {});
       } else {
         video.pause();
         if (btn) btn.textContent = '▶';
