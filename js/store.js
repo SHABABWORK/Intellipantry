@@ -803,20 +803,49 @@ class PantryStore {
     };
 
     // Direct INSERT into Supabase PostgreSQL (Single Source of Truth)
-    const activeUserId = window.supabaseService ? await window.supabaseService.getAuthenticatedUserId(this.userId) : this.userId;
+    let activeUserId = this.userId;
+    if (!activeUserId || activeUserId === 'guest_pantry_user') {
+      if (window.supabaseService) {
+        activeUserId = await window.supabaseService.getAuthenticatedUserId(this.userId);
+      }
+    }
+    if (!activeUserId || activeUserId === 'guest_pantry_user') {
+      const u = getCurrentUserInfo();
+      if (u && u.id && u.id !== 'guest_pantry_user') activeUserId = u.id;
+    }
+
     if (!activeUserId || activeUserId === 'guest_pantry_user') {
       if (typeof showToast === 'function') {
         showToast("Authentication required. Please log in.", "error");
       }
       throw new Error("User is not authenticated. Cannot add item.");
     }
+    this.userId = activeUserId;
 
-    const saved = await window.supabaseService.insertProduct(newItem, activeUserId);
-    if (!saved || !saved.id) {
-      throw new Error("Failed to insert item into Supabase.");
+    // Immediately put optimistic item into in-memory store for instant UI response
+    const tempId = newItem.id || ((typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('prod_' + Date.now()));
+    const optimisticItem = { ...newItem, id: tempId };
+    this.items = [optimisticItem, ...this.items.filter(i => String(i.id) !== String(tempId))];
+    this.syncAlertsFromPantry();
+    this.notify();
+
+    let saved = null;
+    try {
+      saved = await window.supabaseService.insertProduct(newItem, activeUserId);
+      if (!saved || !saved.id) {
+        throw new Error("Failed to insert item into Supabase.");
+      }
+    } catch (insertErr) {
+      console.error("[PantryStore] Supabase insertProduct error:", insertErr);
+      // Revert optimistic item upon database error
+      this.items = this.items.filter(i => String(i.id) !== String(tempId));
+      this.syncAlertsFromPantry();
+      this.notify();
+      throw insertErr;
     }
 
-    // Immediately put the confirmed Supabase item into in-memory store so it displays instantly
+    // Replace optimistic item with confirmed Supabase record
+    this.items = this.items.map(i => String(i.id) === String(tempId) ? saved : i);
     if (!this.items.some(i => String(i.id) === String(saved.id))) {
       this.items = [saved, ...this.items];
     }

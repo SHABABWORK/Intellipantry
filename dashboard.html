@@ -59,26 +59,24 @@
           await window.SupabaseConfig.readyPromise;
         }
 
-        if (!window.supabaseService || !window.supabaseService.isReady()) {
-          // Supabase service unavailable or unconfigured: redirect to login
-          localStorage.removeItem('smartpantry_token');
-          localStorage.removeItem('smartpantry_user');
-          window.location.replace('login.html');
-          return;
+        if (window.supabaseService && !window.supabaseService.isReady()) {
+          try { window.supabaseService.init(); } catch (e) {}
         }
 
         // If OAuth/magic code is in URL, exchange for session
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
         if (code) {
-          await window.supabaseService.exchangeCodeForSession(code);
+          if (window.supabaseService) {
+            await window.supabaseService.exchangeCodeForSession(code);
+          }
           window.history.replaceState({}, document.title, window.location.pathname);
         }
 
         // If confirmation access token is in the hash, allow Supabase client to parse and store it
         if (hash.includes('access_token=')) {
           for (let i = 0; i < 6; i++) {
-            const tempSession = await window.supabaseService.getSession();
+            const tempSession = window.supabaseService ? await window.supabaseService.getSession() : null;
             if (tempSession && tempSession.user) break;
             await new Promise(r => setTimeout(r, 80));
           }
@@ -94,38 +92,48 @@
         } catch (e) {}
 
         let guardUser = (guardSession && guardSession.user) ? guardSession.user : null;
-        try {
-          if (window.supabaseClient && window.supabaseClient.auth) {
-            const { data: { user }, error: userErr } = await window.supabaseClient.auth.getUser();
-            if (user && !userErr && user.id) {
-              guardUser = user;
+        if (!guardUser) {
+          try {
+            if (window.supabaseClient && window.supabaseClient.auth) {
+              const { data: { user }, error: userErr } = await window.supabaseClient.auth.getUser();
+              if (user && !userErr && user.id) {
+                guardUser = user;
+              }
             }
-          }
-        } catch (e) {}
+          } catch (e) {}
+        }
+
+        // Fallback: Check locally saved user session before any redirect
+        if (!guardUser || !guardUser.id) {
+          try {
+            const rawUser = localStorage.getItem('smartpantry_user');
+            if (rawUser) {
+              const parsed = JSON.parse(rawUser);
+              if (parsed && parsed.id && parsed.id !== 'guest_pantry_user') {
+                guardUser = parsed;
+              }
+            }
+          } catch (e) {}
+        }
 
         if (!guardUser || !guardUser.id) {
-          // Unauthenticated visitor:
+          // Truly unauthenticated visitor
+          sessionStorage.setItem('auth_redirect_from_dashboard', '1');
           localStorage.removeItem('smartpantry_token');
           localStorage.removeItem('smartpantry_user');
-          window.location.replace('login.html');
+          window.location.replace('login.html?mode=login');
           return;
         }
 
-        // Authenticated: Check if email is verified
-        const isEmailConfirmed = Boolean(guardUser.email_confirmed_at || guardUser.confirmed_at);
-        if (!isEmailConfirmed) {
-          // Unverified user: redirect to dedicated OTP verification screen
-          localStorage.removeItem('smartpantry_token');
-          localStorage.removeItem('smartpantry_user');
-          window.location.replace('login.html?verify=1&email=' + encodeURIComponent(guardUser.email || ''));
-          return;
-        }
+        // Authenticated: Keep user in dashboard, do not kick out
+        sessionStorage.removeItem('auth_redirect_from_dashboard');
+        const isEmailConfirmed = Boolean(guardUser.email_confirmed_at || guardUser.confirmed_at || guardUser.emailVerified);
 
         const userObj = {
           id: guardUser.id,
           email: guardUser.email,
-          name: guardUser.user_metadata?.full_name || (guardUser.email ? guardUser.email.split('@')[0] : 'Pantry Chef'),
-          emailVerified: true
+          name: guardUser.user_metadata?.full_name || guardUser.name || (guardUser.email ? guardUser.email.split('@')[0] : 'Pantry Chef'),
+          emailVerified: isEmailConfirmed
         };
         if (guardSession && guardSession.access_token) {
           localStorage.setItem('smartpantry_token', guardSession.access_token);
@@ -150,7 +158,8 @@
           hasLocalToken = Boolean(localStorage.getItem('smartpantry_token') || localStorage.getItem('smartpantry_user'));
         } catch(e) {}
         if (!hasLocalToken) {
-          window.location.replace('login.html');
+          sessionStorage.setItem('auth_redirect_from_dashboard', '1');
+          window.location.replace('login.html?mode=login');
         } else {
           document.documentElement.style.visibility = 'visible';
         }
@@ -4821,13 +4830,25 @@ async function initDashboardAuthAndUser() {
     }
 
     if (!confirmedUser || !confirmedUser.id) {
+      try {
+        const raw = localStorage.getItem('smartpantry_user');
+        if (raw) {
+          const u = JSON.parse(raw);
+          if (u && u.id && u.id !== 'guest_pantry_user') confirmedUser = u;
+        }
+      } catch (e) {}
+    }
+
+    if (!confirmedUser || !confirmedUser.id) {
       console.warn("[Dashboard Auth] No confirmed Supabase user found. Redirecting to login.");
+      sessionStorage.setItem('auth_redirect_from_dashboard', '1');
       localStorage.removeItem('smartpantry_user');
       localStorage.removeItem('smartpantry_token');
-      window.location.replace('login.html');
+      window.location.replace('login.html?mode=login');
       return;
     }
 
+    sessionStorage.removeItem('auth_redirect_from_dashboard');
     const userId = confirmedUser.id;
     const config = window.SupabaseConfig ? window.SupabaseConfig.get() : { url: '' };
     console.log(`[Dashboard Auth] Authenticated user confirmed: ${userId} (Email: ${confirmedUser.email}) on Project: ${config.url}`);
@@ -4836,9 +4857,9 @@ async function initDashboardAuthAndUser() {
     const authUser = {
       id: userId,
       email: confirmedUser.email,
-      name: (profile && profile.full_name) || (confirmedUser.user_metadata && confirmedUser.user_metadata.full_name) || formatNameFromEmail(confirmedUser.email),
+      name: (profile && profile.full_name) || (confirmedUser.user_metadata && confirmedUser.user_metadata.full_name) || confirmedUser.name || formatNameFromEmail(confirmedUser.email),
       avatar_url: (profile && profile.avatar_url) || null,
-      emailVerified: Boolean(confirmedUser.email_confirmed_at || confirmedUser.confirmed_at)
+      emailVerified: Boolean(confirmedUser.email_confirmed_at || confirmedUser.confirmed_at || confirmedUser.emailVerified)
     };
     localStorage.setItem('smartpantry_user', JSON.stringify(authUser));
     if (currentSession && currentSession.access_token) {
@@ -4858,12 +4879,13 @@ async function initDashboardAuthAndUser() {
     window.supabaseService.onAuthStateChange(async (event, currentSession) => {
       console.log(`[Supabase Auth Event] ${event}`);
       if (event === 'SIGNED_OUT') {
+        sessionStorage.setItem('auth_redirect_from_dashboard', '1');
         localStorage.removeItem('smartpantry_user');
         localStorage.removeItem('smartpantry_token');
         if (window.store) {
           window.store.clearUserSession();
         }
-        window.location.replace('login.html');
+        window.location.replace('login.html?mode=login');
       } else if (event === 'SIGNED_IN') {
         if (currentSession && currentSession.user) {
           const uId = currentSession.user.id;
@@ -4911,7 +4933,8 @@ async function initDashboardAuthAndUser() {
       hasLocalToken = Boolean(localStorage.getItem('smartpantry_token') || localStorage.getItem('smartpantry_user'));
     } catch(e) {}
     if (!hasLocalToken) {
-      window.location.replace('login.html');
+      sessionStorage.setItem('auth_redirect_from_dashboard', '1');
+      window.location.replace('login.html?mode=login');
     } else {
       document.documentElement.style.visibility = 'visible';
     }

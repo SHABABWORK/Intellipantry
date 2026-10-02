@@ -776,7 +776,9 @@
       // ingredients, serving_information, nutrition_information, quantity, unit,
       // purchase_date, expiry_date, minimum_stock, current_stock, consumption_rate, price
       const cleanDate = (d) => {
-        if (!d || typeof d !== 'string') return null;
+        if (!d) return null;
+        if (d instanceof Date) return !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : null;
+        if (typeof d !== 'string') return null;
         const trimmed = d.trim();
         if (!trimmed || trimmed === 'null' || trimmed === 'undefined') return null;
         if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return trimmed.substring(0, 10);
@@ -817,14 +819,20 @@
         expiry_date: expiryVal,
         minimum_stock: minStockVal,
         current_stock: currentStockVal,
-        consumption_rate: productData.consumption_rate !== undefined && productData.consumption_rate !== null ? Number(productData.consumption_rate) : null,
+        consumption_rate: (!isNaN(Number(productData.consumption_rate)) && productData.consumption_rate !== null && productData.consumption_rate !== '') ? Number(productData.consumption_rate) : null,
         price: priceVal
       };
 
-      if (productData.id && typeof productData.id === 'string' && productData.id.includes('-') && productData.id.length >= 30) {
+      if (productData.id && this.isUUID(productData.id)) {
         pantryItemRecord.id = productData.id;
       } else if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-        pantryItemRecord.id = crypto.randomUUID();
+        try {
+          pantryItemRecord.id = crypto.randomUUID();
+        } catch (e) {
+          delete pantryItemRecord.id;
+        }
+      } else {
+        delete pantryItemRecord.id;
       }
 
       console.log(`[Supabase DB] INSERT into public.pantry_items for user: ${effectiveUserId} on project: ${config.url}`, {

@@ -2774,6 +2774,8 @@
 
           const res = await window.supabaseService.signIn(email, password);
           if (res.success && res.user) {
+            sessionStorage.removeItem('auth_redirect_from_dashboard');
+            sessionStorage.removeItem('last_nav_to_dashboard');
             localStorage.setItem('smartpantry_token', res.session?.access_token || 'cloud_token');
             localStorage.setItem('smartpantry_user', JSON.stringify(res.user));
             showAlert('authAlert', `✓ Welcome back, ${res.user.name || 'Chef'}! Opening pantry...`, 'success');
@@ -3087,33 +3089,42 @@
 
       // Check if user already authenticated
       try {
+        const redirectedFromDashboard = sessionStorage.getItem('auth_redirect_from_dashboard') === '1';
+        const isExplicitMode = urlParams.has('login') || urlParams.has('signup') || urlParams.has('verify') || urlParams.has('mode') || urlParams.has('logout');
+
+        if (redirectedFromDashboard || isExplicitMode) {
+          console.log("[Login Guard] Suppressing auto-redirect to dashboard (explicit mode or dashboard redirect).");
+          sessionStorage.removeItem('auth_redirect_from_dashboard');
+          if (urlParams.get('logout') === '1') {
+            try {
+              if (window.supabaseService) window.supabaseService.signOut();
+            } catch(e) {}
+          }
+          return;
+        }
+
         if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
           await window.SupabaseConfig.readyPromise;
         }
         if (window.supabaseService && window.supabaseService.isReady()) {
           const session = await window.supabaseService.getSession();
           if (session && session.user && !hash.includes('type=recovery')) {
-            const isConfirmed = Boolean(session.user.email_confirmed_at || session.user.confirmed_at);
-            const userObj = {
-              id: session.user.id,
-              email: session.user.email,
-              name: session.user.user_metadata?.full_name || session.user.email.split('@')[0] || 'Pantry Chef',
-              emailVerified: isConfirmed
-            };
-            if (isConfirmed) {
-              const lastNav = parseInt(sessionStorage.getItem('last_nav_to_dashboard') || '0', 10);
-              const now = Date.now();
-              if (now - lastNav < 3000) {
-                console.warn("[Login Loop Guard] Rapid bounce detected, stopping auto-redirect to avoid loop.");
-                sessionStorage.removeItem('last_nav_to_dashboard');
-              } else {
-                sessionStorage.setItem('last_nav_to_dashboard', String(now));
-                localStorage.setItem('smartpantry_token', session.access_token);
-                localStorage.setItem('smartpantry_user', JSON.stringify(userObj));
-                navigateToDashboard();
-              }
-            } else if (currentAuthMode !== 'verify') {
-              setAuthMode('verify', session.user.email);
+            const lastNav = parseInt(sessionStorage.getItem('last_nav_to_dashboard') || '0', 10);
+            const now = Date.now();
+            if (now - lastNav < 10000) {
+              console.warn("[Login Loop Guard] Recent navigation detected, staying on login screen.");
+            } else {
+              sessionStorage.setItem('last_nav_to_dashboard', String(now));
+              const isConfirmed = Boolean(session.user.email_confirmed_at || session.user.confirmed_at);
+              const userObj = {
+                id: session.user.id,
+                email: session.user.email,
+                name: session.user.user_metadata?.full_name || (session.user.email ? session.user.email.split('@')[0] : 'Pantry Chef'),
+                emailVerified: isConfirmed
+              };
+              localStorage.setItem('smartpantry_token', session.access_token);
+              localStorage.setItem('smartpantry_user', JSON.stringify(userObj));
+              navigateToDashboard();
             }
           }
         }
