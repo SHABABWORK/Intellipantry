@@ -2020,36 +2020,44 @@ html.dark-theme .scanner-mini-footer-tip {
   stroke: #ffffff;
 }
 
-/* Tablet Layout (<= 1100px) */
-@media (max-width: 1100px) {
+/* Tablet Layout (769px to 1100px): Maintain docked 2-column sidebar */
+@media (min-width: 769px) and (max-width: 1100px) {
   .dashboard-grid {
-    flex-direction: column;
-    padding: 16px;
-    gap: 20px;
+    display: flex !important;
+    flex-direction: row !important;
+    padding: 16px 20px !important;
+    gap: 20px !important;
+    align-items: flex-start !important;
   }
   .left-sidebar {
-    width: 100%;
-    order: 1;
+    width: 220px !important;
+    min-width: 220px !important;
+    max-width: 220px !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    position: sticky !important;
+    top: 86px !important;
   }
   .nav-group {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-direction: column !important;
+    gap: 4px !important;
   }
   .nav-link {
-    padding: 8px 14px;
-    font-size: 13px;
+    padding: 9px 12px !important;
+    font-size: 13px !important;
   }
   .center-content {
-    order: 2;
-    width: 100%;
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    width: auto !important;
   }
   .right-column {
-    order: 3;
-    width: 100%;
+    display: none !important;
   }
   .metrics-row {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
   }
 }
 
@@ -7134,31 +7142,113 @@ html.dark-theme .kh-status-text {
   transform: translateY(-2px);
 }
 
-/* ==========================================
-   RESPONSIVE MEDIA QUERIES
-   ========================================== */
-/* Hide mobile bottom navigation bar on desktop */
+/* ========================================================
+   RESPONSIVE DESIGN: DOCKED DESKTOP SIDEBAR + MOBILE DRAWER
+   ======================================================== */
+
+/* Desktop & Tablet Screens (>= 769px): Permanently docked sidebar adjacent to content */
 @media (min-width: 769px) {
-  .mobile-bottom-nav {
+  /* Permanently dock left navigation sidebar */
+  .left-sidebar {
+    position: sticky !important;
+    top: 86px !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    width: 250px !important;
+    min-width: 250px !important;
+    max-width: 250px !important;
+    flex-shrink: 0 !important;
+    height: auto !important;
+    min-height: calc(100vh - 110px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    padding: 20px 16px !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border-right: 1px solid var(--border-subtle) !important;
+    z-index: 10 !important;
+    overflow-y: visible !important;
+  }
+
+  /* Dark mode docked sidebar on desktop */
+  body.dark-mode .left-sidebar,
+  html.dark-theme .left-sidebar,
+  body.dark-theme .left-sidebar {
+    background: #151922 !important;
+    border-right-color: #2A303A !important;
+  }
+
+  /* Remove 'x' close button and 'Menu Navigation' header on desktop */
+  .sidebar-mobile-header {
+    display: none !important;
+  }
+
+  /* Hide mobile-specific navigation controls on desktop */
+  .sidebar-backdrop {
     display: none !important;
   }
   .mobile-menu-btn {
     display: none !important;
   }
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+
+  /* Main container: 2-column flex layout (sidebar on left, content on right) */
+  .dashboard-grid {
+    display: flex !important;
+    flex-direction: row !important;
+    width: 100% !important;
+    max-width: 1600px !important;
+    margin: 0 auto !important;
+    padding: 20px 24px !important;
+    gap: 24px !important;
+    align-items: flex-start !important;
+  }
+
+  /* Main dashboard container adjusts width to sit adjacent to sidebar, never obscured underneath */
+  .center-content {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+
+  /* Dashboard overview cards ('Total Items', 'Expiring Soon', etc.) shift to the right */
+  .metrics-row {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 16px !important;
+  }
+
+  .quick-actions-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 16px !important;
+  }
 }
 
-/* Tablet adjustments */
-@media (max-width: 1024px) {
-  .dashboard-grid {
-    gap: 20px;
-    padding: 16px;
-  }
+/* Tablet Screens (769px to 1024px): Responsive card adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
   .left-sidebar {
-    width: 210px;
+    width: 220px !important;
+    min-width: 220px !important;
+    max-width: 220px !important;
+    padding: 16px 12px !important;
+  }
+  .dashboard-grid {
+    padding: 16px 16px !important;
+    gap: 16px !important;
   }
   .metrics-row,
   .quick-actions-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
   }
   .modal-form-cols {
     grid-template-columns: 1fr;
@@ -7168,11 +7258,13 @@ html.dark-theme .kh-status-text {
   }
 }
 
-/* Mobile adjustments (Preserve existing mobile behavior) */
+/* Mobile Screens (<= 768px): Keep floating drawer behavior */
 @media (max-width: 768px) {
   .main-topbar {
     padding: 0 16px;
   }
+
+  /* Topbar Hamburger Menu Button */
   .mobile-menu-btn {
     display: flex !important;
     align-items: center;
@@ -7185,55 +7277,182 @@ html.dark-theme .kh-status-text {
     font-size: 18px;
     cursor: pointer;
     margin-right: 12px;
+    color: var(--text-dark);
   }
+
+  /* Mobile Drawer Header with Close Button */
+  .sidebar-mobile-header {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0 14px 0;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .sidebar-mobile-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-dark);
+    letter-spacing: -0.2px;
+  }
+
+  .sidebar-close-btn {
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    cursor: pointer;
+    color: var(--text-dark);
+    transition: all 0.2s ease;
+  }
+
+  .sidebar-close-btn:hover,
+  .sidebar-close-btn:active {
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  /* Mobile slide-out floating drawer */
   .left-sidebar {
-    position: fixed;
-    top: 0;
-    left: -280px;
-    width: 270px;
-    height: 100vh;
-    background: #ffffff;
-    z-index: 1000;
-    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
-    padding: 24px 18px;
-    transition: left 0.3s ease;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 280px !important;
+    max-width: 85vw !important;
+    height: 100vh !important;
+    background: #ffffff !important;
+    z-index: 1000 !important;
+    box-shadow: 8px 0 30px rgba(0, 0, 0, 0.2) !important;
+    padding: 20px 18px !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    overflow-y: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+    border-right: none !important;
   }
+
   .left-sidebar.drawer-open {
-    left: 0;
+    transform: translateX(0) !important;
   }
+
+  /* Backdrop overlay on mobile */
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .sidebar-backdrop.active {
+    display: block !important;
+    opacity: 1 !important;
+  }
+
   .dashboard-grid {
-    padding: 14px 14px 84px 14px;
-    gap: 16px;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 14px 14px 84px 14px !important;
+    gap: 16px !important;
   }
+
+  .center-content {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
   .metrics-row {
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
   }
+
   .quick-actions-grid {
     grid-template-columns: 1fr 1fr;
     gap: 12px;
   }
+
   .recipe-kitchen-hero-banner {
     flex-direction: column;
     text-align: center;
     padding: 20px;
   }
+
   .hero-banner-left {
     max-width: 100%;
   }
+
   .hero-banner-img {
     width: 100px;
     height: 100px;
   }
+
   .desktop-item-modal {
     padding: 22px 18px;
   }
+
   .modal-form-cols {
     grid-template-columns: 1fr;
     gap: 16px;
   }
+
   .form-row-2 {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Dark theme support for mobile drawer and header */
+body.dark-mode .sidebar-mobile-header,
+html.dark-theme .sidebar-mobile-header,
+body.dark-theme .sidebar-mobile-header {
+  border-bottom-color: #2A303A !important;
+}
+
+body.dark-mode .sidebar-mobile-title,
+html.dark-theme .sidebar-mobile-title,
+body.dark-theme .sidebar-mobile-title {
+  color: #F5F5F2 !important;
+}
+
+body.dark-mode .sidebar-close-btn,
+html.dark-theme .sidebar-close-btn,
+body.dark-theme .sidebar-close-btn {
+  border-color: #2A303A !important;
+  color: #F5F5F2 !important;
+}
+
+body.dark-mode .sidebar-close-btn:hover,
+html.dark-theme .sidebar-close-btn:hover,
+body.dark-theme .sidebar-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+body.dark-mode .mobile-menu-btn,
+html.dark-theme .mobile-menu-btn,
+body.dark-theme .mobile-menu-btn {
+  background: #151922 !important;
+  border-color: #2A303A !important;
+  color: #F5F5F2 !important;
+}
+
+@media (max-width: 768px) {
+  body.dark-mode .left-sidebar,
+  html.dark-theme .left-sidebar,
+  body.dark-theme .left-sidebar {
+    background: #151922 !important;
+    border-right: none !important;
   }
 }
 
