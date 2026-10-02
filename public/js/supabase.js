@@ -743,15 +743,22 @@
 
       // Step 1: Identify authenticated user using supabase.auth.getUser()
       let effectiveUserId = null;
-      const { data: { user }, error: authError } = await this.client.auth.getUser();
-      if (user && user.id && this.isUUID(user.id)) {
-        effectiveUserId = user.id;
-      } else {
+      try {
+        const res = await this.client.auth.getUser();
+        const user = res?.data?.user;
+        if (user && user.id && this.isUUID(user.id)) {
+          effectiveUserId = user.id;
+        }
+      } catch (e) {
+        console.warn("[Supabase DB] getUser() check error:", e);
+      }
+
+      if (!effectiveUserId) {
         effectiveUserId = await this.getAuthenticatedUserId(userId);
       }
 
       if (!effectiveUserId || !this.isUUID(effectiveUserId)) {
-        console.error("[Supabase DB] INSERT Error: No authenticated user session found.", { authError, userId, projectUrl: config.url });
+        console.error("[Supabase DB] INSERT Error: No authenticated user session found.", { userId, projectUrl: config.url });
         throw new Error("No authenticated Supabase user session found. Please log in.");
       }
 
