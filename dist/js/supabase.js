@@ -327,13 +327,22 @@
       if (!this.isReady()) return false;
       const token = localStorage.getItem('smartpantry_token');
       const userRaw = localStorage.getItem('smartpantry_user');
-      if (!token || !userRaw || token === 'guest_access_token') return false;
-      try {
-        const u = JSON.parse(userRaw);
-        return Boolean(u && u.id && u.id !== 'guest_pantry_user');
-      } catch (e) {
-        return false;
+      if (token && userRaw && token !== 'guest_access_token') {
+        try {
+          const u = JSON.parse(userRaw);
+          if (u && u.id && u.id !== 'guest_pantry_user') return true;
+        } catch (e) {}
       }
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+            const raw = localStorage.getItem(key);
+            if (raw && raw.includes('access_token')) return true;
+          }
+        }
+      } catch (e) {}
+      return false;
     }
 
     async getCurrentUser() {
@@ -766,18 +775,27 @@
       // id, user_id, name, brand, category, barcode, image_url, description,
       // ingredients, serving_information, nutrition_information, quantity, unit,
       // purchase_date, expiry_date, minimum_stock, current_stock, consumption_rate, price
-      const qty = Number(productData.quantity) || 1;
+      const cleanDate = (d) => {
+        if (!d || typeof d !== 'string') return null;
+        const trimmed = d.trim();
+        if (!trimmed || trimmed === 'null' || trimmed === 'undefined') return null;
+        if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return trimmed.substring(0, 10);
+        const parsed = new Date(trimmed);
+        return !isNaN(parsed.getTime()) ? parsed.toISOString().split('T')[0] : null;
+      };
+
+      const qty = !isNaN(Number(productData.quantity)) ? Number(productData.quantity) : 1;
       const unitVal = productData.unit || productData.quantity_unit || 'pcs';
-      const minStockVal = productData.minimum_stock !== undefined 
+      const minStockVal = !isNaN(Number(productData.minimum_stock)) 
         ? Number(productData.minimum_stock) 
-        : (productData.minStock !== undefined ? Number(productData.minStock) : 2);
-      const currentStockVal = productData.current_stock !== undefined 
+        : (!isNaN(Number(productData.minStock)) ? Number(productData.minStock) : 2);
+      const currentStockVal = !isNaN(Number(productData.current_stock)) 
         ? Number(productData.current_stock) 
         : qty;
-      const priceVal = productData.price !== undefined ? Number(productData.price) : 0;
+      const priceVal = !isNaN(Number(productData.price)) ? Number(productData.price) : 0;
       const descVal = productData.description || productData.notes || null;
-      const expiryVal = productData.expiry_date || productData.effectiveExpiryDate || productData.actualExpiryDate || productData.expiryDate || null;
-      const purchaseVal = productData.purchase_date || productData.purchaseDate || null;
+      const expiryVal = cleanDate(productData.expiry_date || productData.effectiveExpiryDate || productData.actualExpiryDate || productData.expiryDate);
+      const purchaseVal = cleanDate(productData.purchase_date || productData.purchaseDate);
       const nutritionVal = productData.nutrition_information 
         ? (typeof productData.nutrition_information === 'object' ? JSON.stringify(productData.nutrition_information) : String(productData.nutrition_information)) 
         : null;

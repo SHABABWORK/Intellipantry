@@ -570,7 +570,7 @@ class PantryStore {
   }
 
   async fetchFromSupabase() {
-    if (!this.userId || this.userId === 'guest_pantry_user' || !window.supabaseService || !window.supabaseService.isAuthenticated()) {
+    if (!this.userId || this.userId === 'guest_pantry_user' || !window.supabaseService) {
       this.isLoading = false;
       return;
     }
@@ -816,8 +816,17 @@ class PantryStore {
       throw new Error("Failed to insert item into Supabase.");
     }
 
-    // Immediately revalidate from Supabase to ensure single source of truth across all views
-    await this.fetchFromSupabase();
+    // Immediately put the confirmed Supabase item into in-memory store so it displays instantly
+    if (!this.items.some(i => String(i.id) === String(saved.id))) {
+      this.items = [saved, ...this.items];
+    }
+    this.syncAlertsFromPantry();
+    this.notify();
+
+    // Revalidate from Supabase in background
+    try {
+      await this.fetchFromSupabase();
+    } catch(e) {}
 
     // Log Activity
     await this.logActivity(
@@ -890,7 +899,15 @@ class PantryStore {
     if (!activeUserId) throw new Error("Authentication required.");
 
     await window.supabaseService.updateProduct(id, updates, activeUserId);
-    await this.fetchFromSupabase();
+    const itemIdx = this.items.findIndex(i => String(i.id) === String(id));
+    if (itemIdx >= 0) {
+      this.items[itemIdx] = { ...this.items[itemIdx], ...updates };
+    }
+    this.syncAlertsFromPantry();
+    this.notify();
+    try {
+      await this.fetchFromSupabase();
+    } catch(e) {}
 
     // Log Activity (Distinguish quantity changes from info edits)
     const isQtyChange = updates.quantity !== undefined && oldQty !== newQty;
@@ -946,7 +963,12 @@ class PantryStore {
     if (!activeUserId) throw new Error("Authentication required.");
 
     await window.supabaseService.deleteProduct(id, activeUserId);
-    await this.fetchFromSupabase();
+    this.items = this.items.filter(i => String(i.id) !== String(id));
+    this.syncAlertsFromPantry();
+    this.notify();
+    try {
+      await this.fetchFromSupabase();
+    } catch(e) {}
 
     // Clean up any alerts associated with this deleted product
     if (Array.isArray(this.alerts)) {
