@@ -376,9 +376,8 @@ class PantryStore {
     }
     this.userId = user.id;
 
-    // 1. Initial cache loads (isolated per user)
-    const cached = localStorage.getItem(this.storageKey);
-    this.items = cached ? JSON.parse(cached) : [];
+    // Supabase PostgreSQL is the SINGLE SOURCE OF TRUTH (No local cache for pantry items)
+    this.items = [];
 
     try {
       const cachedAct = localStorage.getItem(this.activityKey);
@@ -428,11 +427,11 @@ class PantryStore {
     this.userId = userId;
     if (!this.userId) return;
 
-    // Immediately restore cached items, activity, and alerts for this specific user
-    try {
-      const cached = localStorage.getItem(this.storageKey);
-      if (cached) this.items = JSON.parse(cached);
-    } catch(e) {}
+    // Supabase PostgreSQL is the SINGLE SOURCE OF TRUTH (No stale local items)
+    this.items = [];
+    this.isLoading = true;
+    this.notify();
+
     try {
       const cachedAct = localStorage.getItem(this.activityKey);
       if (cachedAct) this.activity = JSON.parse(cachedAct);
@@ -441,7 +440,6 @@ class PantryStore {
       const cachedAlerts = localStorage.getItem(this.alertsKey);
       if (cachedAlerts) this.alerts = JSON.parse(cachedAlerts);
     } catch(e) {}
-    this.notify();
 
     this.loadLocalFullSettings();
     await this.fetchFromSupabase();
@@ -470,7 +468,6 @@ class PantryStore {
           this.fetchFromSupabase();
           return;
         }
-        this.saveItems(this.items);
         this.syncAlertsFromPantry();
         this.notify();
       } else {
@@ -582,60 +579,19 @@ class PantryStore {
     try {
       const dbItems = await window.supabaseService.getProducts(this.userId);
       if (Array.isArray(dbItems)) {
-        // Merge items that are marked as pendingSync or not in dbItems yet
-        const currentItems = Array.isArray(this.items) ? this.items : [];
-        const pendingItems = currentItems.filter(item => item && item.pendingSync);
-        const merged = [...dbItems];
-
-        for (const p of pendingItems) {
-          if (!merged.some(m => String(m.id) === String(p.id))) {
-            merged.push(p);
-          }
-        }
-
-        this.items = merged;
-        try {
-          localStorage.setItem(this.storageKey, JSON.stringify(merged));
-          if (this.userId) {
-            localStorage.setItem(`smartpantry_user_pantry_${this.userId}`, JSON.stringify(merged));
-          }
-        } catch(e) {}
+        this.items = dbItems;
         this.syncAlertsFromPantry();
-
-        // If there were pending items and remote table is online, background sync them
-        if (pendingItems.length > 0) {
-          this.syncPendingItemsToSupabase();
-        }
-      } else {
-        // dbItems is null (table 404 or offline) - preserve local pantry items!
-        console.log("[PantryStore] Remote table returned null/offline. Preserving existing local pantry items.");
+        console.log(`[PantryStore] Loaded ${this.items.length} items from Supabase (Single Source of Truth)`);
       }
     } catch (err) {
-      console.warn("[PantryStore] Supabase fetch warning:", err.message);
+      console.error("[PantryStore] Supabase fetch error:", err.message);
+      if (typeof showToast === 'function') {
+        showToast(`⚠️ Database error: ${err.message}`, 'error');
+      }
     } finally {
       this.isLoading = false;
       this.notify();
     }
-  }
-
-  async syncPendingItemsToSupabase() {
-    if (!this.userId || !window.supabaseService || !window.supabaseService.isReady()) return;
-    const pending = (this.items || []).filter(i => i && i.pendingSync);
-    if (!pending.length) return;
-
-    for (const item of pending) {
-      try {
-        const saved = await window.supabaseService.insertProduct(item, this.userId);
-        if (saved && saved.id) {
-          item.id = saved.id;
-          item.pendingSync = false;
-          item.synced = true;
-        }
-      } catch (e) {
-        break; // Stop loop if remote table remains offline/404
-      }
-    }
-    this.saveItems(this.items);
   }
 
   async fetchSettingsFromSupabase() {
@@ -706,10 +662,6 @@ class PantryStore {
 
   saveItems(items) {
     this.items = items;
-    if (this.userId) {
-      localStorage.setItem(`smartpantry_user_pantry_${this.userId}`, JSON.stringify(items));
-    }
-    localStorage.setItem(this.storageKey, JSON.stringify(items));
     this.syncAlertsFromPantry();
     this.notify();
     this.checkAndDispatchPantryAlerts();
@@ -850,36 +802,32 @@ class PantryStore {
       pendingSync: false
     };
 
-    // Attempt remote Supabase database persistence if online/configured
-    if (effectiveUserId && window.supabaseService && window.supabaseService.isReady()) {
-      try {
-        const saved = await window.supabaseService.insertProduct(newItem, effectiveUserId);
-        if (saved && saved.id) {
-          newItem.id = saved.id;
-          newItem.synced = true;
-          newItem.pendingSync = false;
-          if (saved.addedAt) newItem.addedAt = saved.addedAt;
-        } else {
-          newItem.pendingSync = true;
-        }
-      } catch (err) {
-        console.warn("[PantryStore] Supabase insertProduct warning:", err.message);
-        newItem.pendingSync = true;
+    // Direct INSERT into Supabase PostgreSQL (Single Source of Truth)
+    const activeUserId = window.supabaseService ? await window.supabaseService.getAuthenticatedUserId(this.userId) : this.userId;
+    if (!activeUserId || activeUserId === 'guest_pantry_user') {
+      if (typeof showToast === 'function') {
+        showToast("Authentication required. Please log in.", "error");
       }
+      throw new Error("User is not authenticated. Cannot add item.");
     }
 
-    this.items = [newItem, ...this.items.filter(i => String(i.id) !== String(newItem.id))];
-    this.saveItems(this.items);
+    const saved = await window.supabaseService.insertProduct(newItem, activeUserId);
+    if (!saved || !saved.id) {
+      throw new Error("Failed to insert item into Supabase.");
+    }
+
+    // Immediately revalidate from Supabase to ensure single source of truth across all views
+    await this.fetchFromSupabase();
 
     // Log Activity
     await this.logActivity(
       'added',
-      newItem.id,
-      newItem.name,
-      `Added ${newItem.quantity} ${newItem.unit} to ${newItem.category}${newItem.isEstimate ? ' (Estimated Expiry)' : ''}`
+      saved.id,
+      saved.name,
+      `Added ${saved.quantity} ${saved.unit} to ${saved.category}${saved.isEstimate ? ' (Estimated Expiry)' : ''}`
     );
 
-    return newItem;
+    return saved;
   }
 
   async updateItem(id, updates) {
@@ -938,20 +886,11 @@ class PantryStore {
     const stk = updates.minStock !== undefined ? updates.minStock : (current && current.minStock !== undefined ? current.minStock : 2);
     updates.status = this.calculateStatus(expDate, newQty, stk, warnDays);
 
-    const effectiveUserId = window.supabaseService ? await window.supabaseService.getAuthenticatedUserId(this.userId) : this.userId;
-    if (effectiveUserId) this.userId = effectiveUserId;
+    const activeUserId = window.supabaseService ? await window.supabaseService.getAuthenticatedUserId(this.userId) : this.userId;
+    if (!activeUserId) throw new Error("Authentication required.");
 
-    let saved = null;
-    if (effectiveUserId && window.supabaseService && window.supabaseService.isReady()) {
-      try {
-        saved = await window.supabaseService.updateProduct(id, updates, effectiveUserId);
-      } catch (err) {
-        console.warn("[PantryStore] Supabase updateProduct warning:", err.message);
-      }
-    }
-
-    this.items = this.items.map(item => String(item.id) === String(id) ? { ...item, ...updates, ...(saved || {}) } : item);
-    this.saveItems(this.items);
+    await window.supabaseService.updateProduct(id, updates, activeUserId);
+    await this.fetchFromSupabase();
 
     // Log Activity (Distinguish quantity changes from info edits)
     const isQtyChange = updates.quantity !== undefined && oldQty !== newQty;
@@ -1003,19 +942,11 @@ class PantryStore {
     const item = this.getItemById(id);
     const itemName = item ? item.name : 'Product';
 
-    const effectiveUserId = window.supabaseService ? await window.supabaseService.getAuthenticatedUserId(this.userId) : this.userId;
-    if (effectiveUserId) this.userId = effectiveUserId;
+    const activeUserId = window.supabaseService ? await window.supabaseService.getAuthenticatedUserId(this.userId) : this.userId;
+    if (!activeUserId) throw new Error("Authentication required.");
 
-    if (effectiveUserId && window.supabaseService && window.supabaseService.isReady()) {
-      try {
-        await window.supabaseService.deleteProduct(id, effectiveUserId);
-      } catch (err) {
-        console.warn("[PantryStore] Supabase deleteProduct warning:", err.message);
-      }
-    }
-
-    this.items = this.items.filter(item => String(item.id) !== String(id));
-    this.saveItems(this.items);
+    await window.supabaseService.deleteProduct(id, activeUserId);
+    await this.fetchFromSupabase();
 
     // Clean up any alerts associated with this deleted product
     if (Array.isArray(this.alerts)) {
@@ -1031,9 +962,18 @@ class PantryStore {
     return true;
   }
 
-  clearAll() {
+  async clearAll() {
+    if (this.userId && window.supabaseService && window.supabaseService.isReady()) {
+      try {
+        const client = window.supabaseService.client;
+        if (client) {
+          await client.from('pantry_items').delete().eq('user_id', this.userId);
+        }
+      } catch (e) {
+        console.warn("[PantryStore] clearAll Supabase error:", e);
+      }
+    }
     this.items = [];
-    localStorage.removeItem(this.storageKey);
     this.logActivity('deleted', 'all', 'All Products', 'Pantry inventory reset');
     this.notify();
   }

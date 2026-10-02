@@ -7,15 +7,15 @@ import { createClient } from "@supabase/supabase-js";
 // ==============================================================================
 
 // 1. Paste your Supabase Project URL here:
-const SUPABASE_URL = "{{SUPABASE_URL}}"; // e.g. "https://oubfjolxhvkujjjnzvol.supabase.co"
+const SUPABASE_URL = "{{SUPABASE_URL}}"; // e.g. "https://sqcreimqdrlaxbykrnzy.supabase.co"
 
 // 2. Paste your Supabase Public/Anon Key here:
-const SUPABASE_PUBLIC_KEY = "{{SUPABASE_KEY}}"; // e.g. "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+const SUPABASE_PUBLIC_KEY = "{{SUPABASE_KEY}}"; // e.g. "sb_publishable_..."
 
 // Export the initialized Supabase client:
 export const supabase = createClient(
-  SUPABASE_URL.startsWith("{{") ? "https://oubfjolxhvkujjjnzvol.supabase.co" : SUPABASE_URL,
-  SUPABASE_PUBLIC_KEY.startsWith("{{") ? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91YmZqb2x4aHZrdWpqam56dm9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMDk1NzMsImV4cCI6MjEwNTU4NTU3M30.v637P_FSQIKQq4PrfujlXGa2ciGR9UD68UY9vH_cqN4" : SUPABASE_PUBLIC_KEY
+  SUPABASE_URL.startsWith("{{") ? "https://sqcreimqdrlaxbykrnzy.supabase.co" : SUPABASE_URL,
+  SUPABASE_PUBLIC_KEY.startsWith("{{") ? "sb_publishable_uXIdmQNVJhuwVW0W2-BQxQ_Ko-r34jW" : SUPABASE_PUBLIC_KEY
 );
 
 // Helper for "Continue with Google" OAuth Login

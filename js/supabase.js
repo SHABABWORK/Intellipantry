@@ -680,64 +680,56 @@
     }
 
     // ==========================================
-    // 3. PANTRY ITEMS CRUD (pantry_items as Primary)
+    // 3. PANTRY ITEMS CRUD (pantry_items as Single Source of Truth)
     // ==========================================
 
     async getProducts(userId) {
-      if (!userId || !this.isUUID(userId)) return null;
+      const config = window.SupabaseConfig ? window.SupabaseConfig.get() : { url: '' };
+      const effectiveUserId = await this.getAuthenticatedUserId(userId);
+      if (!effectiveUserId || !this.isUUID(effectiveUserId)) {
+        console.error("[Supabase DB] SELECT Error: No authenticated Supabase user UUID available.", { userId, projectUrl: config.url });
+        throw new Error("No authenticated Supabase user session found. Please log in.");
+      }
       if (!this.isReady()) {
-        console.warn("[Supabase DB] Supabase not connected.");
-        return null;
+        console.error("[Supabase DB] SELECT Error: Supabase client is not connected.", { projectUrl: config.url });
+        throw new Error("Supabase client is not connected.");
       }
 
-      try {
-        // 1. Query pantry_items table first (Permanent Source of Truth)
-        const itemsRes = await this.client
-          .from('pantry_items')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
+      console.log(`[Supabase DB] SELECT pantry_items for user: ${effectiveUserId} on project: ${config.url}`);
 
-        if (!itemsRes.error && Array.isArray(itemsRes.data)) {
-          return itemsRes.data.map(r => this.mapFromDB(r));
-        }
+      const { data, error } = await this.client
+        .from('pantry_items')
+        .select('*')
+        .eq('user_id', effectiveUserId)
+        .order('created_at', { ascending: false });
 
-        // 2. Graceful fallback to pantry_products if pantry_items errored
-        const prodRes = await this.client
-          .from('pantry_products')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
-
-        if (!prodRes.error && Array.isArray(prodRes.data)) {
-          return prodRes.data.map(r => this.mapFromDB(r));
-        }
-
-        // 3. Fallback to legacy products table
-        const fallbackRes = await this.client
-          .from('products')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
-
-        if (!fallbackRes.error && Array.isArray(fallbackRes.data)) {
-          return fallbackRes.data.map(r => this.mapFromDB(r));
-        }
-
-        // Tables don't exist yet in Supabase: return null so store keeps local items
-        return null;
-      } catch (err) {
-        console.warn("[Supabase DB] getProducts warning:", err.message);
-        return null;
+      if (error) {
+        console.error("[Supabase DB] SELECT Error on pantry_items:", {
+          userId: effectiveUserId,
+          projectUrl: config.url,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        throw new Error(`Supabase SELECT failed [${error.code || 'ERR'}]: ${error.message}${error.hint ? ' (' + error.hint + ')' : ''}`);
       }
+
+      console.log(`[Supabase DB] SELECT Success: Loaded ${(data || []).length} items for user: ${effectiveUserId}`);
+      return (data || []).map(r => this.mapFromDB(r));
     }
 
     async insertProduct(productData, userId) {
-      if (!this.isReady()) return null;
+      const config = window.SupabaseConfig ? window.SupabaseConfig.get() : { url: '' };
+      if (!this.isReady()) {
+        console.error("[Supabase DB] INSERT Error: Supabase client not initialized.", { projectUrl: config.url });
+        throw new Error("Supabase client is not connected.");
+      }
+
       const effectiveUserId = await this.getAuthenticatedUserId(userId);
-      if (!effectiveUserId) {
-        console.warn("[Supabase DB] insertProduct: No authenticated user session found.");
-        return null;
+      if (!effectiveUserId || !this.isUUID(effectiveUserId)) {
+        console.error("[Supabase DB] INSERT Error: No authenticated user session found.", { userId, projectUrl: config.url });
+        throw new Error("No authenticated Supabase user session found. Please log in.");
       }
 
       const qty = Number(productData.quantity) || 1;
@@ -752,16 +744,18 @@
         }
       }
 
-      // 1. Primary standard payload for pantry_items (only standard columns, NO nonexistent aliases)
       const pantryItemRecord = {
         user_id: effectiveUserId,
         product_name: productData.name,
+        name: productData.name,
         brand: productData.brand || null,
         category: productData.category || 'Pantry',
         barcode: productData.barcode || null,
         product_image: productData.imageUrl || productData.image || null,
+        image_url: productData.imageUrl || productData.image || null,
         quantity: qty,
         quantity_unit: unitVal,
+        unit: unitVal,
         purchase_date: productData.purchaseDate || null,
         actual_expiry_date: productData.actualExpiryDate || (productData.expiryType === 'actual' ? productData.expiryDate : null),
         estimated_expiry_date: productData.estimatedExpiryDate || (productData.expiryType === 'estimated' ? productData.expiryDate : null),
@@ -777,133 +771,48 @@
         expiry_status: productData.expiryStatus || productData.status || null,
         expiry_date: productData.effectiveExpiryDate || productData.expiryDate || null,
         low_stock_threshold: minStockVal,
+        minimum_stock: minStockVal,
         notes: notesVal,
-        storage_location: productData.storageLocation || productData.location || 'Pantry'
+        description: notesVal,
+        storage_location: productData.storageLocation || productData.location || 'Pantry',
+        location: productData.storageLocation || productData.location || 'Pantry'
       };
       if (itemId) pantryItemRecord.id = itemId;
 
-      try {
-        // Attempt 1: Standard pantry_items insert
-        let res = await this.client
-          .from('pantry_items')
-          .insert([pantryItemRecord])
-          .select();
+      console.log(`[Supabase DB] INSERT into pantry_items for user: ${effectiveUserId} on project: ${config.url}`, {
+        name: productData.name,
+        category: productData.category,
+        quantity: qty
+      });
 
-        if (!res.error && res.data && res.data[0]) {
-          return this.mapFromDB(res.data[0]);
-        }
+      const { data, error } = await this.client
+        .from('pantry_items')
+        .insert([pantryItemRecord])
+        .select();
 
-        // Attempt 1b: If column mismatch occurred, adapt fields dynamically
-        if (res.error && res.error.message) {
-          const errMsg = (res.error.message || '').toLowerCase();
-          let retryRecord = { ...pantryItemRecord };
-
-          if (errMsg.includes('quantity_unit')) {
-            delete retryRecord.quantity_unit;
-            retryRecord.unit = unitVal;
-          }
-          if (errMsg.includes('low_stock_threshold')) {
-            delete retryRecord.low_stock_threshold;
-            retryRecord.minimum_stock = minStockVal;
-          }
-          if (errMsg.includes('product_name')) {
-            delete retryRecord.product_name;
-            retryRecord.name = productData.name;
-          }
-          if (errMsg.includes('notes')) {
-            delete retryRecord.notes;
-            retryRecord.description = notesVal;
-          }
-          if (errMsg.includes('storage_location')) {
-            delete retryRecord.storage_location;
-            retryRecord.location = productData.storageLocation || 'Pantry';
-          }
-
-          // Strip specific column if mentioned as not existing
-          const colMatch = res.error.message.match(/column "([^"]+)" of relation/);
-          if (colMatch && colMatch[1]) {
-            delete retryRecord[colMatch[1]];
-          }
-
-          const retryRes = await this.client
-            .from('pantry_items')
-            .insert([retryRecord])
-            .select();
-
-          if (!retryRes.error && retryRes.data && retryRes.data[0]) {
-            return this.mapFromDB(retryRes.data[0]);
-          }
-        }
-
-        // 2. Fallback to pantry_products table
-        const prodRecord = {
-          user_id: effectiveUserId,
-          product_name: productData.name,
-          brand: productData.brand || null,
-          category: productData.category || 'Pantry',
-          barcode: productData.barcode || null,
-          product_image: productData.imageUrl || productData.image || null,
-          description: notesVal,
-          quantity: qty,
-          unit: unitVal,
-          purchase_date: productData.purchaseDate || null,
-          expiry_date: productData.expiryDate || null,
-          minimum_stock: minStockVal,
-          storage_location: productData.storageLocation || productData.location || 'Pantry'
-        };
-        if (itemId) prodRecord.id = itemId;
-
-        const prodRes = await this.client
-          .from('pantry_products')
-          .insert([prodRecord])
-          .select();
-
-        if (!prodRes.error && prodRes.data && prodRes.data[0]) {
-          return this.mapFromDB(prodRes.data[0]);
-        }
-
-        // 3. Fallback to legacy products table
-        const legacyRecord = {
-          user_id: effectiveUserId,
-          name: productData.name,
-          brand: productData.brand || null,
-          image_url: productData.imageUrl || productData.image || null,
-          min_stock: minStockVal,
-          category: productData.category || 'Pantry',
-          quantity: qty,
-          unit: unitVal,
-          expiry_date: productData.expiryDate || null,
-          purchase_date: productData.purchaseDate || null,
-          barcode: productData.barcode || null,
-          storage_location: productData.storageLocation || 'Pantry',
-          location: productData.storageLocation || 'Pantry',
-          status: productData.status || 'Fresh'
-        };
-        if (itemId) legacyRecord.id = itemId;
-
-        const legRes = await this.client
-          .from('products')
-          .insert([legacyRecord])
-          .select();
-
-        if (!legRes.error && legRes.data && legRes.data[0]) {
-          return this.mapFromDB(legRes.data[0]);
-        }
-
-        const finalErr = res.error || prodRes.error || legRes.error;
-        console.warn("[Supabase DB] insertProduct note:", finalErr ? finalErr.message : "Database table pending setup");
-        return null;
-      } catch (err) {
-        console.warn("[Supabase DB] insertProduct error:", err.message);
-        return null;
+      if (error) {
+        console.error("[Supabase DB] INSERT Error on pantry_items:", {
+          userId: effectiveUserId,
+          projectUrl: config.url,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        throw new Error(`Supabase INSERT failed [${error.code || 'ERR'}]: ${error.message}${error.hint ? ' (' + error.hint + ')' : ''}`);
       }
-    }
 
+      const savedRow = data && data[0] ? data[0] : pantryItemRecord;
+      console.log(`[Supabase DB] INSERT Success for user: ${effectiveUserId}, record ID: ${savedRow.id}`);
+      return this.mapFromDB(savedRow);
     async updateProduct(id, updates, userId) {
-      if (!id) return null;
-      if (!this.isReady()) return null;
+      const config = window.SupabaseConfig ? window.SupabaseConfig.get() : { url: '' };
+      if (!this.isReady()) throw new Error("Supabase client is not connected.");
+
       const effectiveUserId = await this.getAuthenticatedUserId(userId);
-      if (!effectiveUserId) return null;
+      if (!effectiveUserId || !this.isUUID(effectiveUserId)) {
+        throw new Error("No authenticated Supabase user session found.");
+      }
 
       const unitVal = updates.unit || updates.quantityUnit;
       const minStockVal = updates.minStock !== undefined ? Number(updates.minStock) : (updates.lowStockThreshold !== undefined ? Number(updates.lowStockThreshold) : undefined);
@@ -912,13 +821,25 @@
       const dbPayload = {
         updated_at: new Date().toISOString()
       };
-      if (updates.name !== undefined) dbPayload.product_name = updates.name;
+      if (updates.name !== undefined) {
+        dbPayload.product_name = updates.name;
+        dbPayload.name = updates.name;
+      }
       if (updates.brand !== undefined) dbPayload.brand = updates.brand;
-      if (updates.imageUrl !== undefined || updates.image !== undefined) dbPayload.product_image = updates.imageUrl || updates.image;
-      if (minStockVal !== undefined) dbPayload.low_stock_threshold = minStockVal;
+      if (updates.imageUrl !== undefined || updates.image !== undefined) {
+        dbPayload.product_image = updates.imageUrl || updates.image;
+        dbPayload.image_url = updates.imageUrl || updates.image;
+      }
+      if (minStockVal !== undefined) {
+        dbPayload.low_stock_threshold = minStockVal;
+        dbPayload.minimum_stock = minStockVal;
+      }
       if (updates.category !== undefined) dbPayload.category = updates.category;
       if (updates.quantity !== undefined) dbPayload.quantity = Number(updates.quantity);
-      if (unitVal !== undefined) dbPayload.quantity_unit = unitVal;
+      if (unitVal !== undefined) {
+        dbPayload.quantity_unit = unitVal;
+        dbPayload.unit = unitVal;
+      }
       if (updates.expiryDate !== undefined) {
         dbPayload.expiry_date = updates.effectiveExpiryDate || updates.expiryDate || null;
       }
@@ -938,168 +859,66 @@
       if (updates.barcode !== undefined) dbPayload.barcode = updates.barcode;
       if (updates.storageLocation !== undefined || updates.location !== undefined) {
         dbPayload.storage_location = updates.storageLocation || updates.location;
+        dbPayload.location = updates.storageLocation || updates.location;
       }
-      if (notesVal !== undefined) dbPayload.notes = notesVal;
-
-      try {
-        // 1. Try pantry_items first
-        let res = await this.client
-          .from('pantry_items')
-          .update(dbPayload)
-          .eq('id', id)
-          .eq('user_id', effectiveUserId)
-          .select();
-
-        if (!res.error && res.data && res.data[0]) {
-          return this.mapFromDB(res.data[0]);
-        }
-
-        // 1b. If column mismatch occurred, adapt fields dynamically
-        if (res.error && res.error.message) {
-          const errMsg = (res.error.message || '').toLowerCase();
-          let retryPayload = { ...dbPayload };
-
-          if (errMsg.includes('quantity_unit')) {
-            delete retryPayload.quantity_unit;
-            if (unitVal !== undefined) retryPayload.unit = unitVal;
-          }
-          if (errMsg.includes('low_stock_threshold')) {
-            delete retryPayload.low_stock_threshold;
-            if (minStockVal !== undefined) retryPayload.minimum_stock = minStockVal;
-          }
-          if (errMsg.includes('product_name')) {
-            delete retryPayload.product_name;
-            if (updates.name !== undefined) retryPayload.name = updates.name;
-          }
-          if (errMsg.includes('notes')) {
-            delete retryPayload.notes;
-            if (notesVal !== undefined) retryPayload.description = notesVal;
-          }
-          if (errMsg.includes('storage_location')) {
-            delete retryPayload.storage_location;
-            if (updates.storageLocation || updates.location) retryPayload.location = updates.storageLocation || updates.location;
-          }
-
-          const colMatch = res.error.message.match(/column "([^"]+)" of relation/);
-          if (colMatch && colMatch[1]) {
-            delete retryPayload[colMatch[1]];
-          }
-
-          const retryRes = await this.client
-            .from('pantry_items')
-            .update(retryPayload)
-            .eq('id', id)
-            .eq('user_id', effectiveUserId)
-            .select();
-
-          if (!retryRes.error && retryRes.data && retryRes.data[0]) {
-            return this.mapFromDB(retryRes.data[0]);
-          }
-        }
-
-        // 2. Try pantry_products
-        const prodPayload = { updated_at: new Date().toISOString() };
-        if (updates.name !== undefined) prodPayload.product_name = updates.name;
-        if (updates.brand !== undefined) prodPayload.brand = updates.brand;
-        if (updates.imageUrl !== undefined || updates.image !== undefined) prodPayload.product_image = updates.imageUrl || updates.image;
-        if (minStockVal !== undefined) prodPayload.minimum_stock = minStockVal;
-        if (updates.category !== undefined) prodPayload.category = updates.category;
-        if (updates.quantity !== undefined) prodPayload.quantity = Number(updates.quantity);
-        if (unitVal !== undefined) prodPayload.unit = unitVal;
-        if (updates.expiryDate !== undefined) prodPayload.expiry_date = updates.expiryDate || null;
-        if (updates.purchaseDate !== undefined) prodPayload.purchase_date = updates.purchaseDate || null;
-        if (updates.barcode !== undefined) prodPayload.barcode = updates.barcode;
-        if (updates.storageLocation || updates.location) prodPayload.storage_location = updates.storageLocation || updates.location;
-        if (notesVal !== undefined) prodPayload.description = notesVal;
-
-        const prodRes = await this.client
-          .from('pantry_products')
-          .update(prodPayload)
-          .eq('id', id)
-          .eq('user_id', effectiveUserId)
-          .select();
-
-        if (!prodRes.error && prodRes.data && prodRes.data[0]) {
-          return this.mapFromDB(prodRes.data[0]);
-        }
-
-        // 3. Fallback to legacy products table
-        const legacyPayload = { updated_at: new Date().toISOString() };
-        if (updates.name !== undefined) legacyPayload.name = updates.name;
-        if (updates.brand !== undefined) legacyPayload.brand = updates.brand;
-        if (updates.imageUrl !== undefined || updates.image !== undefined) legacyPayload.image_url = updates.imageUrl || updates.image;
-        if (minStockVal !== undefined) legacyPayload.min_stock = minStockVal;
-        if (updates.category !== undefined) legacyPayload.category = updates.category;
-        if (updates.quantity !== undefined) legacyPayload.quantity = Number(updates.quantity);
-        if (unitVal !== undefined) legacyPayload.unit = unitVal;
-        if (updates.expiryDate !== undefined) legacyPayload.expiry_date = updates.expiryDate || null;
-        if (updates.purchaseDate !== undefined) legacyPayload.purchase_date = updates.purchaseDate || null;
-        if (updates.barcode !== undefined) legacyPayload.barcode = updates.barcode;
-        if (updates.storageLocation || updates.location) {
-          legacyPayload.storage_location = updates.storageLocation || updates.location;
-          legacyPayload.location = updates.storageLocation || updates.location;
-        }
-
-        const legRes = await this.client
-          .from('products')
-          .update(legacyPayload)
-          .eq('id', id)
-          .eq('user_id', effectiveUserId)
-          .select();
-
-        if (legRes.data && legRes.data[0]) {
-          return this.mapFromDB(legRes.data[0]);
-        }
-
-        console.warn("[Supabase DB] updateProduct note: Database update skipped (table pending or offline)");
-        return { id, ...updates };
-      } catch (err) {
-        console.warn("[Supabase DB] updateProduct error:", err.message);
-        return { id, ...updates };
+      if (notesVal !== undefined) {
+        dbPayload.notes = notesVal;
+        dbPayload.description = notesVal;
       }
+
+      console.log(`[Supabase DB] UPDATE pantry_items for user: ${effectiveUserId}, item: ${id}`);
+
+      const { data, error } = await this.client
+        .from('pantry_items')
+        .update(dbPayload)
+        .eq('id', id)
+        .eq('user_id', effectiveUserId)
+        .select();
+
+      if (error) {
+        console.error("[Supabase DB] UPDATE Error on pantry_items:", {
+          userId: effectiveUserId,
+          productId: id,
+          projectUrl: config.url,
+          error
+        });
+        throw new Error(`Supabase UPDATE failed [${error.code || 'ERR'}]: ${error.message}`);
+      }
+
+      console.log(`[Supabase DB] UPDATE Success for item: ${id}`);
+      return data && data[0] ? this.mapFromDB(data[0]) : true;
     }
 
     async deleteProduct(id, userId) {
+      const config = window.SupabaseConfig ? window.SupabaseConfig.get() : { url: '' };
       if (!id) return false;
-      if (!this.isReady()) return true;
+      if (!this.isReady()) throw new Error("Supabase client is not connected.");
+
       const effectiveUserId = await this.getAuthenticatedUserId(userId);
-      if (!effectiveUserId) return true;
-
-      try {
-        let deleted = false;
-
-        // Delete from pantry_items
-        const resItems = await this.client
-          .from('pantry_items')
-          .delete()
-          .eq('id', id)
-          .eq('user_id', effectiveUserId);
-
-        if (!resItems.error) deleted = true;
-
-        // Delete from pantry_products
-        const resProd = await this.client
-          .from('pantry_products')
-          .delete()
-          .eq('id', id)
-          .eq('user_id', effectiveUserId);
-
-        if (!resProd.error) deleted = true;
-
-        // Delete from legacy products
-        const resLeg = await this.client
-          .from('products')
-          .delete()
-          .eq('id', id)
-          .eq('user_id', effectiveUserId);
-
-        if (!resLeg.error) deleted = true;
-
-        return true;
-      } catch (err) {
-        console.warn("[Supabase DB] deleteProduct warning:", err.message);
-        return true;
+      if (!effectiveUserId || !this.isUUID(effectiveUserId)) {
+        throw new Error("No authenticated Supabase user session found.");
       }
+
+      console.log(`[Supabase DB] DELETE from pantry_items for user: ${effectiveUserId}, item: ${id}`);
+
+      const { error } = await this.client
+        .from('pantry_items')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', effectiveUserId);
+
+      if (error) {
+        console.error("[Supabase DB] DELETE Error on pantry_items:", {
+          userId: effectiveUserId,
+          productId: id,
+          projectUrl: config.url,
+          error
+        });
+        throw new Error(`Supabase DELETE failed [${error.code || 'ERR'}]: ${error.message}`);
+      }
+
+      console.log(`[Supabase DB] DELETE Success for item: ${id}`);
+      return true;
     }
 
     // ==========================================

@@ -85,9 +85,19 @@
           window.history.replaceState({}, document.title, window.location.pathname);
         }
 
-        // Query Supabase session as the single source of truth
-        const session = await window.supabaseService.getSession();
-        if (!session || !session.user) {
+        // Query Supabase auth.getUser() as the single source of truth
+        let guardUser = null;
+        try {
+          if (window.supabaseClient && window.supabaseClient.auth) {
+            const { data: { user }, error: userErr } = await window.supabaseClient.auth.getUser();
+            if (user && !userErr) guardUser = user;
+          }
+        } catch (e) {}
+        if (!guardUser) {
+          const session = await window.supabaseService.getSession();
+          if (session && session.user) guardUser = session.user;
+        }
+        if (!guardUser || !guardUser.id) {
           // Unauthenticated visitor:
           localStorage.removeItem('smartpantry_token');
           localStorage.removeItem('smartpantry_user');
@@ -96,7 +106,7 @@
         }
 
         // Authenticated: Check if email is verified
-        const isEmailConfirmed = Boolean(session.user.email_confirmed_at || session.user.confirmed_at);
+        const isEmailConfirmed = Boolean(guardUser.email_confirmed_at || guardUser.confirmed_at);
         if (!isEmailConfirmed) {
           // Unverified user: redirect to dedicated OTP verification screen
           localStorage.removeItem('smartpantry_token');
@@ -4321,7 +4331,7 @@ window.addEventListener("beforeunload", () => stopCamera());
           <input 
             type="url" 
             id="supabaseUrlInput" 
-            value="https://ivskkcmzzrhzhofwjtrt.supabase.co" 
+            value="https://sqcreimqdrlaxbykrnzy.supabase.co" 
             class="form-input" 
             style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13.5px; font-family:monospace;"
             required
@@ -4338,7 +4348,7 @@ window.addEventListener("beforeunload", () => stopCamera());
           <input 
             type="text" 
             id="supabaseKeyInput" 
-            value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2c2trY216enJoemhvZndqdHJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNjA2NDcsImV4cCI6MjEwNTgzNjY0N30.Vywsz4cOEWnrOMOIseXckuvLT80K0_rjxSNxOfkad1w" 
+            value="sb_publishable_uXIdmQNVJhuwVW0W2-BQxQ_Ko-r34jW" 
             class="form-input" 
             style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13.5px; font-family:monospace;"
             required
@@ -4779,31 +4789,50 @@ async function initDashboardAuthAndUser() {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 
-    // Supabase Session is the SINGLE source of truth
-    const session = await window.supabaseService.getSession();
-    if (!session || !session.user) {
+    // Supabase Auth getUser() is the SINGLE source of truth
+    let confirmedUser = null;
+    let currentSession = null;
+    try {
+      if (window.supabaseClient && window.supabaseClient.auth) {
+        const { data: { user }, error: userErr } = await window.supabaseClient.auth.getUser();
+        if (user && !userErr) confirmedUser = user;
+      }
+    } catch (e) {}
+
+    if (!confirmedUser) {
+      currentSession = await window.supabaseService.getSession();
+      if (currentSession && currentSession.user) confirmedUser = currentSession.user;
+    } else {
+      currentSession = await window.supabaseService.getSession();
+    }
+
+    if (!confirmedUser || !confirmedUser.id) {
+      console.warn("[Dashboard Auth] No confirmed Supabase user found. Redirecting to login.");
       localStorage.removeItem('smartpantry_user');
       localStorage.removeItem('smartpantry_token');
       window.location.replace('login.html');
       return;
     }
 
-    const userId = session.user.id;
+    const userId = confirmedUser.id;
+    const config = window.SupabaseConfig ? window.SupabaseConfig.get() : { url: '' };
+    console.log(`[Dashboard Auth] Authenticated user confirmed: ${userId} (Email: ${confirmedUser.email}) on Project: ${config.url}`);
+
     const profile = await window.supabaseService.getProfile(userId);
     const authUser = {
       id: userId,
-      email: session.user.email,
-      name: (profile && profile.full_name) || (session.user.user_metadata && session.user.user_metadata.full_name) || formatNameFromEmail(session.user.email),
+      email: confirmedUser.email,
+      name: (profile && profile.full_name) || (confirmedUser.user_metadata && confirmedUser.user_metadata.full_name) || formatNameFromEmail(confirmedUser.email),
       avatar_url: (profile && profile.avatar_url) || null,
-      emailVerified: Boolean(session.user.email_confirmed_at || session.user.confirmed_at)
+      emailVerified: Boolean(confirmedUser.email_confirmed_at || confirmedUser.confirmed_at)
     };
     localStorage.setItem('smartpantry_user', JSON.stringify(authUser));
-    if (session.access_token) {
-      localStorage.setItem('smartpantry_token', session.access_token);
+    if (currentSession && currentSession.access_token) {
+      localStorage.setItem('smartpantry_token', currentSession.access_token);
     }
     updateDashboardUserUI(authUser);
 
-    // Initialize authenticated user's store
+    // Initialize authenticated user's store (Supabase is single source of truth)
     if (window.store) {
       await window.store.initUser(userId);
     }

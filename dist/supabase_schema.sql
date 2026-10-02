@@ -935,3 +935,30 @@ ON CONFLICT (product_name) DO UPDATE SET
   storage_type = EXCLUDED.storage_type,
   storage_recommendation = EXCLUDED.storage_recommendation,
   updated_at = timezone('utc'::text, now());
+
+-- ==============================================================================
+-- 12. ROLE PERMISSIONS & SECURITY GRANTS
+-- Grant schema and table permissions to PostgREST roles: anon, authenticated, service_role
+-- ==============================================================================
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, service_role;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO anon, authenticated, service_role;
+
+-- Enable Realtime replication on public.pantry_items
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'pantry_items'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.pantry_items;
+  END IF;
+EXCEPTION
+  WHEN OTHERS THEN NULL;
+END $$;
+

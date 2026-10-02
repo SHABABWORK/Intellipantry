@@ -54,7 +54,7 @@ function getSupabaseUrl() {
     }
   }
 
-  return "https://wzszikfgxquqezsmlvcr.supabase.co";
+  return "https://sqcreimqdrlaxbykrnzy.supabase.co";
 }
 
 // Resolve Supabase Keys (Public Anon & Service Role)

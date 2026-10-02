@@ -23,7 +23,16 @@
     } catch (e) {}
 
     // Automatically purge old placeholders, dead projects, or mistaken API keys saved as URLs
-    if (url.includes("xyzcompany") || url.includes("your-project") || url.includes("placeholder") || url.includes("oubfjolxhvkujjjnzvol") || url.startsWith("sb_publishable_") || !url.startsWith("https://")) {
+    const isDeadUrl = url.includes("xyzcompany") || 
+      url.includes("your-project") || 
+      url.includes("placeholder") || 
+      url.includes("oubfjolxhvkujjjnzvol") || 
+      url.includes("ivskkcmzzrhzhofwjtrt") || 
+      url.includes("wzszikfgxquqezsmlvcr") || 
+      url.startsWith("sb_publishable_") || 
+      (url && !url.startsWith("https://"));
+
+    if (isDeadUrl) {
       try {
         localStorage.removeItem("smartpantry_supabase_url");
         localStorage.removeItem("smartpantry_supabase_key");
@@ -32,16 +41,16 @@
       key = "";
     }
 
-    if (!url || url.includes("your-project") || url.includes("xyzcompany") || url.includes("oubfjolxhvkujjjnzvol") || url.startsWith("sb_publishable_")) {
+    if (!url || isDeadUrl) {
       url = (typeof window.ENV !== "undefined" && (window.ENV.NEXT_PUBLIC_SUPABASE_URL || window.ENV.SUPABASE_URL)) 
         ? (window.ENV.NEXT_PUBLIC_SUPABASE_URL || window.ENV.SUPABASE_URL) 
-        : "";
+        : "https://sqcreimqdrlaxbykrnzy.supabase.co";
     }
 
-    if (!key || key.includes("your-anon-key") || key.includes("placeholder") || key.length < 20 || key.includes("v637P_FSQIKQq4PrfujlXGa2ciGR9UD68UY9vH_cqN4")) {
+    if (!key || key.includes("your-anon-key") || key.includes("placeholder") || key.length < 20 || key.includes("v637P_FSQIKQq4PrfujlXGa2ciGR9UD68UY9vH_cqN4") || key.includes("Vywsz4cOEWnrOMOIseXckuvLT80K0_rjxSNxOfkad1w")) {
       key = (typeof window.ENV !== "undefined" && (window.ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY || window.ENV.SUPABASE_ANON_KEY)) 
         ? (window.ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY || window.ENV.SUPABASE_ANON_KEY) 
-        : "";
+        : "sb_publishable_uXIdmQNVJhuwVW0W2-BQxQ_Ko-r34jW";
     }
 
     const isValid = Boolean(
