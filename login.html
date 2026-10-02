@@ -3101,9 +3101,17 @@
               emailVerified: isConfirmed
             };
             if (isConfirmed) {
-              localStorage.setItem('smartpantry_token', session.access_token);
-              localStorage.setItem('smartpantry_user', JSON.stringify(userObj));
-              navigateToDashboard();
+              const lastNav = parseInt(sessionStorage.getItem('last_nav_to_dashboard') || '0', 10);
+              const now = Date.now();
+              if (now - lastNav < 3000) {
+                console.warn("[Login Loop Guard] Rapid bounce detected, stopping auto-redirect to avoid loop.");
+                sessionStorage.removeItem('last_nav_to_dashboard');
+              } else {
+                sessionStorage.setItem('last_nav_to_dashboard', String(now));
+                localStorage.setItem('smartpantry_token', session.access_token);
+                localStorage.setItem('smartpantry_user', JSON.stringify(userObj));
+                navigateToDashboard();
+              }
             } else if (currentAuthMode !== 'verify') {
               setAuthMode('verify', session.user.email);
             }

@@ -85,18 +85,24 @@
           window.history.replaceState({}, document.title, window.location.pathname);
         }
 
-        // Query Supabase auth.getUser() as the single source of truth
-        let guardUser = null;
+        // Retrieve current session and user
+        let guardSession = null;
+        try {
+          if (window.supabaseService) {
+            guardSession = await window.supabaseService.getSession();
+          }
+        } catch (e) {}
+
+        let guardUser = (guardSession && guardSession.user) ? guardSession.user : null;
         try {
           if (window.supabaseClient && window.supabaseClient.auth) {
             const { data: { user }, error: userErr } = await window.supabaseClient.auth.getUser();
-            if (user && !userErr) guardUser = user;
+            if (user && !userErr && user.id) {
+              guardUser = user;
+            }
           }
         } catch (e) {}
-        if (!guardUser) {
-          const session = await window.supabaseService.getSession();
-          if (session && session.user) guardUser = session.user;
-        }
+
         if (!guardUser || !guardUser.id) {
           // Unauthenticated visitor:
           localStorage.removeItem('smartpantry_token');
@@ -111,17 +117,19 @@
           // Unverified user: redirect to dedicated OTP verification screen
           localStorage.removeItem('smartpantry_token');
           localStorage.removeItem('smartpantry_user');
-          window.location.replace('login.html?verify=1&email=' + encodeURIComponent(session.user.email || ''));
+          window.location.replace('login.html?verify=1&email=' + encodeURIComponent(guardUser.email || ''));
           return;
         }
 
         const userObj = {
-          id: session.user.id,
-          email: session.user.email,
-          name: session.user.user_metadata?.full_name || session.user.email.split('@')[0] || 'Pantry Chef',
+          id: guardUser.id,
+          email: guardUser.email,
+          name: guardUser.user_metadata?.full_name || (guardUser.email ? guardUser.email.split('@')[0] : 'Pantry Chef'),
           emailVerified: true
         };
-        localStorage.setItem('smartpantry_token', session.access_token);
+        if (guardSession && guardSession.access_token) {
+          localStorage.setItem('smartpantry_token', guardSession.access_token);
+        }
         localStorage.setItem('smartpantry_user', JSON.stringify(userObj));
 
         // Make page visible now that authentication is verified
@@ -137,9 +145,15 @@
         }
       } catch (err) {
         console.error("[Auth Gate Error]", err);
-        localStorage.removeItem('smartpantry_token');
-        localStorage.removeItem('smartpantry_user');
-        window.location.replace('login.html');
+        let hasLocalToken = false;
+        try {
+          hasLocalToken = Boolean(localStorage.getItem('smartpantry_token') || localStorage.getItem('smartpantry_user'));
+        } catch(e) {}
+        if (!hasLocalToken) {
+          window.location.replace('login.html');
+        } else {
+          document.documentElement.style.visibility = 'visible';
+        }
       }
     })();
   </script>
@@ -4891,8 +4905,16 @@ async function initDashboardAuthAndUser() {
     });
 
   } catch (err) {
-    console.error("[Dashboard Auth Init]", err);
-    window.location.replace('login.html');
+    console.error("[Dashboard Auth Init Error]", err);
+    let hasLocalToken = false;
+    try {
+      hasLocalToken = Boolean(localStorage.getItem('smartpantry_token') || localStorage.getItem('smartpantry_user'));
+    } catch(e) {}
+    if (!hasLocalToken) {
+      window.location.replace('login.html');
+    } else {
+      document.documentElement.style.visibility = 'visible';
+    }
   }
 }
 
