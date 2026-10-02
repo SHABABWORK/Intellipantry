@@ -1907,10 +1907,11 @@ async function refreshDatabaseConnectionTab(btn) {
     }
 
     const health = await window.supabaseService.getDatabaseHealthAndStats(user.id);
+    const realtimeEl = document.getElementById("dbStatRealtimeStatus");
 
-    if (health.status === 'connected') {
+    if (health.status === 'CONNECTED' || health.state === 'CONNECTED' || health.status === 'connected') {
       if (title) title.textContent = `🟢 Connected to Live PostgreSQL Database (${health.latencyMs}ms)`;
-      if (desc) desc.textContent = `Live connection verified. All pantry products and preferences are user-isolated with PostgreSQL Row Level Security (RLS).`;
+      if (desc) desc.textContent = `Live connection verified. All pantry products and inventory are user-isolated with PostgreSQL Row Level Security (RLS).`;
       if (icon) icon.textContent = "🟢";
       if (banner) {
         banner.style.background = "#f0fdf4";
@@ -1935,9 +1936,55 @@ async function refreshDatabaseConnectionTab(btn) {
           lastUpdateEl.textContent = "Today";
         }
       }
+      if (realtimeEl) {
+        realtimeEl.textContent = "🟢 Subscribed (postgres_changes)";
+        realtimeEl.style.color = "#166534";
+      }
+    } else if (health.status === 'AUTHENTICATION_REQUIRED' || health.state === 'AUTHENTICATION_REQUIRED') {
+      if (title) title.textContent = "🟡 Authentication Required";
+      if (desc) desc.textContent = "Please sign in to verify live database access and load your user-isolated pantry inventory.";
+      if (icon) icon.textContent = "🟡";
+      if (banner) {
+        banner.style.background = "#fffbeb";
+        banner.style.borderColor = "#fde68a";
+      }
+      if (retryBtn) retryBtn.style.display = "inline-block";
+      if (latencyBadge) {
+        latencyBadge.textContent = "Auth Required";
+        latencyBadge.style.color = "#b45309";
+        latencyBadge.style.background = "#fef3c7";
+      }
+      if (latencyEl) latencyEl.textContent = "Awaiting Login";
+      if (pantryCountEl) pantryCountEl.textContent = "0";
+      if (shoppingCountEl) shoppingCountEl.textContent = "0";
+      if (alertsCountEl) alertsCountEl.textContent = "0";
+      if (mealPlansCountEl) mealPlansCountEl.textContent = "0";
+      if (realtimeEl) {
+        realtimeEl.textContent = "🟡 Awaiting Authentication";
+        realtimeEl.style.color = "#b45309";
+      }
+    } else if (health.status === 'DATABASE_ERROR' || health.state === 'DATABASE_ERROR') {
+      if (title) title.textContent = "🔴 Database Query Error";
+      if (desc) desc.textContent = `Supabase database error: ${health.error || 'Query error'}`;
+      if (icon) icon.textContent = "🔴";
+      if (banner) {
+        banner.style.background = "#fef2f2";
+        banner.style.borderColor = "#fecaca";
+      }
+      if (retryBtn) retryBtn.style.display = "inline-block";
+      if (latencyBadge) {
+        latencyBadge.textContent = "Database Error";
+        latencyBadge.style.color = "#991b1b";
+        latencyBadge.style.background = "#fee2e2";
+      }
+      if (latencyEl) latencyEl.textContent = "Error";
+      if (realtimeEl) {
+        realtimeEl.textContent = "🔴 Error";
+        realtimeEl.style.color = "#991b1b";
+      }
     } else {
-      if (title) title.textContent = "🔴 Database connection unavailable";
-      if (desc) desc.textContent = health.error || "Unable to reach Supabase PostgreSQL database.";
+      if (title) title.textContent = "🔴 Network Connection Failed";
+      if (desc) desc.textContent = health.error || "Unable to reach Supabase project. Check network connectivity.";
       if (icon) icon.textContent = "🔴";
       if (banner) {
         banner.style.background = "#fef2f2";
@@ -1950,10 +1997,20 @@ async function refreshDatabaseConnectionTab(btn) {
         latencyBadge.style.background = "#fee2e2";
       }
       if (latencyEl) latencyEl.textContent = "Offline";
+      if (realtimeEl) {
+        realtimeEl.textContent = "🔴 Disconnected";
+        realtimeEl.style.color = "#991b1b";
+      }
     }
   } catch(err) {
-    if (title) title.textContent = "🔴 Database connection unavailable";
-    if (desc) desc.textContent = err.message || "Connection test failed.";
+    console.error("Supabase database error in settings view:", {
+      error: err,
+      message: err?.message,
+      name: err?.name,
+      stack: err?.stack
+    });
+    if (title) title.textContent = "🔴 Database Connection Error";
+    if (desc) desc.textContent = err.message || "Connection check failed.";
     if (icon) icon.textContent = "🔴";
     if (banner) {
       banner.style.background = "#fef2f2";

@@ -6,17 +6,20 @@ import { createClient } from "@supabase/supabase-js";
 // Your Supabase Project ID: oubfjolxhvkujjjnzvol
 // ==============================================================================
 
-// 1. Paste your Supabase Project URL here:
-const SUPABASE_URL = "{{SUPABASE_URL}}"; // e.g. "https://sqcreimqdrlaxbykrnzy.supabase.co"
+const SUPABASE_URL = (typeof process !== "undefined" && process.env && (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL))
+  ? (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL)
+  : (typeof window !== "undefined" && window.ENV && (window.ENV.NEXT_PUBLIC_SUPABASE_URL || window.ENV.SUPABASE_URL))
+    ? (window.ENV.NEXT_PUBLIC_SUPABASE_URL || window.ENV.SUPABASE_URL)
+    : "https://sqcreimqdrlaxbykrnzy.supabase.co";
 
-// 2. Paste your Supabase Public/Anon Key here:
-const SUPABASE_PUBLIC_KEY = "{{SUPABASE_KEY}}"; // e.g. "sb_publishable_..."
+const SUPABASE_PUBLIC_KEY = (typeof process !== "undefined" && process.env && (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY))
+  ? (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY)
+  : (typeof window !== "undefined" && window.ENV && (window.ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY || window.ENV.SUPABASE_ANON_KEY))
+    ? (window.ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY || window.ENV.SUPABASE_ANON_KEY)
+    : "sb_publishable_uXIdmQNVJhuwVW0W2-BQxQ_Ko-r34jW";
 
 // Export the initialized Supabase client:
-export const supabase = createClient(
-  SUPABASE_URL.startsWith("{{") ? "https://sqcreimqdrlaxbykrnzy.supabase.co" : SUPABASE_URL,
-  SUPABASE_PUBLIC_KEY.startsWith("{{") ? "sb_publishable_uXIdmQNVJhuwVW0W2-BQxQ_Ko-r34jW" : SUPABASE_PUBLIC_KEY
-);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY);
 
 // Helper for "Continue with Google" OAuth Login
 export async function signInWithGoogle() {

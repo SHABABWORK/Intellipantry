@@ -1472,7 +1472,7 @@
                   </div>
                   <div style="display:flex; justify-content:space-between; font-size:12.5px;">
                     <span style="color:#64748b;">Realtime WebSocket:</span>
-                    <strong style="color:#166534;">🟢 Subscribed (postgres_changes)</strong>
+                    <strong style="color:#166534;" id="dbStatRealtimeStatus">🟢 Subscribed (postgres_changes)</strong>
                   </div>
                 </div>
 
@@ -4554,27 +4554,33 @@ async function testLiveDatabaseConnection(btn) {
   const statusDot = document.getElementById('supabaseStatusDot');
   const title = document.getElementById('settingsDbStatusTitle');
 
-  const setStatus = (type, message) => {
+  const setStatus = (state, message) => {
     if (!statusBadge || !statusText) return;
-    if (type === 'success') {
+    if (state === 'CONNECTED') {
       statusBadge.style.background = '#f0fdf4';
       statusBadge.style.color = '#166534';
       statusBadge.style.borderColor = '#bbf7d0';
       if (statusDot) statusDot.style.background = '#10b981';
       statusText.textContent = message || 'Connected to Live PostgreSQL Database';
       if (title) title.textContent = '🟢 Connected to Live PostgreSQL Database';
-    } else if (type === 'pending') {
+    } else if (state === 'AUTHENTICATION_REQUIRED') {
       statusBadge.style.background = '#fffbeb';
       statusBadge.style.color = '#b45309';
       statusBadge.style.borderColor = '#fde68a';
       if (statusDot) statusDot.style.background = '#f59e0b';
-      statusText.textContent = message || 'Checking connection...';
+      statusText.textContent = message || 'Authentication required to query database';
+    } else if (state === 'DATABASE_ERROR') {
+      statusBadge.style.background = '#fef2f2';
+      statusBadge.style.color = '#991b1b';
+      statusBadge.style.borderColor = '#fecaca';
+      if (statusDot) statusDot.style.background = '#ef4444';
+      statusText.textContent = message || 'Supabase Database Error';
     } else {
       statusBadge.style.background = '#fef2f2';
       statusBadge.style.color = '#991b1b';
       statusBadge.style.borderColor = '#fecaca';
       if (statusDot) statusDot.style.background = '#ef4444';
-      statusText.textContent = message || 'Connection Check Failed';
+      statusText.textContent = message || 'Network Connection Error';
     }
   };
 
@@ -4587,69 +4593,89 @@ async function testLiveDatabaseConnection(btn) {
     let key = ((keyInput && keyInput.value) || (config && config.key) || 'sb_publishable_uXIdmQNVJhuwVW0W2-BQxQ_Ko-r34jW').trim();
 
     if (!url || !key) {
-      setStatus('error', 'Supabase URL & Anon Key required');
-      return false;
+      setStatus('NETWORK_ERROR', 'Supabase URL & Anon Key required');
+      return 'NETWORK_ERROR';
     }
 
-    let isConnected = false;
+    if (window.supabaseService && !window.supabaseService.isReady()) {
+      try { window.supabaseService.init(); } catch(e) {}
+    }
 
-    // Method 1: Client check using PostgREST pantry_items
+    const client = window.supabaseClient || (window.supabaseService ? window.supabaseService.client : null);
+    if (!client) {
+      setStatus('NETWORK_ERROR', 'Supabase client initialization failed');
+      return 'NETWORK_ERROR';
+    }
+
+    // Step 1: Check authentication
+    let currentUser = null;
     try {
-      if (window.supabaseClient && window.supabaseClient.from) {
-        const { error } = await window.supabaseClient
-          .from('pantry_items')
-          .select('id', { count: 'exact', head: true });
-        if (!error || error.code === 'PGRST116' || !String(error.message || '').includes('Failed to fetch')) {
-          isConnected = true;
-        }
-      }
+      const { data: { user } } = await client.auth.getUser();
+      if (user && user.id) currentUser = user;
     } catch(e) {}
 
-    // Method 2: Direct PostgREST fetch to /rest/v1/pantry_items?select=count
-    if (!isConnected) {
+    if (!currentUser) {
       try {
-        const res = await fetch(`${url}/rest/v1/pantry_items?select=count`, {
-          method: 'GET',
-          headers: {
-            'apikey': key,
-            'Authorization': `Bearer ${key}`
-          }
-        });
-        if (res.ok || res.status === 200 || res.status === 206 || res.status === 401) {
-          isConnected = true;
-        }
+        const { data: { session } } = await client.auth.getSession();
+        if (session && session.user && session.user.id) currentUser = session.user;
       } catch(e) {}
     }
 
-    // Method 3: Auth settings fetch
-    if (!isConnected) {
-      try {
-        const resAuth = await fetch(`${url}/auth/v1/settings`, {
-          method: 'GET',
-          headers: {
-            'apikey': key
-          }
-        });
-        if (resAuth.ok || resAuth.status === 200) {
-          isConnected = true;
-        }
-      } catch(e) {}
+    if (!currentUser || !currentUser.id) {
+      setStatus('AUTHENTICATION_REQUIRED', 'Authentication Required: Please sign in to verify database access');
+      return 'AUTHENTICATION_REQUIRED';
     }
 
-    if (isConnected) {
-      setStatus('success', 'Connected to Live PostgreSQL Database');
-      if (btn && typeof showToast === 'function') {
-        showToast('✓ Live PostgreSQL Connection Verified!');
+    // Step 2: Real authenticated query on pantry_items
+    const startTime = performance.now();
+    const { data, count, error, status } = await client
+      .from('pantry_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', currentUser.id)
+      .limit(1);
+    const latencyMs = Math.round(performance.now() - startTime);
+
+    if (error) {
+      console.error("Supabase database error:", {
+        table: 'pantry_items',
+        error,
+        message: error.message,
+        code: error.code,
+        status,
+        hasSession: true,
+        userId: currentUser.id
+      });
+
+      const isNetwork = !error.code && (
+        error.message?.includes('fetch') ||
+        error.message?.includes('network') ||
+        error.message?.includes('Failed to fetch')
+      );
+
+      if (isNetwork) {
+        setStatus('NETWORK_ERROR', 'Network Error: ' + (error.message || 'Failed to reach Supabase'));
+        return 'NETWORK_ERROR';
+      } else {
+        setStatus('DATABASE_ERROR', `Database Error [${error.code || 'ERR'}]: ${error.message}`);
+        return 'DATABASE_ERROR';
       }
-      return true;
-    } else {
-      setStatus('error', 'Connection Check Failed: Check network or API credentials');
-      return false;
     }
+
+    setStatus('CONNECTED', `Connected to Live PostgreSQL Database (${latencyMs}ms)`);
+    if (btn && typeof showToast === 'function') {
+      showToast(`✓ Live PostgreSQL Connection Verified! (${latencyMs}ms)`);
+    }
+    return 'CONNECTED';
   } catch (err) {
-    console.error("[Supabase Connection Test Error]", err);
-    setStatus('error', 'Connection Check Failed: ' + (err.message || 'Network error'));
-    return false;
+    console.error("Supabase database error:", {
+      table: 'pantry_items',
+      error: err,
+      message: err?.message,
+      name: err?.name,
+      stack: err?.stack
+    });
+    setStatus('NETWORK_ERROR', 'Connection Check Failed: ' + (err.message || 'Network error'));
+    return 'NETWORK_ERROR';
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -4727,8 +4753,8 @@ async function handleSaveDatabaseSettings(e) {
     window.supabaseService.init();
   }
 
-  const ok = await testLiveDatabaseConnection();
-  if (ok) {
+  const resState = await testLiveDatabaseConnection();
+  if (resState === 'CONNECTED') {
     showToast('✓ Connected to Live Supabase PostgreSQL Database!');
     if (window.store) {
       try { await window.store.fetchFromSupabase(); } catch(e) {}
@@ -4736,8 +4762,13 @@ async function handleSaveDatabaseSettings(e) {
     setTimeout(() => {
       closeDatabaseSettingsModal();
     }, 700);
+  } else if (resState === 'AUTHENTICATION_REQUIRED') {
+    showToast('✓ Settings saved. Please sign in to verify live data.', 'info');
+    setTimeout(() => {
+      closeDatabaseSettingsModal();
+    }, 700);
   } else {
-    showToast('⚠️ Configuration saved, but could not verify live database connection.', 'warning');
+    showToast('⚠️ Configuration saved, but connection check returned: ' + resState, 'warning');
   }
 
   if (saveBtn) {

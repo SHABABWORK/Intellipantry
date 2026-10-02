@@ -30,6 +30,8 @@
 
       try {
         if (config.isConfigured) {
+          this.url = config.url;
+          this.key = config.key;
           this.client = window.supabase.createClient(config.url, config.key, {
             auth: {
               persistSession: true,
@@ -990,8 +992,8 @@
           this.client.from('user_settings').select('*').eq('user_id', userId).maybeSingle()
         ]);
 
-        const notifData = (notifRes.status === 'fulfilled' && notifRes.value.data) ? notifRes.value.data : {};
-        const userSetData = (userSetRes.status === 'fulfilled' && userSetRes.value.data) ? userSetRes.value.data : {};
+        const notifData = (notifRes.status === 'fulfilled' && notifRes.value && notifRes.value.data && !notifRes.value.error) ? notifRes.value.data : {};
+        const userSetData = (userSetRes.status === 'fulfilled' && userSetRes.value && userSetRes.value.data && !userSetRes.value.error) ? userSetRes.value.data : {};
 
         return {
           notification_preferences: notifData,
@@ -1177,8 +1179,9 @@
     async getDatabaseHealthAndStats(userId) {
       if (!this.isReady()) {
         return {
-          status: 'error',
-          error: '🔴 Database connection unavailable',
+          status: 'NETWORK_ERROR',
+          state: 'NETWORK_ERROR',
+          error: 'Supabase client is not connected.',
           latencyMs: 0,
           pantryCount: 0,
           shoppingCount: 0,
@@ -1189,7 +1192,44 @@
         };
       }
 
-      const effectiveUserId = await this.getAuthenticatedUserId(userId);
+      // Step 1: Verify current authenticated Supabase user session
+      let authenticatedUser = null;
+      try {
+        const { data: { user }, error: authErr } = await this.client.auth.getUser();
+        if (user && user.id && this.isUUID(user.id)) {
+          authenticatedUser = user;
+        }
+      } catch (e) {
+        console.warn("[Supabase] auth.getUser() check warning:", e.message);
+      }
+
+      if (!authenticatedUser) {
+        try {
+          const { data: { session } } = await this.client.auth.getSession();
+          if (session && session.user && session.user.id && this.isUUID(session.user.id)) {
+            authenticatedUser = session.user;
+          }
+        } catch (e) {}
+      }
+
+      const effectiveUserId = authenticatedUser ? authenticatedUser.id : await this.getAuthenticatedUserId(userId);
+
+      if (!effectiveUserId || !this.isUUID(effectiveUserId)) {
+        console.warn("[Supabase Health] No authenticated user session found.");
+        return {
+          status: 'AUTHENTICATION_REQUIRED',
+          state: 'AUTHENTICATION_REQUIRED',
+          error: 'Authentication required. Please sign in to verify live database access.',
+          latencyMs: 0,
+          pantryCount: 0,
+          shoppingCount: 0,
+          alertsCount: 0,
+          mealPlansCount: 0,
+          lastSyncTime: null,
+          lastUpdateTime: null
+        };
+      }
+
       const startTime = performance.now();
       let latencyMs = 0;
       let pantryCount = 0;
@@ -1199,9 +1239,10 @@
       let lastUpdateTime = null;
 
       try {
-        const { count: pCount, data: latestPantry, error: pErr } = await this.client
+        // Step 2: Query pantry_items table (Single Source of Truth) using authenticated client
+        const { count: pCount, data: latestPantry, error: pErr, status: pStatus } = await this.client
           .from('pantry_items')
-          .select('updated_at', { count: 'exact' })
+          .select('id, updated_at', { count: 'exact' })
           .eq('user_id', effectiveUserId)
           .order('updated_at', { ascending: false })
           .limit(1);
@@ -1209,58 +1250,86 @@
         latencyMs = Math.round(performance.now() - startTime);
 
         if (pErr) {
-          const testRes = await fetch(`${this.url}/auth/v1/settings`, {
-            headers: { 'apikey': this.key, 'Authorization': `Bearer ${this.key}` }
+          console.error("Supabase database error:", {
+            table: 'pantry_items',
+            error: pErr,
+            message: pErr.message,
+            code: pErr.code,
+            status: pStatus,
+            hasSession: true,
+            userId: effectiveUserId
           });
-          if (!testRes.ok) {
-            return {
-              status: 'error',
-              error: '🔴 Database connection unavailable: ' + (pErr.message || 'Connection failed'),
-              latencyMs,
-              pantryCount: 0,
-              shoppingCount: 0,
-              alertsCount: 0,
-              mealPlansCount: 0,
-              lastSyncTime: null,
-              lastUpdateTime: null
-            };
-          }
+
+          const isNetwork = !pErr.code && (
+            pErr.message?.includes('fetch') ||
+            pErr.message?.includes('network') ||
+            pErr.message?.includes('Network') ||
+            pErr.message?.includes('Failed to fetch') ||
+            pErr.message?.includes('offline')
+          );
+
+          return {
+            status: isNetwork ? 'NETWORK_ERROR' : 'DATABASE_ERROR',
+            state: isNetwork ? 'NETWORK_ERROR' : 'DATABASE_ERROR',
+            error: `[${pErr.code || 'DB_ERROR'}] ${pErr.message || 'Query failed on pantry_items'}`,
+            latencyMs,
+            pantryCount: 0,
+            shoppingCount: 0,
+            alertsCount: 0,
+            mealPlansCount: 0,
+            lastSyncTime: null,
+            lastUpdateTime: null
+          };
         }
 
-        pantryCount = pCount ?? (window.store ? window.store.getItems().length : 0);
+        pantryCount = typeof pCount === 'number' ? pCount : (window.store ? window.store.getItems().length : 0);
         if (latestPantry && latestPantry[0]?.updated_at) {
           lastUpdateTime = latestPantry[0].updated_at;
         }
 
-        // Shopping List Count
+        // Step 3: Optional tables (shopping_list, alerts, meal_plans)
+        // Failure or missing table on optional features must NEVER fail the database connection!
         try {
-          const { count: sCount } = await this.client
+          const { count: sCount, error: sErr, status: sStatus } = await this.client
             .from('shopping_list')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true })
             .eq('user_id', effectiveUserId);
-          shoppingCount = sCount ?? 0;
+          if (sErr) {
+            console.debug("[Supabase] Optional shopping_list notice:", { code: sErr.code, message: sErr.message, status: sStatus });
+            shoppingCount = 0;
+          } else {
+            shoppingCount = sCount ?? 0;
+          }
         } catch (e) {
           shoppingCount = 0;
         }
 
-        // Alerts Count
         try {
-          const { count: aCount } = await this.client
+          const { count: aCount, error: aErr, status: aStatus } = await this.client
             .from('alerts')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true })
             .eq('user_id', effectiveUserId);
-          alertsCount = aCount ?? (window.store ? (window.store.alerts || []).length : 0);
+          if (aErr) {
+            console.debug("[Supabase] Optional alerts notice:", { code: aErr.code, message: aErr.message, status: aStatus });
+            alertsCount = window.store ? (window.store.alerts || []).length : 0;
+          } else {
+            alertsCount = aCount ?? (window.store ? (window.store.alerts || []).length : 0);
+          }
         } catch (e) {
           alertsCount = window.store ? (window.store.alerts || []).length : 0;
         }
 
-        // Meal Plans Count
         try {
-          const { count: mCount } = await this.client
+          const { count: mCount, error: mErr, status: mStatus } = await this.client
             .from('meal_plans')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true })
             .eq('user_id', effectiveUserId);
-          mealPlansCount = mCount ?? 0;
+          if (mErr) {
+            console.debug("[Supabase] Optional meal_plans notice:", { code: mErr.code, message: mErr.message, status: mStatus });
+            mealPlansCount = 0;
+          } else {
+            mealPlansCount = mCount ?? 0;
+          }
         } catch (e) {
           mealPlansCount = 0;
         }
@@ -1279,7 +1348,8 @@
         }
 
         return {
-          status: 'connected',
+          status: 'CONNECTED',
+          state: 'CONNECTED',
           latencyMs,
           pantryCount,
           shoppingCount,
@@ -1289,9 +1359,21 @@
           lastUpdateTime: lastUpdateTime || new Date().toISOString()
         };
       } catch (err) {
+        console.error("Supabase database error:", {
+          error: err,
+          message: err?.message,
+          name: err?.name,
+          stack: err?.stack,
+          table: 'pantry_items',
+          hasSession: Boolean(effectiveUserId),
+          userId: effectiveUserId
+        });
+
+        const isNetwork = err?.name === 'TypeError' || String(err?.message || '').includes('fetch');
         return {
-          status: 'error',
-          error: '🔴 Database connection unavailable: ' + (err.message || 'Offline'),
+          status: isNetwork ? 'NETWORK_ERROR' : 'DATABASE_ERROR',
+          state: isNetwork ? 'NETWORK_ERROR' : 'DATABASE_ERROR',
+          error: err.message || 'Database query error',
           latencyMs: Math.round(performance.now() - startTime),
           pantryCount: 0,
           shoppingCount: 0,
@@ -1470,7 +1552,7 @@
       if (!this.isReady() || !userId || !this.isUUID(userId)) return null;
 
       try {
-        const channelName = `pantry-products-${userId}`;
+        const channelName = `pantry-items-${userId}`;
         if (this.activeChannels[channelName]) {
           this.client.removeChannel(this.activeChannels[channelName]);
         }
@@ -1490,33 +1572,11 @@
               if (typeof onDataChange === 'function') onDataChange(payload);
             }
           )
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'pantry_products',
-              filter: `user_id=eq.${userId}`
-            },
-            (payload) => {
-              console.log("[Supabase Realtime] pantry_products event:", payload.eventType);
-              if (typeof onDataChange === 'function') onDataChange(payload);
+          .subscribe((status, err) => {
+            if (status === 'CHANNEL_ERROR') {
+              console.debug("[Supabase Realtime] pantry_items channel notice:", err);
             }
-          )
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'products',
-              filter: `user_id=eq.${userId}`
-            },
-            (payload) => {
-              console.log("[Supabase Realtime] products event:", payload.eventType);
-              if (typeof onDataChange === 'function') onDataChange(payload);
-            }
-          )
-          .subscribe();
+          });
 
         this.activeChannels[channelName] = channel;
         return channel;
@@ -1550,7 +1610,11 @@
               if (typeof onDataChange === 'function') onDataChange(payload);
             }
           )
-          .subscribe();
+          .subscribe((status, err) => {
+            if (status === 'CHANNEL_ERROR') {
+              console.debug("[Supabase Realtime] alerts channel notice:", err);
+            }
+          });
 
         this.activeChannels[channelName] = channel;
         return channel;
@@ -1597,7 +1661,11 @@
               if (typeof onDataChange === 'function') onDataChange({ table: 'user_settings', ...payload });
             }
           )
-          .subscribe();
+          .subscribe((status, err) => {
+            if (status === 'CHANNEL_ERROR') {
+              console.debug("[Supabase Realtime] settings channel notice:", err);
+            }
+          });
 
         this.activeChannels[channelName] = channel;
         return channel;
