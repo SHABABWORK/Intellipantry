@@ -683,16 +683,31 @@
     // 3. PANTRY ITEMS CRUD (pantry_items as Single Source of Truth)
     // ==========================================
 
-    async getProducts(userId) {
+    async getProducts(userId = null) {
       const config = window.SupabaseConfig ? window.SupabaseConfig.get() : { url: '' };
-      const effectiveUserId = await this.getAuthenticatedUserId(userId);
-      if (!effectiveUserId || !this.isUUID(effectiveUserId)) {
-        console.error("[Supabase DB] SELECT Error: No authenticated Supabase user UUID available.", { userId, projectUrl: config.url });
-        throw new Error("No authenticated Supabase user session found. Please log in.");
-      }
       if (!this.isReady()) {
         console.error("[Supabase DB] SELECT Error: Supabase client is not connected.", { projectUrl: config.url });
         throw new Error("Supabase client is not connected.");
+      }
+
+      // Supabase Auth getUser() is the single source of truth for user identification
+      let effectiveUserId = null;
+      try {
+        const { data: { user }, error: authError } = await this.client.auth.getUser();
+        if (user && user.id && this.isUUID(user.id)) {
+          effectiveUserId = user.id;
+        }
+      } catch (e) {
+        console.warn("[Supabase DB] getUser() check encountered error:", e.message);
+      }
+
+      if (!effectiveUserId) {
+        effectiveUserId = await this.getAuthenticatedUserId(userId);
+      }
+
+      if (!effectiveUserId || !this.isUUID(effectiveUserId)) {
+        console.error("[Supabase DB] SELECT Error: No authenticated Supabase user UUID available.", { userId, projectUrl: config.url });
+        throw new Error("No authenticated Supabase user session found. Please log in.");
       }
 
       console.log(`[Supabase DB] SELECT pantry_items for user: ${effectiveUserId} on project: ${config.url}`);
@@ -719,70 +734,79 @@
       return (data || []).map(r => this.mapFromDB(r));
     }
 
-    async insertProduct(productData, userId) {
+    async insertProduct(productData, userId = null) {
       const config = window.SupabaseConfig ? window.SupabaseConfig.get() : { url: '' };
       if (!this.isReady()) {
         console.error("[Supabase DB] INSERT Error: Supabase client not initialized.", { projectUrl: config.url });
         throw new Error("Supabase client is not connected.");
       }
 
-      const effectiveUserId = await this.getAuthenticatedUserId(userId);
+      // Step 1: Identify authenticated user using supabase.auth.getUser()
+      let effectiveUserId = null;
+      const { data: { user }, error: authError } = await this.client.auth.getUser();
+      if (user && user.id && this.isUUID(user.id)) {
+        effectiveUserId = user.id;
+      } else {
+        effectiveUserId = await this.getAuthenticatedUserId(userId);
+      }
+
       if (!effectiveUserId || !this.isUUID(effectiveUserId)) {
-        console.error("[Supabase DB] INSERT Error: No authenticated user session found.", { userId, projectUrl: config.url });
+        console.error("[Supabase DB] INSERT Error: No authenticated user session found.", { authError, userId, projectUrl: config.url });
         throw new Error("No authenticated Supabase user session found. Please log in.");
       }
 
+      // Step 2: Prepare record strictly conforming to public.pantry_items columns:
+      // id, user_id, name, brand, category, barcode, image_url, description,
+      // ingredients, serving_information, nutrition_information, quantity, unit,
+      // purchase_date, expiry_date, minimum_stock, current_stock, consumption_rate, price
       const qty = Number(productData.quantity) || 1;
       const unitVal = productData.unit || productData.quantity_unit || 'pcs';
-      const minStockVal = productData.minStock !== undefined ? Number(productData.minStock) : (productData.lowStockThreshold !== undefined ? Number(productData.lowStockThreshold) : 2);
-      const notesVal = productData.notes || productData.description || null;
-
-      let itemId = productData.id;
-      if (!itemId || !itemId.includes('-') || itemId.length < 30) {
-        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-          itemId = crypto.randomUUID();
-        }
-      }
+      const minStockVal = productData.minimum_stock !== undefined 
+        ? Number(productData.minimum_stock) 
+        : (productData.minStock !== undefined ? Number(productData.minStock) : 2);
+      const currentStockVal = productData.current_stock !== undefined 
+        ? Number(productData.current_stock) 
+        : qty;
+      const priceVal = productData.price !== undefined ? Number(productData.price) : 0;
+      const descVal = productData.description || productData.notes || null;
+      const expiryVal = productData.expiry_date || productData.effectiveExpiryDate || productData.actualExpiryDate || productData.expiryDate || null;
+      const purchaseVal = productData.purchase_date || productData.purchaseDate || null;
+      const nutritionVal = productData.nutrition_information 
+        ? (typeof productData.nutrition_information === 'object' ? JSON.stringify(productData.nutrition_information) : String(productData.nutrition_information)) 
+        : null;
 
       const pantryItemRecord = {
         user_id: effectiveUserId,
-        product_name: productData.name,
-        name: productData.name,
+        name: productData.name || 'Unnamed Product',
         brand: productData.brand || null,
         category: productData.category || 'Pantry',
         barcode: productData.barcode || null,
-        product_image: productData.imageUrl || productData.image || null,
-        image_url: productData.imageUrl || productData.image || null,
+        image_url: productData.image_url || productData.imageUrl || productData.image || null,
+        description: descVal,
+        ingredients: productData.ingredients || null,
+        serving_information: productData.serving_information || null,
+        nutrition_information: nutritionVal,
         quantity: qty,
-        quantity_unit: unitVal,
         unit: unitVal,
-        purchase_date: productData.purchaseDate || null,
-        actual_expiry_date: productData.actualExpiryDate || (productData.expiryType === 'actual' ? productData.expiryDate : null),
-        estimated_expiry_date: productData.estimatedExpiryDate || (productData.expiryType === 'estimated' ? productData.expiryDate : null),
-        effective_expiry_date: productData.effectiveExpiryDate || productData.expiryDate || null,
-        expiry_type: productData.expiryType || 'actual',
-        shelf_life_days: productData.shelfLifeDays !== undefined ? productData.shelfLifeDays : null,
-        product_status: productData.productStatus || 'Unopened',
-        opened_date: productData.openedDate || null,
-        opened_shelf_life_days: productData.openedShelfLifeDays !== undefined ? productData.openedShelfLifeDays : null,
-        recommended_use_by_date: productData.recommendedUseByDate || null,
-        storage_type: productData.storageType || null,
-        storage_recommendation: productData.storageRecommendation || null,
-        expiry_status: productData.expiryStatus || productData.status || null,
-        expiry_date: productData.effectiveExpiryDate || productData.expiryDate || null,
-        low_stock_threshold: minStockVal,
+        purchase_date: purchaseVal,
+        expiry_date: expiryVal,
         minimum_stock: minStockVal,
-        notes: notesVal,
-        description: notesVal,
-        storage_location: productData.storageLocation || productData.location || 'Pantry',
-        location: productData.storageLocation || productData.location || 'Pantry'
+        current_stock: currentStockVal,
+        consumption_rate: productData.consumption_rate !== undefined && productData.consumption_rate !== null ? Number(productData.consumption_rate) : null,
+        price: priceVal
       };
-      if (itemId) pantryItemRecord.id = itemId;
 
-      console.log(`[Supabase DB] INSERT into pantry_items for user: ${effectiveUserId} on project: ${config.url}`, {
-        name: productData.name,
-        category: productData.category,
-        quantity: qty
+      if (productData.id && typeof productData.id === 'string' && productData.id.includes('-') && productData.id.length >= 30) {
+        pantryItemRecord.id = productData.id;
+      } else if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        pantryItemRecord.id = crypto.randomUUID();
+      }
+
+      console.log(`[Supabase DB] INSERT into public.pantry_items for user: ${effectiveUserId} on project: ${config.url}`, {
+        name: pantryItemRecord.name,
+        category: pantryItemRecord.category,
+        quantity: pantryItemRecord.quantity,
+        user_id: effectiveUserId
       });
 
       const { data, error } = await this.client
@@ -805,65 +829,59 @@
       const savedRow = data && data[0] ? data[0] : pantryItemRecord;
       console.log(`[Supabase DB] INSERT Success for user: ${effectiveUserId}, record ID: ${savedRow.id}`);
       return this.mapFromDB(savedRow);
-    async updateProduct(id, updates, userId) {
+    }
+
+    async updateProduct(id, updates, userId = null) {
       const config = window.SupabaseConfig ? window.SupabaseConfig.get() : { url: '' };
       if (!this.isReady()) throw new Error("Supabase client is not connected.");
 
-      const effectiveUserId = await this.getAuthenticatedUserId(userId);
+      let effectiveUserId = null;
+      try {
+        const { data: { user } } = await this.client.auth.getUser();
+        if (user && user.id && this.isUUID(user.id)) effectiveUserId = user.id;
+      } catch (e) {}
+
+      if (!effectiveUserId) effectiveUserId = await this.getAuthenticatedUserId(userId);
       if (!effectiveUserId || !this.isUUID(effectiveUserId)) {
         throw new Error("No authenticated Supabase user session found.");
       }
 
-      const unitVal = updates.unit || updates.quantityUnit;
-      const minStockVal = updates.minStock !== undefined ? Number(updates.minStock) : (updates.lowStockThreshold !== undefined ? Number(updates.lowStockThreshold) : undefined);
-      const notesVal = updates.notes !== undefined ? updates.notes : updates.description;
-
       const dbPayload = {
         updated_at: new Date().toISOString()
       };
-      if (updates.name !== undefined) {
-        dbPayload.product_name = updates.name;
-        dbPayload.name = updates.name;
-      }
+      if (updates.name !== undefined) dbPayload.name = updates.name;
       if (updates.brand !== undefined) dbPayload.brand = updates.brand;
-      if (updates.imageUrl !== undefined || updates.image !== undefined) {
-        dbPayload.product_image = updates.imageUrl || updates.image;
-        dbPayload.image_url = updates.imageUrl || updates.image;
-      }
-      if (minStockVal !== undefined) {
-        dbPayload.low_stock_threshold = minStockVal;
-        dbPayload.minimum_stock = minStockVal;
+      if (updates.imageUrl !== undefined || updates.image_url !== undefined || updates.image !== undefined) {
+        dbPayload.image_url = updates.imageUrl || updates.image_url || updates.image;
       }
       if (updates.category !== undefined) dbPayload.category = updates.category;
-      if (updates.quantity !== undefined) dbPayload.quantity = Number(updates.quantity);
-      if (unitVal !== undefined) {
-        dbPayload.quantity_unit = unitVal;
-        dbPayload.unit = unitVal;
-      }
-      if (updates.expiryDate !== undefined) {
-        dbPayload.expiry_date = updates.effectiveExpiryDate || updates.expiryDate || null;
-      }
-      if (updates.actualExpiryDate !== undefined) dbPayload.actual_expiry_date = updates.actualExpiryDate;
-      if (updates.estimatedExpiryDate !== undefined) dbPayload.estimated_expiry_date = updates.estimatedExpiryDate;
-      if (updates.effectiveExpiryDate !== undefined) dbPayload.effective_expiry_date = updates.effectiveExpiryDate;
-      if (updates.expiryType !== undefined) dbPayload.expiry_type = updates.expiryType;
-      if (updates.shelfLifeDays !== undefined) dbPayload.shelf_life_days = updates.shelfLifeDays;
-      if (updates.productStatus !== undefined) dbPayload.product_status = updates.productStatus;
-      if (updates.openedDate !== undefined) dbPayload.opened_date = updates.openedDate;
-      if (updates.openedShelfLifeDays !== undefined) dbPayload.opened_shelf_life_days = updates.openedShelfLifeDays;
-      if (updates.recommendedUseByDate !== undefined) dbPayload.recommended_use_by_date = updates.recommendedUseByDate;
-      if (updates.storageType !== undefined) dbPayload.storage_type = updates.storageType;
-      if (updates.storageRecommendation !== undefined) dbPayload.storage_recommendation = updates.storageRecommendation;
-      if (updates.expiryStatus !== undefined) dbPayload.expiry_status = updates.expiryStatus;
-      if (updates.purchaseDate !== undefined) dbPayload.purchase_date = updates.purchaseDate || null;
       if (updates.barcode !== undefined) dbPayload.barcode = updates.barcode;
-      if (updates.storageLocation !== undefined || updates.location !== undefined) {
-        dbPayload.storage_location = updates.storageLocation || updates.location;
-        dbPayload.location = updates.storageLocation || updates.location;
+      if (updates.quantity !== undefined) {
+        dbPayload.quantity = Number(updates.quantity) || 1;
+        if (updates.current_stock === undefined) dbPayload.current_stock = dbPayload.quantity;
       }
-      if (notesVal !== undefined) {
-        dbPayload.notes = notesVal;
-        dbPayload.description = notesVal;
+      if (updates.unit !== undefined || updates.quantityUnit !== undefined) {
+        dbPayload.unit = updates.unit || updates.quantityUnit;
+      }
+      if (updates.minStock !== undefined || updates.minimum_stock !== undefined || updates.lowStockThreshold !== undefined) {
+        dbPayload.minimum_stock = updates.minimum_stock !== undefined ? Number(updates.minimum_stock) : (updates.minStock !== undefined ? Number(updates.minStock) : Number(updates.lowStockThreshold));
+      }
+      if (updates.current_stock !== undefined) dbPayload.current_stock = Number(updates.current_stock);
+      if (updates.consumption_rate !== undefined) dbPayload.consumption_rate = updates.consumption_rate !== null ? Number(updates.consumption_rate) : null;
+      if (updates.price !== undefined) dbPayload.price = Number(updates.price);
+      if (updates.description !== undefined || updates.notes !== undefined) {
+        dbPayload.description = updates.description !== undefined ? updates.description : updates.notes;
+      }
+      if (updates.ingredients !== undefined) dbPayload.ingredients = updates.ingredients;
+      if (updates.serving_information !== undefined) dbPayload.serving_information = updates.serving_information;
+      if (updates.nutrition_information !== undefined) {
+        dbPayload.nutrition_information = typeof updates.nutrition_information === 'object' ? JSON.stringify(updates.nutrition_information) : String(updates.nutrition_information);
+      }
+      if (updates.purchaseDate !== undefined || updates.purchase_date !== undefined) {
+        dbPayload.purchase_date = updates.purchase_date || updates.purchaseDate;
+      }
+      if (updates.expiryDate !== undefined || updates.expiry_date !== undefined || updates.effectiveExpiryDate !== undefined || updates.actualExpiryDate !== undefined) {
+        dbPayload.expiry_date = updates.expiry_date || updates.effectiveExpiryDate || updates.actualExpiryDate || updates.expiryDate;
       }
 
       console.log(`[Supabase DB] UPDATE pantry_items for user: ${effectiveUserId}, item: ${id}`);
@@ -889,12 +907,18 @@
       return data && data[0] ? this.mapFromDB(data[0]) : true;
     }
 
-    async deleteProduct(id, userId) {
+    async deleteProduct(id, userId = null) {
       const config = window.SupabaseConfig ? window.SupabaseConfig.get() : { url: '' };
       if (!id) return false;
       if (!this.isReady()) throw new Error("Supabase client is not connected.");
 
-      const effectiveUserId = await this.getAuthenticatedUserId(userId);
+      let effectiveUserId = null;
+      try {
+        const { data: { user } } = await this.client.auth.getUser();
+        if (user && user.id && this.isUUID(user.id)) effectiveUserId = user.id;
+      } catch (e) {}
+
+      if (!effectiveUserId) effectiveUserId = await this.getAuthenticatedUserId(userId);
       if (!effectiveUserId || !this.isUUID(effectiveUserId)) {
         throw new Error("No authenticated Supabase user session found.");
       }
