@@ -136,159 +136,35 @@ const CATEGORY_EMOJIS = {
 };
 
 /**
- * Smart Pantry - LocalStorage User Database Engine
- * Persistent Multi-User Authentication, Profiles, and Isolation in LocalStorage
+ * Smart Pantry - User & Session Helper
+ * Supabase Auth is the SINGLE SOURCE OF TRUTH.
  */
-class UserDatabaseManager {
-  constructor() {
-    this.DB_KEY = "smartpantry_users_db";
-    this.init();
-  }
+function isUUID(str) {
+  return typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
 
-  init() {
-    try {
-      if (!localStorage.getItem(this.DB_KEY)) {
-        const initialDB = {
-          version: "1.0",
-          users: {},
-          createdAt: new Date().toISOString()
-        };
-        localStorage.setItem(this.DB_KEY, JSON.stringify(initialDB));
+function getCurrentUserInfo() {
+  try {
+    const raw = localStorage.getItem("smartpantry_user");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.id && isUUID(parsed.id)) {
+        return parsed;
       }
-    } catch (e) {
-      console.warn("[UserDB] Init error:", e);
+      // Purge invalid non-UUID mock user entries from previous sessions
+      if (parsed && parsed.id && !isUUID(parsed.id)) {
+        localStorage.removeItem("smartpantry_user");
+        localStorage.removeItem("smartpantry_token");
+      }
     }
-  }
+  } catch (e) {}
+  return null;
+}
 
-  getDB() {
-    try {
-      const raw = localStorage.getItem(this.DB_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch (e) {
-      console.warn("[UserDB] Read error:", e);
-    }
-    return { version: "1.0", users: {}, createdAt: new Date().toISOString() };
-  }
-
-  saveDB(db) {
-    try {
-      localStorage.setItem(this.DB_KEY, JSON.stringify(db));
-    } catch (e) {
-      console.error("[UserDB] Save error:", e);
-    }
-  }
-
-  findUser(email) {
-    if (!email) return null;
-    const normalized = email.trim().toLowerCase();
-    const db = this.getDB();
-    return db.users[normalized] || null;
-  }
-
-  registerUser({ fullName, email, password, clientInfo, role = "user" }) {
-    const normalized = email.trim().toLowerCase();
-    const db = this.getDB();
-
-    let user = db.users[normalized];
-    if (user) {
-      user.name = fullName.trim() || user.name;
-      if (password) user.password = password;
-      user.lastLogin = new Date().toISOString();
-      user.updatedAt = new Date().toISOString();
-    } else {
-      const uid = "user_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
-      user = {
-        id: uid,
-        name: fullName.trim() || normalized.split("@")[0] || "Pantry Chef",
-        email: normalized,
-        password: password || "",
-        role: role,
-        emailVerified: true,
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        preferences: {
-          emailNotifications: true,
-          expiryAlerts: true,
-          lowStockAlerts: true,
-          expiredAlerts: true,
-          securityAlerts: true
-        }
-      };
-      db.users[normalized] = user;
-    }
-
-    this.saveDB(db);
-    const token = "sp_jwt_" + btoa(JSON.stringify({ id: user.id, email: user.email, time: Date.now() }));
-    this.setActiveSession(user, token);
-    return { success: true, user, token };
-  }
-
-  loginUser({ email, password, clientInfo }) {
-    const normalized = email.trim().toLowerCase();
-    const db = this.getDB();
-    let user = db.users[normalized];
-
-    if (!user) {
-      const rawName = normalized.split("@")[0] || "User";
-      const cleanName = rawName.replace(/[^a-zA-Z0-9]/g, " ").trim();
-      const formattedName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1) || "User";
-      const uid = "user_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
-
-      user = {
-        id: uid,
-        name: formattedName,
-        email: normalized,
-        password: password || "",
-        role: "user",
-        emailVerified: true,
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        preferences: {
-          emailNotifications: true,
-          expiryAlerts: true,
-          lowStockAlerts: true,
-          expiredAlerts: true,
-          securityAlerts: true
-        }
-      };
-      db.users[normalized] = user;
-    } else {
-      user.lastLogin = new Date().toISOString();
-      if (password) user.password = password;
-    }
-
-    this.saveDB(db);
-    const token = "sp_jwt_" + btoa(JSON.stringify({ id: user.id, email: user.email, time: Date.now() }));
-    this.setActiveSession(user, token);
-    return { success: true, user, token };
-  }
-
-  setActiveSession(user, token) {
-    try {
-      localStorage.setItem("smartpantry_token", token);
-      localStorage.setItem("smartpantry_user", JSON.stringify(user));
-    } catch (e) {
-      console.error("[UserDB] Set active session error:", e);
-    }
-  }
-
-  getActiveUser() {
-    try {
-      const raw = localStorage.getItem("smartpantry_user");
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  getAllUsers() {
-    const db = this.getDB();
-    return Object.values(db.users || {});
-  }
-
-  logout() {
+// Deprecated mock DB shim - redirects directly to Supabase Auth
+window.UserDB = {
+  getActiveUser: () => getCurrentUserInfo(),
+  logout: () => {
     try {
       localStorage.removeItem("smartpantry_token");
       localStorage.removeItem("smartpantry_user");
@@ -302,20 +178,7 @@ class UserDatabaseManager {
       }
     } catch (e) {}
   }
-}
-
-window.UserDB = new UserDatabaseManager();
-
-function getCurrentUserInfo() {
-  try {
-    const raw = localStorage.getItem("smartpantry_user");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && parsed.id && parsed.id !== 'guest_pantry_user') return parsed;
-    }
-  } catch (e) {}
-  return null;
-}
+};
 
 class PantryStore {
   constructor() {
@@ -367,7 +230,7 @@ class PantryStore {
 
   init() {
     const user = getCurrentUserInfo();
-    if (!user || !user.id || user.id === 'guest_pantry_user') {
+    if (!user || !user.id || !isUUID(user.id)) {
       this.userId = null;
       this.items = [];
       this.activity = [];
@@ -570,10 +433,20 @@ class PantryStore {
   }
 
   async fetchFromSupabase() {
-    if (!this.userId || this.userId === 'guest_pantry_user' || !window.supabaseService) {
+    if (!window.supabaseService || !window.supabaseService.isReady()) {
       this.isLoading = false;
       return;
     }
+    if (!this.userId || !isUUID(this.userId)) {
+      this.userId = await window.supabaseService.getAuthenticatedUserId();
+    }
+    if (!this.userId || !isUUID(this.userId)) {
+      this.items = [];
+      this.isLoading = false;
+      this.notify();
+      return;
+    }
+
     this.isLoading = true;
     this.notify();
     try {
@@ -585,9 +458,6 @@ class PantryStore {
       }
     } catch (err) {
       console.error("[PantryStore] Supabase fetch error:", err.message);
-      if (typeof showToast === 'function') {
-        showToast(`⚠️ Database error: ${err.message}`, 'error');
-      }
     } finally {
       this.isLoading = false;
       this.notify();
@@ -804,31 +674,25 @@ class PantryStore {
 
     // Direct INSERT into Supabase PostgreSQL (Single Source of Truth)
     let activeUserId = this.userId;
-    if (!activeUserId || activeUserId === 'guest_pantry_user') {
+    if (!activeUserId || !isUUID(activeUserId)) {
       if (window.supabaseService) {
         activeUserId = await window.supabaseService.getAuthenticatedUserId(this.userId);
       }
     }
-    if (!activeUserId || activeUserId === 'guest_pantry_user') {
+    if (!activeUserId || !isUUID(activeUserId)) {
       const u = getCurrentUserInfo();
-      if (u && u.id && u.id !== 'guest_pantry_user') activeUserId = u.id;
+      if (u && u.id && isUUID(u.id)) activeUserId = u.id;
     }
 
-    if (!activeUserId || activeUserId === 'guest_pantry_user') {
+    if (!activeUserId || !isUUID(activeUserId)) {
       if (typeof showToast === 'function') {
-        showToast("Authentication required. Please log in.", "error");
+        showToast("⚠️ Authentication required. Please log in before saving items.", "error");
       }
-      throw new Error("User is not authenticated. Cannot add item.");
+      throw new Error("No authenticated Supabase user found. Please log in.");
     }
     this.userId = activeUserId;
 
-    // Immediately put optimistic item into in-memory store for instant UI response
-    const tempId = newItem.id || ((typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('prod_' + Date.now()));
-    const optimisticItem = { ...newItem, id: tempId };
-    this.items = [optimisticItem, ...this.items.filter(i => String(i.id) !== String(tempId))];
-    this.syncAlertsFromPantry();
-    this.notify();
-
+    // STEP: Perform real Supabase insert before displaying in UI
     let saved = null;
     try {
       saved = await window.supabaseService.insertProduct(newItem, activeUserId);
@@ -837,18 +701,14 @@ class PantryStore {
       }
     } catch (insertErr) {
       console.error("[PantryStore] Supabase insertProduct error:", insertErr);
-      // Revert optimistic item upon database error
-      this.items = this.items.filter(i => String(i.id) !== String(tempId));
-      this.syncAlertsFromPantry();
-      this.notify();
+      if (typeof showToast === 'function') {
+        showToast(`❌ Database error: ${insertErr.message}`, 'error');
+      }
       throw insertErr;
     }
 
-    // Replace optimistic item with confirmed Supabase record
-    this.items = this.items.map(i => String(i.id) === String(tempId) ? saved : i);
-    if (!this.items.some(i => String(i.id) === String(saved.id))) {
-      this.items = [saved, ...this.items];
-    }
+    // Supabase confirmed successful insert -> Update UI state
+    this.items = [saved, ...this.items.filter(i => String(i.id) !== String(saved.id))];
     this.syncAlertsFromPantry();
     this.notify();
 
@@ -925,7 +785,7 @@ class PantryStore {
     updates.status = this.calculateStatus(expDate, newQty, stk, warnDays);
 
     const activeUserId = window.supabaseService ? await window.supabaseService.getAuthenticatedUserId(this.userId) : this.userId;
-    if (!activeUserId) throw new Error("Authentication required.");
+    if (!activeUserId || !isUUID(activeUserId)) throw new Error("Authentication required.");
 
     await window.supabaseService.updateProduct(id, updates, activeUserId);
     const itemIdx = this.items.findIndex(i => String(i.id) === String(id));
@@ -989,7 +849,7 @@ class PantryStore {
     const itemName = item ? item.name : 'Product';
 
     const activeUserId = window.supabaseService ? await window.supabaseService.getAuthenticatedUserId(this.userId) : this.userId;
-    if (!activeUserId) throw new Error("Authentication required.");
+    if (!activeUserId || !isUUID(activeUserId)) throw new Error("Authentication required.");
 
     await window.supabaseService.deleteProduct(id, activeUserId);
     this.items = this.items.filter(i => String(i.id) !== String(id));

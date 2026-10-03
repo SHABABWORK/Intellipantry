@@ -88,45 +88,53 @@ CREATE TRIGGER trigger_profiles_updated_at
 CREATE TABLE IF NOT EXISTS public.pantry_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  product_name TEXT NOT NULL,
+  name TEXT NOT NULL,
   brand TEXT,
   category TEXT NOT NULL DEFAULT 'Pantry',
   barcode TEXT,
-  product_image TEXT,
+  image_url TEXT,
+  description TEXT,
+  ingredients TEXT,
+  serving_information TEXT,
+  nutrition_information TEXT,
   quantity NUMERIC NOT NULL DEFAULT 1,
-  quantity_unit TEXT NOT NULL DEFAULT 'pcs',
+  unit TEXT NOT NULL DEFAULT 'pcs',
   purchase_date DATE,
   expiry_date DATE,
-  low_stock_threshold NUMERIC DEFAULT 2,
-  notes TEXT,
-  storage_location TEXT DEFAULT 'Pantry',
-  unit TEXT DEFAULT 'pcs',                 -- Compatibility alias column
-  minimum_stock NUMERIC DEFAULT 2,          -- Compatibility alias column
-  description TEXT,                         -- Compatibility alias column
+  minimum_stock NUMERIC DEFAULT 2,
+  current_stock NUMERIC DEFAULT 1,
+  consumption_rate NUMERIC,
+  price NUMERIC DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- Ensure all columns exist idempotently if pantry_items was created previously
 ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS name TEXT;
 ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS product_name TEXT;
 ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS brand TEXT;
 ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Pantry';
 ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS barcode TEXT;
+ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS image_url TEXT;
 ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS product_image TEXT;
+ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS ingredients TEXT;
+ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS serving_information TEXT;
+ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS nutrition_information TEXT;
 ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS quantity NUMERIC DEFAULT 1;
+ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS unit TEXT DEFAULT 'pcs';
 ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS quantity_unit TEXT DEFAULT 'pcs';
 ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS purchase_date DATE;
 ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS expiry_date DATE;
-ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS low_stock_threshold NUMERIC DEFAULT 2;
-ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS notes TEXT;
-ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS storage_location TEXT DEFAULT 'Pantry';
-ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS unit TEXT DEFAULT 'pcs';
 ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS minimum_stock NUMERIC DEFAULT 2;
-ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS description TEXT;
-ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS low_stock_threshold NUMERIC DEFAULT 2;
+ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS current_stock NUMERIC DEFAULT 1;
+ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS consumption_rate NUMERIC;
+ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS price NUMERIC DEFAULT 0;
+ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS storage_location TEXT DEFAULT 'Pantry';
 ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS location TEXT;
-ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS image_url TEXT;
 
 -- Universal Shelf Life & Expiry Prediction Columns
 ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS actual_expiry_date DATE;

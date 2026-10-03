@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 // ==============================================================================
 // SUPABASE CLIENT CONFIGURATION
 // Paste your Supabase Project URL and Public Anon Key below:
-// Your Supabase Project ID: oubfjolxhvkujjjnzvol
+// Your Supabase Project ID: sqcreimqdrlaxbykrnzy
 // ==============================================================================
 
 const SUPABASE_URL = (typeof process !== "undefined" && process.env && (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL))

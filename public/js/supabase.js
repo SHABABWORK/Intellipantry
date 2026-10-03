@@ -709,7 +709,7 @@
           effectiveUserId = user.id;
         }
       } catch (e) {
-        console.warn("[Supabase DB] getUser() check encountered error:", e.message);
+        console.warn("[Supabase DB] getUser() check error:", e.message);
       }
 
       if (!effectiveUserId) {
@@ -717,7 +717,7 @@
       }
 
       if (!effectiveUserId || !this.isUUID(effectiveUserId)) {
-        console.error("[Supabase DB] SELECT Error: No authenticated Supabase user UUID available.", { userId, projectUrl: config.url });
+        console.error("[Supabase DB] SELECT Error: No authenticated Supabase user available.", { userId, projectUrl: config.url });
         throw new Error("No authenticated Supabase user session found. Please log in.");
       }
 
@@ -755,8 +755,7 @@
       // Step 1: Identify authenticated user using supabase.auth.getUser()
       let effectiveUserId = null;
       try {
-        const res = await this.client.auth.getUser();
-        const user = res?.data?.user;
+        const { data: { user }, error: authError } = await this.client.auth.getUser();
         if (user && user.id && this.isUUID(user.id)) {
           effectiveUserId = user.id;
         }
@@ -773,7 +772,7 @@
         throw new Error("No authenticated Supabase user session found. Please log in.");
       }
 
-      // Step 2: Prepare record strictly conforming to public.pantry_items columns:
+      // Step 2: Prepare record strictly conforming to verified public.pantry_items columns:
       // id, user_id, name, brand, category, barcode, image_url, description,
       // ingredients, serving_information, nutrition_information, quantity, unit,
       // purchase_date, expiry_date, minimum_stock, current_stock, consumption_rate, price
@@ -827,14 +826,6 @@
 
       if (productData.id && this.isUUID(productData.id)) {
         pantryItemRecord.id = productData.id;
-      } else if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-        try {
-          pantryItemRecord.id = crypto.randomUUID();
-        } catch (e) {
-          delete pantryItemRecord.id;
-        }
-      } else {
-        delete pantryItemRecord.id;
       }
 
       console.log(`[Supabase DB] INSERT into public.pantry_items for user: ${effectiveUserId} on project: ${config.url}`, {
@@ -851,6 +842,7 @@
 
       if (error) {
         console.error("[Supabase DB] INSERT Error on pantry_items:", {
+          table: 'pantry_items',
           userId: effectiveUserId,
           projectUrl: config.url,
           code: error.code,

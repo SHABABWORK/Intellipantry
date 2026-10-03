@@ -3063,8 +3063,8 @@
       } else if (urlParams.get('login') === '1' || urlParams.get('mode') === 'login') {
         setAuthMode('login');
       } else {
-        // Default to signup to match the screenshot or login based on user preference
-        setAuthMode('signup');
+        // Default to login mode if mode is unspecified
+        setAuthMode('login');
       }
 
       // Check for error callback in URL (e.g. expired or invalid confirmation link)
@@ -3087,13 +3087,45 @@
         return;
       }
 
-      // Check if user already authenticated
+      // Handle OAuth callback code or access_token in hash
+      if (hash.includes('access_token=') || hash.includes('type=signup') || urlParams.has('code')) {
+        showAlert('authAlert', '✓ Verifying session... Loading your pantry...', 'success');
+        if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
+          try { await window.SupabaseConfig.readyPromise; } catch (e) {}
+        }
+        if (window.supabaseService && !window.supabaseService.isReady()) {
+          try { window.supabaseService.init(); } catch (e) {}
+        }
+        const code = urlParams.get('code');
+        if (code && window.supabaseService) {
+          try { await window.supabaseService.exchangeCodeForSession(code); } catch(e) {}
+        }
+        for (let i = 0; i < 10; i++) {
+          const s = window.supabaseService ? await window.supabaseService.getSession() : null;
+          if (s && s.user) {
+            localStorage.setItem('smartpantry_token', s.access_token);
+            const isConfirmed = Boolean(s.user.email_confirmed_at || s.user.confirmed_at);
+            const userObj = {
+              id: s.user.id,
+              email: s.user.email,
+              name: s.user.user_metadata?.full_name || (s.user.email ? s.user.email.split('@')[0] : 'Pantry Chef'),
+              emailVerified: isConfirmed
+            };
+            localStorage.setItem('smartpantry_user', JSON.stringify(userObj));
+            navigateToDashboard();
+            return;
+          }
+          await new Promise(r => setTimeout(r, 120));
+        }
+      }
+
+      // Check if user already authenticated (with loop suppression guard)
       try {
         const redirectedFromDashboard = sessionStorage.getItem('auth_redirect_from_dashboard') === '1';
         const isExplicitMode = urlParams.has('login') || urlParams.has('signup') || urlParams.has('verify') || urlParams.has('mode') || urlParams.has('logout');
 
         if (redirectedFromDashboard || isExplicitMode) {
-          console.log("[Login Guard] Suppressing auto-redirect to dashboard (explicit mode or dashboard redirect).");
+          console.log("[Login Guard] Staying on login page (explicit mode or dashboard redirect).");
           sessionStorage.removeItem('auth_redirect_from_dashboard');
           if (urlParams.get('logout') === '1') {
             try {
@@ -3109,23 +3141,16 @@
         if (window.supabaseService && window.supabaseService.isReady()) {
           const session = await window.supabaseService.getSession();
           if (session && session.user && !hash.includes('type=recovery')) {
-            const lastNav = parseInt(sessionStorage.getItem('last_nav_to_dashboard') || '0', 10);
-            const now = Date.now();
-            if (now - lastNav < 10000) {
-              console.warn("[Login Loop Guard] Recent navigation detected, staying on login screen.");
-            } else {
-              sessionStorage.setItem('last_nav_to_dashboard', String(now));
-              const isConfirmed = Boolean(session.user.email_confirmed_at || session.user.confirmed_at);
-              const userObj = {
-                id: session.user.id,
-                email: session.user.email,
-                name: session.user.user_metadata?.full_name || (session.user.email ? session.user.email.split('@')[0] : 'Pantry Chef'),
-                emailVerified: isConfirmed
-              };
-              localStorage.setItem('smartpantry_token', session.access_token);
-              localStorage.setItem('smartpantry_user', JSON.stringify(userObj));
-              navigateToDashboard();
-            }
+            const isConfirmed = Boolean(session.user.email_confirmed_at || session.user.confirmed_at);
+            const userObj = {
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.user_metadata?.full_name || (session.user.email ? session.user.email.split('@')[0] : 'Pantry Chef'),
+              emailVerified: isConfirmed
+            };
+            localStorage.setItem('smartpantry_token', session.access_token);
+            localStorage.setItem('smartpantry_user', JSON.stringify(userObj));
+            navigateToDashboard();
           }
         }
       } catch (err) {

@@ -91,12 +91,13 @@
           }
         } catch (e) {}
 
+        const isUUID = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
         let guardUser = (guardSession && guardSession.user) ? guardSession.user : null;
         if (!guardUser) {
           try {
             if (window.supabaseClient && window.supabaseClient.auth) {
               const { data: { user }, error: userErr } = await window.supabaseClient.auth.getUser();
-              if (user && !userErr && user.id) {
+              if (user && !userErr && user.id && isUUID(user.id)) {
                 guardUser = user;
               }
             }
@@ -109,14 +110,14 @@
             const rawUser = localStorage.getItem('smartpantry_user');
             if (rawUser) {
               const parsed = JSON.parse(rawUser);
-              if (parsed && parsed.id && parsed.id !== 'guest_pantry_user') {
+              if (parsed && parsed.id && isUUID(parsed.id)) {
                 guardUser = parsed;
               }
             }
           } catch (e) {}
         }
 
-        if (!guardUser || !guardUser.id) {
+        if (!guardUser || !guardUser.id || !isUUID(guardUser.id)) {
           // Truly unauthenticated visitor
           sessionStorage.setItem('auth_redirect_from_dashboard', '1');
           localStorage.removeItem('smartpantry_token');
@@ -4936,17 +4937,18 @@ async function initDashboardAuthAndUser() {
       currentSession = await window.supabaseService.getSession();
     }
 
-    if (!confirmedUser || !confirmedUser.id) {
+    const isUUIDHelper = (s) => typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+    if (!confirmedUser || !confirmedUser.id || !isUUIDHelper(confirmedUser.id)) {
       try {
         const raw = localStorage.getItem('smartpantry_user');
         if (raw) {
           const u = JSON.parse(raw);
-          if (u && u.id && u.id !== 'guest_pantry_user') confirmedUser = u;
+          if (u && u.id && isUUIDHelper(u.id)) confirmedUser = u;
         }
       } catch (e) {}
     }
 
-    if (!confirmedUser || !confirmedUser.id) {
+    if (!confirmedUser || !confirmedUser.id || !isUUIDHelper(confirmedUser.id)) {
       console.warn("[Dashboard Auth] No confirmed Supabase user found. Redirecting to login.");
       sessionStorage.setItem('auth_redirect_from_dashboard', '1');
       localStorage.removeItem('smartpantry_user');
@@ -4986,13 +4988,16 @@ async function initDashboardAuthAndUser() {
     window.supabaseService.onAuthStateChange(async (event, currentSession) => {
       console.log(`[Supabase Auth Event] ${event}`);
       if (event === 'SIGNED_OUT') {
-        sessionStorage.setItem('auth_redirect_from_dashboard', '1');
-        localStorage.removeItem('smartpantry_user');
-        localStorage.removeItem('smartpantry_token');
-        if (window.store) {
-          window.store.clearUserSession();
+        const stillSession = window.supabaseService ? await window.supabaseService.getSession() : null;
+        if (!stillSession) {
+          sessionStorage.setItem('auth_redirect_from_dashboard', '1');
+          localStorage.removeItem('smartpantry_user');
+          localStorage.removeItem('smartpantry_token');
+          if (window.store) {
+            window.store.clearUserSession();
+          }
+          window.location.replace('login.html?mode=login');
         }
-        window.location.replace('login.html?mode=login');
       } else if (event === 'SIGNED_IN') {
         if (currentSession && currentSession.user) {
           const uId = currentSession.user.id;
