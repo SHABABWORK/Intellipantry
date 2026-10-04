@@ -204,8 +204,11 @@ module.exports = function handler(req, res) {
     } else {
       urlWarning = "NEXT_PUBLIC_SUPABASE_URL is missing or invalid. Set it to https://[project-ref].supabase.co in Vercel.";
     }
-  } else if (!resolvedKey && isKeySecret) {
-    urlWarning = "NEXT_PUBLIC_SUPABASE_ANON_KEY currently contains a Secret / Service-Role key (sb_secret_...). Please replace it in Vercel with your public Publishable key (sb_publishable_... or public eyJ... key).";
+  }
+
+  let keyWarning = null;
+  if (isKeySecret) {
+    keyWarning = "NEXT_PUBLIC_SUPABASE_ANON_KEY is currently set to a Supabase Secret / Service-Role Key (starts with sb_secret_). Secret keys bypass PostgreSQL Row-Level Security and must never be sent to the browser. Please update NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel to your public Publishable Key (starts with sb_publishable_).";
   }
 
   return res.status(200).json({
@@ -214,6 +217,7 @@ module.exports = function handler(req, res) {
     siteUrl,
     configured: Boolean(resolvedUrl && resolvedKey),
     envStatus,
-    urlWarning
+    urlWarning,
+    keyWarning
   });
 };
