@@ -47,9 +47,9 @@ function getSupabaseUrl() {
 
   // Fallback scan
   for (const [k, v] of Object.entries(process.env)) {
-    if (typeof v !== "string" || !v.includes(".supabase.co") || v.includes("sqcreimqdrlaxbykrnzy")) continue;
+    if (typeof v !== "string" || !v.includes(".supabase.co")) continue;
     const raw = cleanString(v);
-    if (raw.startsWith("https://") && !raw.includes("your-project") && !raw.includes("sqcreimqdrlaxbykrnzy")) {
+    if (raw.startsWith("https://") && !raw.includes("your-project") && !raw.includes("xyzcompany")) {
       return raw.replace(/\/+$/, "");
     }
   }

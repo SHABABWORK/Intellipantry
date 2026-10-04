@@ -2,15 +2,14 @@ import { createClient } from "@supabase/supabase-js";
 
 // ==============================================================================
 // SUPABASE CLIENT CONFIGURATION
-// Paste your Supabase Project URL and Public Anon Key below:
-// Your Supabase Project ID: sqcreimqdrlaxbykrnzy
+// Resolves dynamically from environment variables
 // ==============================================================================
 
 const SUPABASE_URL = (typeof process !== "undefined" && process.env && (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL))
   ? (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL)
   : (typeof window !== "undefined" && window.ENV && (window.ENV.NEXT_PUBLIC_SUPABASE_URL || window.ENV.SUPABASE_URL))
     ? (window.ENV.NEXT_PUBLIC_SUPABASE_URL || window.ENV.SUPABASE_URL)
-    : "https://sqcreimqdrlaxbykrnzy.supabase.co";
+    : "";
 
 const SUPABASE_PUBLIC_KEY = (typeof process !== "undefined" && process.env && (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY))
   ? (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY)
