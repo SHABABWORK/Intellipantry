@@ -88,7 +88,7 @@ module.exports = function handler(req, res) {
     for (const [k, v] of Object.entries(process.env)) {
       if (typeof v !== 'string' || !v.includes('.supabase.co')) continue;
       const raw = cleanString(v);
-      if (raw.startsWith('https://') && !raw.includes('your-project')) {
+      if (raw.startsWith('https://') && !raw.includes('your-project') && !raw.includes('xyzcompany')) {
         resolvedUrl = raw.replace(/\/+$/, '');
         urlSource = k;
         break;
@@ -102,8 +102,8 @@ module.exports = function handler(req, res) {
   }
 
   if (!resolvedUrl) {
-    resolvedUrl = "https://sqcreimqdrlaxbykrnzy.supabase.co";
-    urlSource = "default_project";
+    resolvedUrl = null;
+    urlSource = null;
   }
 
   // 2. Resolve Supabase Anon / Public Key from all standard variable names

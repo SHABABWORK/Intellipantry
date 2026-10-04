@@ -196,6 +196,14 @@
         const cleanEmail = email.trim().toLowerCase();
         const cleanName = (fullName || cleanEmail.split('@')[0]).trim();
 
+        console.log("[Supabase Auth] Sign up start:", {
+          endpoint: `${this.url}/auth/v1/signup`,
+          projectUrl: this.url,
+          hasKey: Boolean(this.key),
+          keyLength: this.key ? this.key.length : 0,
+          email: cleanEmail
+        });
+
         // Canonical production redirect to https://www.intellipantry.in/
         const redirectUrl = this.getCanonicalRedirectUrl('/');
         const { data, error } = await this.client.auth.signUp({
@@ -210,6 +218,11 @@
         });
 
         if (error) {
+          console.warn("[Supabase Auth] Sign up error:", {
+            status: error.status,
+            name: error.name,
+            message: error.message
+          });
           let friendlyError = error.message;
           const msg = (error.message || '').toLowerCase();
           if (msg.includes('user already registered') || msg.includes('already exists')) {
@@ -242,6 +255,12 @@
           emailVerified: isConfirmed
         };
 
+        console.log("[Supabase Auth] Sign up success:", {
+          userId: user?.id,
+          email: user?.email,
+          confirmed: isConfirmed
+        });
+
         // Create or update profile in profiles table
         await this.ensureProfile(userObj);
 
@@ -255,6 +274,10 @@
           needsEmailConfirmation: !isConfirmed
         };
       } catch (err) {
+        console.error("[Supabase Auth] Sign up network or unexpected exception:", {
+          name: err?.name,
+          message: err?.message
+        });
         let msg = err.message || "Signup failed on Supabase server.";
         if (msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('network')) {
           msg = "Unable to connect to the server. Please check your internet connection.";
@@ -280,12 +303,25 @@
 
       try {
         const cleanEmail = email.trim().toLowerCase();
+        console.log("[Supabase Auth] Request start:", {
+          endpoint: `${this.url}/auth/v1/token?grant_type=password`,
+          projectUrl: this.url,
+          hasKey: Boolean(this.key),
+          keyLength: this.key ? this.key.length : 0,
+          email: cleanEmail
+        });
+
         const { data, error } = await this.client.auth.signInWithPassword({
           email: cleanEmail,
           password
         });
 
         if (error) {
+          console.warn("[Supabase Auth] Request error:", {
+            status: error.status,
+            name: error.name,
+            message: error.message
+          });
           let friendlyError = error.message;
           const msg = (error.message || '').toLowerCase();
           if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
@@ -304,6 +340,12 @@
 
         const user = data.user;
         const session = data.session;
+
+        console.log("[Supabase Auth] Request success:", {
+          userId: user?.id,
+          email: user?.email,
+          hasSession: Boolean(session)
+        });
 
         const userObj = {
           id: user.id,
@@ -328,6 +370,10 @@
           token: session.access_token
         };
       } catch (err) {
+        console.error("[Supabase Auth] Network or unexpected exception:", {
+          name: err?.name,
+          message: err?.message
+        });
         let msg = err.message || "Authentication error.";
         if (msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('network')) {
           msg = "Unable to connect to the server. Please check your internet connection.";

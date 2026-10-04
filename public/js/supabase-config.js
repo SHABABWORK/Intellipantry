@@ -10,8 +10,6 @@
  */
 
 (function(window) {
-  const DEFAULT_PROJECT_URL = "https://sqcreimqdrlaxbykrnzy.supabase.co";
-
   // Automatically clear stale localStorage overrides in production
   try {
     const isLocal = typeof window !== 'undefined' && (
@@ -26,7 +24,7 @@
   } catch (e) {}
 
   let cachedConfig = {
-    url: DEFAULT_PROJECT_URL,
+    url: "",
     key: "",
     isConfigured: false
   };
@@ -105,7 +103,7 @@
       if (url) localStorage.setItem("smartpantry_supabase_url", url.trim());
       if (key) localStorage.setItem("smartpantry_supabase_key", key.trim());
       cachedConfig = {
-        url: (url || DEFAULT_PROJECT_URL).trim(),
+        url: (url || "").trim(),
         key: (key || "").trim(),
         isConfigured: Boolean(url && key && key.length > 20)
       };
@@ -122,7 +120,7 @@
     try {
       localStorage.removeItem("smartpantry_supabase_url");
       localStorage.removeItem("smartpantry_supabase_key");
-      cachedConfig = { url: DEFAULT_PROJECT_URL, key: "", isConfigured: false };
+      cachedConfig = { url: "", key: "", isConfigured: false };
     } catch (e) {}
   }
 

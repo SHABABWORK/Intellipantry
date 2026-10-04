@@ -4356,7 +4356,8 @@ window.addEventListener("beforeunload", () => stopCamera());
           <input 
             type="url" 
             id="supabaseUrlInput" 
-            value="https://sqcreimqdrlaxbykrnzy.supabase.co" 
+            value="" 
+            placeholder="https://your-project.supabase.co" 
             class="form-input" 
             style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13.5px; font-family:monospace;"
             required
@@ -4595,12 +4596,12 @@ async function testLiveDatabaseConnection(btn) {
       await window.supabaseService.ensureInitialized();
     }
 
+    const config = window.SupabaseConfig ? window.SupabaseConfig.get() : null;
     const urlInput = document.getElementById('supabaseUrlInput');
     const keyInput = document.getElementById('supabaseKeyInput');
-    const config = window.SupabaseConfig ? window.SupabaseConfig.get() : null;
 
-    let url = ((urlInput && urlInput.value) || (config && config.url) || 'https://sqcreimqdrlaxbykrnzy.supabase.co').trim().replace(/\/+$/, '');
-    let key = ((keyInput && keyInput.value) || (config && config.key) || '').trim();
+    let url = ((config && config.url) || (urlInput && urlInput.value) || '').trim().replace(/\/+$/, '');
+    let key = ((config && config.key) || (keyInput && keyInput.value) || '').trim();
 
     if (!url || !key) {
       setStatus('NETWORK_ERROR', 'Supabase URL & Anon Key required');
@@ -4706,7 +4707,7 @@ function openDatabaseSettingsModal() {
   const statusText = document.getElementById('supabaseStatusText');
   const statusDot = document.getElementById('supabaseStatusDot');
 
-  let cleanUrl = (config && config.url && config.url.startsWith('https://')) ? config.url : 'https://sqcreimqdrlaxbykrnzy.supabase.co';
+  let cleanUrl = (config && config.url && config.url.startsWith('https://')) ? config.url : '';
   let cleanKey = (config && config.key && config.key.length > 20) ? config.key : '';
 
   if (urlInput) urlInput.value = cleanUrl;

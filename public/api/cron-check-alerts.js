@@ -49,12 +49,12 @@ function getSupabaseUrl() {
   for (const [k, v] of Object.entries(process.env)) {
     if (typeof v !== "string" || !v.includes(".supabase.co")) continue;
     const raw = cleanString(v);
-    if (raw.startsWith("https://") && !raw.includes("your-project")) {
+    if (raw.startsWith("https://") && !raw.includes("your-project") && !raw.includes("xyzcompany")) {
       return raw.replace(/\/+$/, "");
     }
   }
 
-  return "https://sqcreimqdrlaxbykrnzy.supabase.co";
+  return null;
 }
 
 // Resolve Supabase Keys (Public Anon & Service Role)
