@@ -16,8 +16,18 @@ New-Item -ItemType Directory -Force -Path (Join-Path $dist "js") | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $dist "assets") | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $dist "api") | Out-Null
 
-$pubUrl = ($env:NEXT_PUBLIC_SUPABASE_URL, $env:SUPABASE_URL | Where-Object { $_ } | Select-Object -First 1)
-$pubKey = ($env:NEXT_PUBLIC_SUPABASE_ANON_KEY, $env:SUPABASE_ANON_KEY | Where-Object { $_ } | Select-Object -First 1)
+$deprecated = @("sqcreimqdrlaxbykrnzy")
+$urlCandidates = @($env:NEXT_PUBLIC_SUPABASE_URL, $env:SUPABASE_URL, $env:NEXT_PUBLIC_STORAGE_SUPABASE_URL, $env:STORAGE_SUPABASE_URL, $env:NEXT_PUBLIC_SUPABASE_PROJECT_URL) | Where-Object { 
+    if (-not $_) { return $false }
+    foreach ($dep in $deprecated) { if ($_ -match $dep) { return $false } }
+    return $_.StartsWith("https://")
+}
+$pubUrl = $urlCandidates | Select-Object -First 1
+
+$keyCandidates = @($env:NEXT_PUBLIC_SUPABASE_ANON_KEY, $env:SUPABASE_ANON_KEY, $env:NEXT_PUBLIC_SUPABASE_KEY, $env:SUPABASE_KEY, $env:NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) | Where-Object {
+    $_ -and -not $_.StartsWith("sb_secret_") -and $_.Length -gt 20
+}
+$pubKey = $keyCandidates | Select-Object -First 1
 
 function Inject-Env($filePath, $destPath) {
     $content = Get-Content -Raw -Path $filePath -Encoding UTF8
