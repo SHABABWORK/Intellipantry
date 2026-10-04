@@ -1055,8 +1055,9 @@
       await this.ensureInitialized();
       if (!this.isReady()) return null;
 
-      let notifData = {};
-      let userSetData = {};
+      try {
+        let notifData = {};
+        let userSetData = {};
 
       if (!this.missingTables.has('notification_preferences')) {
         try {
