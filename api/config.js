@@ -49,34 +49,34 @@ module.exports = function handler(req, res) {
     const raw = cleanString(process.env[name]);
     if (!raw) continue;
 
-    // Skip if this is an API key (publishable or secret), JWT, or stale deleted project URL
-    if (raw.startsWith("sb_publishable_") || raw.startsWith("sb_secret_") || raw.startsWith("eyJ") || raw.includes("sqcreimqdrlaxbykrnzy")) {
+    // Skip if this is an API key (publishable or secret) or JWT
+    if (raw.startsWith("sb_publishable_") || raw.startsWith("sb_secret_") || raw.startsWith("eyJ")) {
       continue;
     }
 
     // Direct https URL
-    if (raw.startsWith("https://") && !raw.includes("your-project") && !raw.includes("xyzcompany") && !raw.includes("sqcreimqdrlaxbykrnzy")) {
+    if (raw.startsWith("https://") && !raw.includes("your-project") && !raw.includes("xyzcompany")) {
       resolvedUrl = raw.replace(/\/+$/, "");
       urlSource = name;
       break;
     }
 
     // http:// -> https://
-    if (raw.startsWith("http://") && raw.includes(".supabase.co") && !raw.includes("sqcreimqdrlaxbykrnzy")) {
+    if (raw.startsWith("http://") && raw.includes(".supabase.co")) {
       resolvedUrl = raw.replace("http://", "https://").replace(/\/+$/, "");
       urlSource = name;
       break;
     }
 
     // Domain only e.g. "xxxx.supabase.co"
-    if (/^[a-z0-9-]+\.supabase\.co/i.test(raw) && !raw.includes("sqcreimqdrlaxbykrnzy")) {
+    if (/^[a-z0-9-]+\.supabase\.co/i.test(raw)) {
       resolvedUrl = `https://${raw.replace(/\/+$/, "")}`;
       urlSource = name;
       break;
     }
 
     // Project reference only (e.g. 20 alphanumeric characters)
-    if (/^[a-z0-9]{20}$/i.test(raw) && raw !== "sqcreimqdrlaxbykrnzy") {
+    if (/^[a-z0-9]{20}$/i.test(raw)) {
       resolvedUrl = `https://${raw}.supabase.co`;
       urlSource = name;
       break;
@@ -86,14 +86,14 @@ module.exports = function handler(req, res) {
   // Fallback scan: check all process.env values for any containing '.supabase.co'
   if (!resolvedUrl) {
     for (const [k, v] of Object.entries(process.env)) {
-      if (typeof v !== 'string' || !v.includes('.supabase.co') || v.includes('sqcreimqdrlaxbykrnzy')) continue;
+      if (typeof v !== 'string' || !v.includes('.supabase.co')) continue;
       const raw = cleanString(v);
-      if (raw.startsWith('https://') && !raw.includes('your-project') && !raw.includes('sqcreimqdrlaxbykrnzy')) {
+      if (raw.startsWith('https://') && !raw.includes('your-project') && !raw.includes('xyzcompany')) {
         resolvedUrl = raw.replace(/\/+$/, '');
         urlSource = k;
         break;
       }
-      if (/^[a-z0-9-]+\.supabase\.co/i.test(raw) && !raw.includes('sqcreimqdrlaxbykrnzy')) {
+      if (/^[a-z0-9-]+\.supabase\.co/i.test(raw)) {
         resolvedUrl = `https://${raw.replace(/\/+$/, '')}`;
         urlSource = k;
         break;
