@@ -101,6 +101,11 @@ module.exports = function handler(req, res) {
     }
   }
 
+  if (!resolvedUrl) {
+    resolvedUrl = "https://sqcreimqdrlaxbykrnzy.supabase.co";
+    urlSource = "default_project";
+  }
+
   // 2. Resolve Supabase Anon / Public Key from all standard variable names
   const keyVarNames = [
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",

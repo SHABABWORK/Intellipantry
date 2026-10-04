@@ -16,7 +16,7 @@ const SUPABASE_PUBLIC_KEY = (typeof process !== "undefined" && process.env && (p
   ? (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY)
   : (typeof window !== "undefined" && window.ENV && (window.ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY || window.ENV.SUPABASE_ANON_KEY))
     ? (window.ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY || window.ENV.SUPABASE_ANON_KEY)
-    : "sb_publishable_uXIdmQNVJhuwVW0W2-BQxQ_Ko-r34jW";
+    : "";
 
 // Export the initialized Supabase client:
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY);

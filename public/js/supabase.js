@@ -18,8 +18,34 @@
   class SupabaseService {
     constructor() {
       this.client = null;
+      this.url = null;
+      this.key = null;
       this.activeChannels = {};
+      this.missingTables = new Set();
       this.init();
+    }
+
+    initClient(url, key) {
+      if (!url || !key || !window.supabase) return;
+      const cleanUrl = url.trim().replace(/\/+$/, '');
+      const cleanKey = key.trim();
+      if (this.client && this.url === cleanUrl && this.key === cleanKey) return;
+      this.url = cleanUrl;
+      this.key = cleanKey;
+      try {
+        this.client = window.supabase.createClient(cleanUrl, cleanKey, {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storage: window.localStorage
+          }
+        });
+        window.supabaseClient = this.client;
+        console.log("[Supabase] Connected to live PostgreSQL database at:", cleanUrl);
+      } catch (err) {
+        console.error("[Supabase] Initialization error:", err);
+      }
     }
 
     init() {
@@ -27,30 +53,36 @@
       if (!config || !window.supabase) {
         return;
       }
-
-      try {
-        if (config.isConfigured) {
-          this.url = config.url;
-          this.key = config.key;
-          this.client = window.supabase.createClient(config.url, config.key, {
-            auth: {
-              persistSession: true,
-              autoRefreshToken: true,
-              detectSessionInUrl: true,
-              storage: window.localStorage
-            }
-          });
-          window.supabaseClient = this.client;
-          console.log("[Supabase] Connected to live PostgreSQL database at:", config.url);
-        }
-      } catch (err) {
-        console.error("[Supabase] Initialization error:", err);
+      if (config.isConfigured && config.url && config.key) {
+        this.initClient(config.url, config.key);
       }
+    }
+
+    async ensureInitialized() {
+      if (this.client) return true;
+      if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
+        try {
+          const cfg = await window.SupabaseConfig.readyPromise;
+          if (cfg && cfg.url && cfg.key) {
+            this.initClient(cfg.url, cfg.key);
+          }
+        } catch (e) {}
+      }
+      if (!this.client && window.SupabaseConfig) {
+        const cfg = window.SupabaseConfig.get();
+        if (cfg && cfg.url && cfg.key) {
+          this.initClient(cfg.url, cfg.key);
+        }
+      }
+      return Boolean(this.client);
     }
 
     isReady() {
       if (!this.client && window.SupabaseConfig && window.SupabaseConfig.isConfigured()) {
-        this.init();
+        const config = window.SupabaseConfig.get();
+        if (config && config.url && config.key) {
+          this.initClient(config.url, config.key);
+        }
       }
       return Boolean(this.client);
     }
@@ -637,7 +669,9 @@
     // ==========================================
 
     async getProfile(userId) {
-      if (!userId || !this.isUUID(userId) || !this.isReady()) return null;
+      if (!userId || !this.isUUID(userId)) return null;
+      await this.ensureInitialized();
+      if (!this.isReady() || this.missingTables.has('profiles')) return null;
       try {
         const { data, error } = await this.client
           .from('profiles')
@@ -645,32 +679,39 @@
           .eq('id', userId)
           .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === 'PGRST205') this.missingTables.add('profiles');
+          return null;
+        }
         return data;
       } catch (err) {
-        console.warn("[Supabase Profile] Query error:", err.message);
         return null;
       }
     }
 
     async ensureProfile(user) {
-      if (!user || !user.id || !this.isUUID(user.id) || !this.isReady()) return;
+      if (!user || !user.id || !this.isUUID(user.id)) return;
+      await this.ensureInitialized();
+      if (!this.isReady() || this.missingTables.has('profiles')) return;
       try {
-        await this.client
+        const { error } = await this.client
           .from('profiles')
           .upsert({
             id: user.id,
-            full_name: user.name || user.email.split('@')[0],
+            full_name: user.name || (user.email ? user.email.split('@')[0] : 'User'),
             email: user.email,
             updated_at: new Date().toISOString()
           }, { onConflict: 'id' });
-      } catch (err) {
-        // Silently continue if table trigger already handled profile creation
-      }
+        if (error && error.code === 'PGRST205') {
+          this.missingTables.add('profiles');
+        }
+      } catch (err) {}
     }
 
     async updateProfile(userId, { fullName, avatarUrl }) {
-      if (!userId || !this.isUUID(userId) || !this.isReady()) return false;
+      if (!userId || !this.isUUID(userId)) return false;
+      await this.ensureInitialized();
+      if (!this.isReady() || this.missingTables.has('profiles')) return false;
       try {
         const updates = { updated_at: new Date().toISOString() };
         if (fullName !== undefined) updates.full_name = fullName;
@@ -682,10 +723,12 @@
           .eq('id', userId)
           .select();
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === 'PGRST205') this.missingTables.add('profiles');
+          return false;
+        }
         return data && data[0] ? data[0] : true;
       } catch (err) {
-        console.warn("[Supabase Profile] Update error:", err.message);
         return false;
       }
     }
@@ -695,6 +738,7 @@
     // ==========================================
 
     async getProducts(userId = null) {
+      await this.ensureInitialized();
       const config = window.SupabaseConfig ? window.SupabaseConfig.get() : { url: '' };
       if (!this.isReady()) {
         console.error("[Supabase DB] SELECT Error: Supabase client is not connected.", { projectUrl: config.url });
@@ -746,6 +790,7 @@
     }
 
     async insertProduct(productData, userId = null) {
+      await this.ensureInitialized();
       const config = window.SupabaseConfig ? window.SupabaseConfig.get() : { url: '' };
       if (!this.isReady()) {
         console.error("[Supabase DB] INSERT Error: Supabase client not initialized.", { projectUrl: config.url });
@@ -859,6 +904,7 @@
     }
 
     async updateProduct(id, updates, userId = null) {
+      await this.ensureInitialized();
       const config = window.SupabaseConfig ? window.SupabaseConfig.get() : { url: '' };
       if (!this.isReady()) throw new Error("Supabase client is not connected.");
 
@@ -935,6 +981,7 @@
     }
 
     async deleteProduct(id, userId = null) {
+      await this.ensureInitialized();
       const config = window.SupabaseConfig ? window.SupabaseConfig.get() : { url: '' };
       if (!id) return false;
       if (!this.isReady()) throw new Error("Supabase client is not connected.");
@@ -977,15 +1024,42 @@
     // ==========================================
 
     async getUserSettings(userId) {
-      if (!userId || !this.isUUID(userId) || !this.isReady()) return null;
-      try {
-        const [notifRes, userSetRes] = await Promise.allSettled([
-          this.client.from('notification_preferences').select('*').eq('user_id', userId).maybeSingle(),
-          this.client.from('user_settings').select('*').eq('user_id', userId).maybeSingle()
-        ]);
+      if (!userId || !this.isUUID(userId)) return null;
+      await this.ensureInitialized();
+      if (!this.isReady()) return null;
 
-        const notifData = (notifRes.status === 'fulfilled' && notifRes.value && notifRes.value.data && !notifRes.value.error) ? notifRes.value.data : {};
-        const userSetData = (userSetRes.status === 'fulfilled' && userSetRes.value && userSetRes.value.data && !userSetRes.value.error) ? userSetRes.value.data : {};
+      let notifData = {};
+      let userSetData = {};
+
+      if (!this.missingTables.has('notification_preferences')) {
+        try {
+          const { data, error } = await this.client
+            .from('notification_preferences')
+            .select('*')
+            .eq('user_id', userId)
+            .maybeSingle();
+          if (error) {
+            if (error.code === 'PGRST205') this.missingTables.add('notification_preferences');
+          } else if (data) {
+            notifData = data;
+          }
+        } catch (e) {}
+      }
+
+      if (!this.missingTables.has('user_settings')) {
+        try {
+          const { data, error } = await this.client
+            .from('user_settings')
+            .select('*')
+            .eq('user_id', userId)
+            .maybeSingle();
+          if (error) {
+            if (error.code === 'PGRST205') this.missingTables.add('user_settings');
+          } else if (data) {
+            userSetData = data;
+          }
+        } catch (e) {}
+      }
 
         return {
           notification_preferences: notifData,
@@ -1037,7 +1111,9 @@
     }
 
     async saveUserSettings(userId, settingsData) {
-      if (!userId || !this.isReady()) return false;
+      if (!userId) return false;
+      await this.ensureInitialized();
+      if (!this.isReady()) return false;
       const effectiveUserId = await this.getAuthenticatedUserId(userId);
       if (!effectiveUserId) return false;
 
@@ -1095,18 +1171,26 @@
       };
 
       try {
-        const p1 = this.client
-          .from('notification_preferences')
-          .upsert(notifPayload, { onConflict: 'user_id' });
+        if (!this.missingTables.has('notification_preferences')) {
+          const res = await this.client
+            .from('notification_preferences')
+            .upsert(notifPayload, { onConflict: 'user_id' });
+          if (res.error && res.error.code === 'PGRST205') {
+            this.missingTables.add('notification_preferences');
+          }
+        }
 
-        const p2 = this.client
-          .from('user_settings')
-          .upsert(userSettingsPayload, { onConflict: 'user_id' });
+        if (!this.missingTables.has('user_settings')) {
+          const res = await this.client
+            .from('user_settings')
+            .upsert(userSettingsPayload, { onConflict: 'user_id' });
+          if (res.error && res.error.code === 'PGRST205') {
+            this.missingTables.add('user_settings');
+          }
+        }
 
-        await Promise.allSettled([p1, p2]);
         return true;
       } catch (err) {
-        console.warn("[Supabase Settings] Save error:", err.message);
         return false;
       }
     }
@@ -1169,6 +1253,7 @@
     }
 
     async getDatabaseHealthAndStats(userId) {
+      await this.ensureInitialized();
       if (!this.isReady()) {
         return {
           status: 'NETWORK_ERROR',
@@ -1191,9 +1276,7 @@
         if (user && user.id && this.isUUID(user.id)) {
           authenticatedUser = user;
         }
-      } catch (e) {
-        console.warn("[Supabase] auth.getUser() check warning:", e.message);
-      }
+      } catch (e) {}
 
       if (!authenticatedUser) {
         try {
@@ -1207,7 +1290,6 @@
       const effectiveUserId = authenticatedUser ? authenticatedUser.id : await this.getAuthenticatedUserId(userId);
 
       if (!effectiveUserId || !this.isUUID(effectiveUserId)) {
-        console.warn("[Supabase Health] No authenticated user session found.");
         return {
           status: 'AUTHENTICATION_REQUIRED',
           state: 'AUTHENTICATION_REQUIRED',
@@ -1226,13 +1308,13 @@
       let latencyMs = 0;
       let pantryCount = 0;
       let shoppingCount = 0;
-      let alertsCount = 0;
+      let alertsCount = window.store ? (window.store.alerts || []).length : 0;
       let mealPlansCount = 0;
       let lastUpdateTime = null;
 
       try {
         // Step 2: Query pantry_items table (Single Source of Truth) using authenticated client
-        const { count: pCount, data: latestPantry, error: pErr, status: pStatus } = await this.client
+        const { count: pCount, data: latestPantry, error: pErr } = await this.client
           .from('pantry_items')
           .select('id, updated_at', { count: 'exact' })
           .eq('user_id', effectiveUserId)
@@ -1247,15 +1329,12 @@
             error: pErr,
             message: pErr.message,
             code: pErr.code,
-            status: pStatus,
-            hasSession: true,
             userId: effectiveUserId
           });
 
           const isNetwork = !pErr.code && (
             pErr.message?.includes('fetch') ||
             pErr.message?.includes('network') ||
-            pErr.message?.includes('Network') ||
             pErr.message?.includes('Failed to fetch') ||
             pErr.message?.includes('offline')
           );
@@ -1279,63 +1358,49 @@
           lastUpdateTime = latestPantry[0].updated_at;
         }
 
-        // Step 3: Optional tables (shopping_list, alerts, meal_plans)
-        // Failure or missing table on optional features must NEVER fail the database connection!
-        try {
-          const { count: sCount, error: sErr, status: sStatus } = await this.client
-            .from('shopping_list')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', effectiveUserId);
-          if (sErr) {
-            console.debug("[Supabase] Optional shopping_list notice:", { code: sErr.code, message: sErr.message, status: sStatus });
-            shoppingCount = 0;
-          } else {
-            shoppingCount = sCount ?? 0;
-          }
-        } catch (e) {
-          shoppingCount = 0;
-        }
-
-        try {
-          const { count: aCount, error: aErr, status: aStatus } = await this.client
-            .from('alerts')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', effectiveUserId);
-          if (aErr) {
-            console.debug("[Supabase] Optional alerts notice:", { code: aErr.code, message: aErr.message, status: aStatus });
-            alertsCount = window.store ? (window.store.alerts || []).length : 0;
-          } else {
-            alertsCount = aCount ?? (window.store ? (window.store.alerts || []).length : 0);
-          }
-        } catch (e) {
-          alertsCount = window.store ? (window.store.alerts || []).length : 0;
-        }
-
-        try {
-          const { count: mCount, error: mErr, status: mStatus } = await this.client
-            .from('meal_plans')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', effectiveUserId);
-          if (mErr) {
-            console.debug("[Supabase] Optional meal_plans notice:", { code: mErr.code, message: mErr.message, status: mStatus });
-            mealPlansCount = 0;
-          } else {
-            mealPlansCount = mCount ?? 0;
-          }
-        } catch (e) {
-          mealPlansCount = 0;
-        }
-
-        if (!lastUpdateTime) {
+        // Step 3: Optional tables (shopping_list, meal_plans, activity_logs)
+        if (!this.missingTables.has('shopping_list')) {
           try {
-            const { data: latestAct } = await this.client
+            const { count: sCount, error: sErr } = await this.client
+              .from('shopping_list')
+              .select('id', { count: 'exact', head: true })
+              .eq('user_id', effectiveUserId);
+            if (sErr && sErr.code === 'PGRST205') {
+              this.missingTables.add('shopping_list');
+            } else if (!sErr) {
+              shoppingCount = sCount ?? 0;
+            }
+          } catch (e) {}
+        }
+
+        if (!this.missingTables.has('meal_plans')) {
+          try {
+            const { count: mCount, error: mErr } = await this.client
+              .from('meal_plans')
+              .select('id', { count: 'exact', head: true })
+              .eq('user_id', effectiveUserId);
+            if (mErr && mErr.code === 'PGRST205') {
+              this.missingTables.add('meal_plans');
+            } else if (!mErr) {
+              mealPlansCount = mCount ?? 0;
+            }
+          } catch (e) {}
+        }
+
+        if (!lastUpdateTime && !this.missingTables.has('activity_logs')) {
+          try {
+            const { data: latestAct, error: aErr } = await this.client
               .from('activity_logs')
               .select('created_at')
               .eq('user_id', effectiveUserId)
               .order('created_at', { ascending: false })
               .limit(1)
               .maybeSingle();
-            if (latestAct?.created_at) lastUpdateTime = latestAct.created_at;
+            if (aErr && aErr.code === 'PGRST205') {
+              this.missingTables.add('activity_logs');
+            } else if (latestAct?.created_at) {
+              lastUpdateTime = latestAct.created_at;
+            }
           } catch (e) {}
         }
 
@@ -1351,16 +1416,6 @@
           lastUpdateTime: lastUpdateTime || new Date().toISOString()
         };
       } catch (err) {
-        console.error("Supabase database error:", {
-          error: err,
-          message: err?.message,
-          name: err?.name,
-          stack: err?.stack,
-          table: 'pantry_items',
-          hasSession: Boolean(effectiveUserId),
-          userId: effectiveUserId
-        });
-
         const isNetwork = err?.name === 'TypeError' || String(err?.message || '').includes('fetch');
         return {
           status: isNetwork ? 'NETWORK_ERROR' : 'DATABASE_ERROR',
@@ -1382,7 +1437,9 @@
     // ==========================================
 
     async getActivity(userId, limit = 50) {
-      if (!userId || !this.isUUID(userId) || !this.isReady()) return [];
+      if (!userId || !this.isUUID(userId)) return [];
+      await this.ensureInitialized();
+      if (!this.isReady() || this.missingTables.has('activity_logs')) return [];
       try {
         const { data, error } = await this.client
           .from('activity_logs')
@@ -1391,24 +1448,21 @@
           .order('created_at', { ascending: false })
           .limit(limit);
 
-        if (!error && Array.isArray(data)) return data;
+        if (error) {
+          if (error.code === 'PGRST205') this.missingTables.add('activity_logs');
+          return [];
+        }
 
-        // Fallback to pantry_activity
-        const leg = await this.client
-          .from('pantry_activity')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false })
-          .limit(limit);
-
-        return leg.data || [];
+        return Array.isArray(data) ? data : [];
       } catch (err) {
         return [];
       }
     }
 
     async logActivity(userId, { action, productId, productName, details }) {
-      if (!userId || !this.isReady()) return null;
+      if (!userId) return null;
+      await this.ensureInitialized();
+      if (!this.isReady() || this.missingTables.has('activity_logs')) return null;
       const effectiveUserId = await this.getAuthenticatedUserId(userId);
       if (!effectiveUserId) return null;
 
@@ -1427,10 +1481,10 @@
           .insert([dbRecord])
           .select();
 
-        // Also insert into pantry_activity for compatibility
-        await this.client
-          .from('pantry_activity')
-          .insert([dbRecord]);
+        if (error && error.code === 'PGRST205') {
+          this.missingTables.add('activity_logs');
+          return null;
+        }
 
         return data ? data[0] : null;
       } catch (err) {
@@ -1443,7 +1497,9 @@
     // ==========================================
 
     async getAlerts(userId) {
-      if (!userId || !this.isUUID(userId) || !this.isReady()) return [];
+      if (!userId || !this.isUUID(userId)) return [];
+      await this.ensureInitialized();
+      if (!this.isReady() || this.missingTables.has('alerts')) return [];
       try {
         const { data, error } = await this.client
           .from('alerts')
@@ -1451,23 +1507,21 @@
           .eq('user_id', userId)
           .order('created_at', { ascending: false });
 
-        if (!error && Array.isArray(data)) return data;
+        if (error) {
+          if (error.code === 'PGRST205') this.missingTables.add('alerts');
+          return [];
+        }
 
-        // Fallback to pantry_alerts
-        const leg = await this.client
-          .from('pantry_alerts')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
-
-        return leg.data || [];
+        return Array.isArray(data) ? data : [];
       } catch (err) {
         return [];
       }
     }
 
     async createAlert(userId, { title, message, type, productId, productName, emailSent, emailSentAt }) {
-      if (!userId || !this.isReady()) return null;
+      if (!userId) return null;
+      await this.ensureInitialized();
+      if (!this.isReady() || this.missingTables.has('alerts')) return null;
       const effectiveUserId = await this.getAuthenticatedUserId(userId);
       if (!effectiveUserId) return null;
 
@@ -1490,9 +1544,10 @@
           .insert([dbRecord])
           .select();
 
-        await this.client
-          .from('pantry_alerts')
-          .insert([dbRecord]);
+        if (error && error.code === 'PGRST205') {
+          this.missingTables.add('alerts');
+          return null;
+        }
 
         return data ? data[0] : null;
       } catch (err) {
@@ -1501,11 +1556,12 @@
     }
 
     async markAlertAsRead(alertId, userId) {
-      if (!userId || !alertId || !this.isReady()) return false;
+      if (!userId || !alertId) return false;
+      await this.ensureInitialized();
+      if (!this.isReady() || this.missingTables.has('alerts')) return false;
       const effectiveUserId = await this.getAuthenticatedUserId(userId);
       try {
         await this.client.from('alerts').update({ is_read: true }).eq('id', alertId).eq('user_id', effectiveUserId);
-        await this.client.from('pantry_alerts').update({ is_read: true }).eq('id', alertId).eq('user_id', effectiveUserId);
         return true;
       } catch (err) {
         return false;
@@ -1513,11 +1569,12 @@
     }
 
     async markAllAlertsAsRead(userId) {
-      if (!userId || !this.isReady()) return false;
+      if (!userId) return false;
+      await this.ensureInitialized();
+      if (!this.isReady() || this.missingTables.has('alerts')) return false;
       const effectiveUserId = await this.getAuthenticatedUserId(userId);
       try {
         await this.client.from('alerts').update({ is_read: true }).eq('user_id', effectiveUserId).eq('is_read', false);
-        await this.client.from('pantry_alerts').update({ is_read: true }).eq('user_id', effectiveUserId).eq('is_read', false);
         return true;
       } catch (err) {
         return false;
@@ -1525,11 +1582,12 @@
     }
 
     async deleteAlert(alertId, userId) {
-      if (!userId || !alertId || !this.isReady()) return false;
+      if (!userId || !alertId) return false;
+      await this.ensureInitialized();
+      if (!this.isReady() || this.missingTables.has('alerts')) return false;
       const effectiveUserId = await this.getAuthenticatedUserId(userId);
       try {
         await this.client.from('alerts').delete().eq('id', alertId).eq('user_id', effectiveUserId);
-        await this.client.from('pantry_alerts').delete().eq('id', alertId).eq('user_id', effectiveUserId);
         return true;
       } catch (err) {
         return false;
@@ -1580,6 +1638,7 @@
 
     subscribeToUserAlerts(userId, onDataChange) {
       if (!this.isReady() || !userId || !this.isUUID(userId)) return null;
+      if (this.missingTables.has('alerts')) return null;
 
       try {
         const channelName = `alerts-${userId}`;
@@ -1598,26 +1657,25 @@
               filter: `user_id=eq.${userId}`
             },
             (payload) => {
-              console.log("[Supabase Realtime] alerts event:", payload.eventType);
               if (typeof onDataChange === 'function') onDataChange(payload);
             }
           )
           .subscribe((status, err) => {
             if (status === 'CHANNEL_ERROR') {
-              console.debug("[Supabase Realtime] alerts channel notice:", err);
+              this.missingTables.add('alerts');
             }
           });
 
         this.activeChannels[channelName] = channel;
         return channel;
       } catch (err) {
-        console.warn("[Supabase Realtime] Alerts subscription error:", err);
         return null;
       }
     }
 
     subscribeToUserSettings(userId, onDataChange) {
       if (!this.isReady() || !userId || !this.isUUID(userId)) return null;
+      if (this.missingTables.has('user_settings') || this.missingTables.has('notification_preferences')) return null;
 
       try {
         const channelName = `settings-${userId}`;
@@ -1636,33 +1694,18 @@
               filter: `user_id=eq.${userId}`
             },
             (payload) => {
-              console.log("[Supabase Realtime] notification_preferences event:", payload.eventType);
               if (typeof onDataChange === 'function') onDataChange({ table: 'notification_preferences', ...payload });
-            }
-          )
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'user_settings',
-              filter: `user_id=eq.${userId}`
-            },
-            (payload) => {
-              console.log("[Supabase Realtime] user_settings event:", payload.eventType);
-              if (typeof onDataChange === 'function') onDataChange({ table: 'user_settings', ...payload });
             }
           )
           .subscribe((status, err) => {
             if (status === 'CHANNEL_ERROR') {
-              console.debug("[Supabase Realtime] settings channel notice:", err);
+              this.missingTables.add('notification_preferences');
             }
           });
 
         this.activeChannels[channelName] = channel;
         return channel;
       } catch (err) {
-        console.warn("[Supabase Realtime] Settings subscription error:", err);
         return null;
       }
     }
@@ -1777,8 +1820,81 @@
         console.warn("[Resend Alert Notice]", e);
       });
     }
+
+    async runProductionDiagnostics() {
+      await this.ensureInitialized();
+      const cfg = window.SupabaseConfig ? window.SupabaseConfig.get() : {};
+      const report = {
+        timestamp: new Date().toISOString(),
+        configured: this.isReady(),
+        projectUrl: cfg.url || this.url || 'Not configured',
+        hasAnonKey: Boolean((cfg.key || this.key) && (cfg.key || this.key).length > 20),
+        authSession: false,
+        userId: null,
+        userEmail: null,
+        pantryItemsTable: 'unknown',
+        pantryItemsCount: 0,
+        latencyMs: 0,
+        details: []
+      };
+
+      if (!this.client) {
+        report.details.push("Supabase client is not initialized.");
+        return report;
+      }
+
+      // 1. Session check
+      try {
+        const { data: { session } } = await this.client.auth.getSession();
+        if (session && session.user) {
+          report.authSession = true;
+          report.userId = session.user.id;
+          report.userEmail = session.user.email;
+          report.details.push(`Auth session active (${session.user.email})`);
+        } else {
+          report.details.push("No active auth session (user is signed out or guest)");
+        }
+      } catch (e) {
+        report.details.push(`Auth check: ${e.message}`);
+      }
+
+      // 2. pantry_items table query check
+      const t0 = performance.now();
+      try {
+        const query = this.client.from('pantry_items').select('id', { count: 'exact', head: true });
+        if (report.userId) {
+          query.eq('user_id', report.userId);
+        } else {
+          query.limit(0);
+        }
+        const { count, error } = await query;
+        report.latencyMs = Math.round(performance.now() - t0);
+
+        if (error) {
+          report.pantryItemsTable = `error (${error.code || 'ERR'})`;
+          report.details.push(`pantry_items query: [${error.code}] ${error.message}`);
+        } else {
+          report.pantryItemsTable = 'accessible';
+          report.pantryItemsCount = count ?? 0;
+          report.details.push(`pantry_items verified (${report.latencyMs}ms, ${report.pantryItemsCount} items)`);
+        }
+      } catch (e) {
+        report.latencyMs = Math.round(performance.now() - t0);
+        report.pantryItemsTable = 'network_error';
+        report.details.push(`pantry_items network notice: ${e.message}`);
+      }
+
+      return report;
+    }
   }
 
   window.supabaseService = new SupabaseService();
   window.supabaseClient = window.supabaseService.client;
+  if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
+    window.SupabaseConfig.readyPromise.then((cfg) => {
+      if (cfg && cfg.url && cfg.key && !window.supabaseService.client) {
+        window.supabaseService.initClient(cfg.url, cfg.key);
+      }
+    });
+  }
 })(window);

@@ -59,8 +59,8 @@
           await window.SupabaseConfig.readyPromise;
         }
 
-        if (window.supabaseService && !window.supabaseService.isReady()) {
-          try { window.supabaseService.init(); } catch (e) {}
+        if (window.supabaseService) {
+          await window.supabaseService.ensureInitialized();
         }
 
         // If OAuth/magic code is in URL, exchange for session
@@ -4373,7 +4373,8 @@ window.addEventListener("beforeunload", () => stopCamera());
           <input 
             type="text" 
             id="supabaseKeyInput" 
-            value="sb_publishable_uXIdmQNVJhuwVW0W2-BQxQ_Ko-r34jW" 
+            value="" 
+            placeholder="Supabase Public / Anon Key"
             class="form-input" 
             style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13.5px; font-family:monospace;"
             required
@@ -4587,12 +4588,19 @@ async function testLiveDatabaseConnection(btn) {
   };
 
   try {
+    if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
+      await window.SupabaseConfig.readyPromise;
+    }
+    if (window.supabaseService) {
+      await window.supabaseService.ensureInitialized();
+    }
+
     const urlInput = document.getElementById('supabaseUrlInput');
     const keyInput = document.getElementById('supabaseKeyInput');
     const config = window.SupabaseConfig ? window.SupabaseConfig.get() : null;
 
     let url = ((urlInput && urlInput.value) || (config && config.url) || 'https://sqcreimqdrlaxbykrnzy.supabase.co').trim().replace(/\/+$/, '');
-    let key = ((keyInput && keyInput.value) || (config && config.key) || 'sb_publishable_uXIdmQNVJhuwVW0W2-BQxQ_Ko-r34jW').trim();
+    let key = ((keyInput && keyInput.value) || (config && config.key) || '').trim();
 
     if (!url || !key) {
       setStatus('NETWORK_ERROR', 'Supabase URL & Anon Key required');
@@ -4699,7 +4707,7 @@ function openDatabaseSettingsModal() {
   const statusDot = document.getElementById('supabaseStatusDot');
 
   let cleanUrl = (config && config.url && config.url.startsWith('https://')) ? config.url : 'https://sqcreimqdrlaxbykrnzy.supabase.co';
-  let cleanKey = (config && config.key && config.key.length > 20) ? config.key : 'sb_publishable_uXIdmQNVJhuwVW0W2-BQxQ_Ko-r34jW';
+  let cleanKey = (config && config.key && config.key.length > 20) ? config.key : '';
 
   if (urlInput) urlInput.value = cleanUrl;
   if (keyInput) keyInput.value = cleanKey;
@@ -4905,6 +4913,10 @@ async function initDashboardAuthAndUser() {
   try {
     if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
       await window.SupabaseConfig.readyPromise;
+    }
+
+    if (window.supabaseService) {
+      await window.supabaseService.ensureInitialized();
     }
 
     if (!window.supabaseService || !window.supabaseService.isReady()) {

@@ -1,111 +1,98 @@
 /**
  * IntelliPantry - Production Supabase Configuration & Auto-Discovery
  * 
- * Sources:
- * 1. Dynamic Vercel Serverless Endpoint (/api/config)
- * 2. Window ENV (if injected)
- * 3. Local Storage Override (via Database Settings modal)
+ * Production Priority:
+ * 1. /api/config (Vercel Serverless Function — Source of Truth)
+ * 2. Window ENV (build-time environment injection if provided)
+ * 3. Local Development Override (localhost only)
+ * 
+ * SECURITY: Zero hardcoded API keys in source code.
  */
 
 (function(window) {
+  const DEFAULT_PROJECT_URL = "https://sqcreimqdrlaxbykrnzy.supabase.co";
+
+  // Automatically clear stale localStorage overrides in production
+  try {
+    const isLocal = typeof window !== 'undefined' && (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.protocol === 'file:'
+    );
+    if (!isLocal) {
+      localStorage.removeItem("smartpantry_supabase_url");
+      localStorage.removeItem("smartpantry_supabase_key");
+    }
+  } catch (e) {}
+
   let cachedConfig = {
-    url: "",
+    url: DEFAULT_PROJECT_URL,
     key: "",
     isConfigured: false
   };
 
-  function readLocalConfig() {
-    let url = "";
-    let key = "";
-    try {
-      url = localStorage.getItem("smartpantry_supabase_url") || "";
-      key = localStorage.getItem("smartpantry_supabase_key") || "";
-    } catch (e) {}
-
-    // Automatically purge old placeholders, dead projects, or mistaken API keys saved as URLs
-    const isDeadUrl = url.includes("xyzcompany") || 
-      url.includes("your-project") || 
-      url.includes("placeholder") || 
-      url.includes("oubfjolxhvkujjjnzvol") || 
-      url.includes("ivskkcmzzrhzhofwjtrt") || 
-      url.includes("wzszikfgxquqezsmlvcr") || 
-      url.startsWith("sb_publishable_") || 
-      (url && !url.startsWith("https://"));
-
-    if (isDeadUrl) {
-      try {
-        localStorage.removeItem("smartpantry_supabase_url");
-        localStorage.removeItem("smartpantry_supabase_key");
-      } catch (e) {}
-      url = "";
-      key = "";
+  // 1. Initial check: window.ENV if injected during build
+  if (typeof window.ENV !== "undefined" && window.ENV) {
+    const envUrl = (window.ENV.NEXT_PUBLIC_SUPABASE_URL || window.ENV.SUPABASE_URL || "").trim();
+    const envKey = (window.ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY || window.ENV.SUPABASE_ANON_KEY || "").trim();
+    if (envUrl.startsWith("https://") && envKey.length > 20) {
+      cachedConfig = {
+        url: envUrl,
+        key: envKey,
+        isConfigured: true
+      };
     }
-
-    if (!url || isDeadUrl) {
-      url = (typeof window.ENV !== "undefined" && (window.ENV.NEXT_PUBLIC_SUPABASE_URL || window.ENV.SUPABASE_URL)) 
-        ? (window.ENV.NEXT_PUBLIC_SUPABASE_URL || window.ENV.SUPABASE_URL) 
-        : "https://sqcreimqdrlaxbykrnzy.supabase.co";
-    }
-
-    if (!key || key.includes("your-anon-key") || key.includes("placeholder") || key.length < 20 || key.includes("v637P_FSQIKQq4PrfujlXGa2ciGR9UD68UY9vH_cqN4") || key.includes("Vywsz4cOEWnrOMOIseXckuvLT80K0_rjxSNxOfkad1w")) {
-      key = (typeof window.ENV !== "undefined" && (window.ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY || window.ENV.SUPABASE_ANON_KEY)) 
-        ? (window.ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY || window.ENV.SUPABASE_ANON_KEY) 
-        : "sb_publishable_uXIdmQNVJhuwVW0W2-BQxQ_Ko-r34jW";
-    }
-
-    const isValid = Boolean(
-      url && 
-      key && 
-      !url.includes("your-project") && 
-      !url.includes("xyzcompany") &&
-      !key.includes("your-anon-key") &&
-      url.startsWith("https://") &&
-      !url.startsWith("sb_publishable_")
-    );
-
-    cachedConfig = { url: url.trim(), key: key.trim(), isConfigured: isValid };
-    return cachedConfig;
   }
 
-  // Initial synchronous read
-  readLocalConfig();
-
-  // Asynchronous auto-discovery from Vercel environment variables via /api/config
+  // 2. Asynchronous auto-discovery from Vercel environment variables via /api/config
   const readyPromise = (async function autoDiscover() {
     try {
       const res = await fetch("/api/config", { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        if (data.urlWarning) {
-          console.warn("[Supabase Config Warning]:", data.urlWarning);
-        }
-        if (data && data.supabaseUrl && data.supabaseUrl.startsWith("https://") && data.supabaseAnonKey) {
-          const currentUrl = localStorage.getItem("smartpantry_supabase_url") || "";
-          if (!currentUrl || currentUrl.includes("xyzcompany") || currentUrl.includes("your-project") || !currentUrl.startsWith("https://")) {
-            cachedConfig = {
-              url: data.supabaseUrl.trim(),
-              key: data.supabaseAnonKey.trim(),
-              isConfigured: true
-            };
-            if (window.supabaseService && !window.supabaseService.isReady()) {
-              window.supabaseService.init();
-            }
+        const sUrl = (data?.supabaseUrl || "").trim();
+        const sKey = (data?.supabaseAnonKey || "").trim();
+
+        if (sUrl.startsWith("https://") && sKey.length > 20) {
+          cachedConfig = {
+            url: sUrl,
+            key: sKey,
+            isConfigured: true
+          };
+          // Immediately notify Supabase service to initialize with verified credentials
+          if (window.supabaseService && typeof window.supabaseService.initClient === 'function') {
+            window.supabaseService.initClient(sUrl, sKey);
           }
-        } else if (data && (!data.supabaseUrl || !data.supabaseUrl.startsWith("https://"))) {
-          // If serverless reports invalid or missing URL, reflect unconfigured state
-          cachedConfig.isConfigured = false;
+          return cachedConfig;
         }
       }
     } catch (e) {
-      // In offline or local preview mode, fallback to cachedConfig
+      // In offline or static preview mode, proceed with cachedConfig
     }
+
+    // Local development fallback only
+    try {
+      const isLocal = typeof window !== 'undefined' && (
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1'
+      );
+      if (isLocal) {
+        const localUrl = (localStorage.getItem("smartpantry_supabase_url") || "").trim();
+        const localKey = (localStorage.getItem("smartpantry_supabase_key") || "").trim();
+        if (localUrl.startsWith("https://") && localKey.length > 20) {
+          cachedConfig = { url: localUrl, key: localKey, isConfigured: true };
+          if (window.supabaseService && typeof window.supabaseService.initClient === 'function') {
+            window.supabaseService.initClient(localUrl, localKey);
+          }
+          return cachedConfig;
+        }
+      }
+    } catch (e) {}
+
     return cachedConfig;
   })();
 
   function getSupabaseConfig() {
-    if (!cachedConfig.isConfigured) {
-      readLocalConfig();
-    }
     return cachedConfig;
   }
 
@@ -113,10 +100,16 @@
     try {
       if (url) localStorage.setItem("smartpantry_supabase_url", url.trim());
       if (key) localStorage.setItem("smartpantry_supabase_key", key.trim());
-      readLocalConfig();
+      cachedConfig = {
+        url: (url || DEFAULT_PROJECT_URL).trim(),
+        key: (key || "").trim(),
+        isConfigured: Boolean(url && key && key.length > 20)
+      };
+      if (window.supabaseService && typeof window.supabaseService.initClient === 'function') {
+        window.supabaseService.initClient(cachedConfig.url, cachedConfig.key);
+      }
       return true;
     } catch (e) {
-      console.error("[Supabase Config] Save error:", e);
       return false;
     }
   }
@@ -125,7 +118,7 @@
     try {
       localStorage.removeItem("smartpantry_supabase_url");
       localStorage.removeItem("smartpantry_supabase_key");
-      cachedConfig = { url: "", key: "", isConfigured: false };
+      cachedConfig = { url: DEFAULT_PROJECT_URL, key: "", isConfigured: false };
     } catch (e) {}
   }
 
@@ -133,7 +126,7 @@
     get: getSupabaseConfig,
     save: saveSupabaseConfig,
     clear: clearSupabaseConfig,
-    isConfigured: () => getSupabaseConfig().isConfigured,
+    isConfigured: () => Boolean(cachedConfig.isConfigured && cachedConfig.url && cachedConfig.key),
     readyPromise
   };
 })(window);
