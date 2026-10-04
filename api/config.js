@@ -120,10 +120,16 @@ module.exports = function handler(req, res) {
   const keyVarNames = [
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
     "SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_STORAGE_SUPABASE_ANON_KEY",
+    "STORAGE_SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_STORAGE_SUPABASE_KEY",
+    "STORAGE_SUPABASE_KEY",
     "NEXT_PUBLIC_SUPABASE_KEY",
     "SUPABASE_KEY",
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-    "SUPABASE_PUBLISHABLE_KEY"
+    "SUPABASE_PUBLISHABLE_KEY",
+    "NEXT_PUBLIC_SUPABASE_PUBLIC_KEY",
+    "SUPABASE_PUBLIC_KEY"
   ];
 
   let resolvedKey = null;
@@ -146,6 +152,20 @@ module.exports = function handler(req, res) {
     }
   }
 
+  // Fallback scan: inspect all process.env for any publishable/anon key
+  if (!resolvedKey) {
+    for (const [k, v] of Object.entries(process.env)) {
+      if (typeof v !== 'string') continue;
+      const raw = cleanString(v);
+      if (raw.startsWith('sb_secret_')) continue;
+      if ((raw.startsWith('sb_publishable_') || raw.startsWith('eyJ')) && raw.length > 20) {
+        resolvedKey = raw;
+        keySource = k;
+        break;
+      }
+    }
+  }
+
   // If NEXT_PUBLIC_SUPABASE_URL was set to the publishable key and no key was found elsewhere
   if (!resolvedKey) {
     const fallbackKey = cleanString(process.env.NEXT_PUBLIC_SUPABASE_URL);
@@ -154,6 +174,9 @@ module.exports = function handler(req, res) {
       keySource = "NEXT_PUBLIC_SUPABASE_URL (inferred key)";
     }
   }
+
+  const rawProvidedKey = cleanString(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY);
+  const isKeySecret = Boolean(rawProvidedKey && rawProvidedKey.startsWith("sb_secret_"));
 
   const siteUrl = (process.env.SITE_URL || "https://www.intellipantry.in").trim();
 
@@ -164,7 +187,13 @@ module.exports = function handler(req, res) {
     SUPABASE_URL: Boolean(process.env.SUPABASE_URL),
     SUPABASE_ANON_KEY: Boolean(process.env.SUPABASE_ANON_KEY),
     urlSource,
-    keySource
+    keySource,
+    keyDiagnostics: {
+      hasRawKey: Boolean(rawProvidedKey),
+      rawKeyLength: rawProvidedKey ? rawProvidedKey.length : 0,
+      isSecretKey: isKeySecret,
+      prefixType: isKeySecret ? "sb_secret" : (rawProvidedKey.startsWith("sb_publishable_") ? "sb_publishable" : (rawProvidedKey.startsWith("eyJ") ? "jwt" : "unknown"))
+    }
   };
 
   let urlWarning = null;
@@ -175,6 +204,8 @@ module.exports = function handler(req, res) {
     } else {
       urlWarning = "NEXT_PUBLIC_SUPABASE_URL is missing or invalid. Set it to https://[project-ref].supabase.co in Vercel.";
     }
+  } else if (!resolvedKey && isKeySecret) {
+    urlWarning = "NEXT_PUBLIC_SUPABASE_ANON_KEY currently contains a Secret / Service-Role key (sb_secret_...). Please replace it in Vercel with your public Publishable key (sb_publishable_... or public eyJ... key).";
   }
 
   return res.status(200).json({

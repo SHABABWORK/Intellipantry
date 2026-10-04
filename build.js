@@ -56,10 +56,16 @@ function injectPublicEnv(htmlContent) {
   const keyCandidates = [
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     process.env.SUPABASE_ANON_KEY,
+    process.env.NEXT_PUBLIC_STORAGE_SUPABASE_ANON_KEY,
+    process.env.STORAGE_SUPABASE_ANON_KEY,
+    process.env.NEXT_PUBLIC_STORAGE_SUPABASE_KEY,
+    process.env.STORAGE_SUPABASE_KEY,
     process.env.NEXT_PUBLIC_SUPABASE_KEY,
     process.env.SUPABASE_KEY,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-    process.env.SUPABASE_PUBLISHABLE_KEY
+    process.env.SUPABASE_PUBLISHABLE_KEY,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLIC_KEY,
+    process.env.SUPABASE_PUBLIC_KEY
   ];
 
   let pubKey = '';
@@ -68,6 +74,18 @@ function injectPublicEnv(htmlContent) {
     if (val && !val.startsWith('sb_secret_') && val.length > 20) {
       pubKey = val;
       break;
+    }
+  }
+
+  if (!pubKey) {
+    for (const [k, v] of Object.entries(process.env)) {
+      if (typeof v !== 'string') continue;
+      const val = v.trim();
+      if (val.startsWith('sb_secret_')) continue;
+      if ((val.startsWith('sb_publishable_') || val.startsWith('eyJ')) && val.length > 20) {
+        pubKey = val;
+        break;
+      }
     }
   }
 
