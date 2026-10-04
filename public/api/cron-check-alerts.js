@@ -22,12 +22,14 @@ function cleanString(val) {
   return s;
 }
 
-  const DEPRECATED_PROJECT_IDS = ["sqcreimqdrlaxbykrnzy"];
-  function isDeprecatedProject(str) {
-    if (!str || typeof str !== 'string') return false;
-    return DEPRECATED_PROJECT_IDS.some(id => str.includes(id));
-  }
+const DEPRECATED_PROJECT_IDS = ["sqcreimqdrlaxbykrnzy"];
+function isDeprecatedProject(str) {
+  if (!str || typeof str !== 'string') return false;
+  return DEPRECATED_PROJECT_IDS.some(id => str.includes(id));
+}
 
+// Resolve Supabase Project URL safely
+function getSupabaseUrl() {
   const candidates = [
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_URL,
