@@ -10,13 +10,8 @@
  */
 
 (function(window) {
-  // Automatically clear stale localStorage overrides or references to old deleted project
+  // Automatically clear stale localStorage overrides in production
   try {
-    const storedUrl = localStorage.getItem("smartpantry_supabase_url") || "";
-    if (storedUrl.includes("sqcreimqdrlaxbykrnzy")) {
-      localStorage.removeItem("smartpantry_supabase_url");
-      localStorage.removeItem("smartpantry_supabase_key");
-    }
     const isLocal = typeof window !== 'undefined' && (
       window.location.hostname === 'localhost' ||
       window.location.hostname === '127.0.0.1' ||
@@ -38,7 +33,7 @@
   if (typeof window.ENV !== "undefined" && window.ENV) {
     const envUrl = (window.ENV.NEXT_PUBLIC_SUPABASE_URL || window.ENV.SUPABASE_URL || "").trim();
     const envKey = (window.ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY || window.ENV.SUPABASE_ANON_KEY || "").trim();
-    if (envUrl.startsWith("https://") && !envUrl.includes("sqcreimqdrlaxbykrnzy") && envKey.length > 20) {
+    if (envUrl.startsWith("https://") && envKey.length > 20) {
       cachedConfig = {
         url: envUrl,
         key: envKey,
@@ -108,7 +103,7 @@
       if (url) localStorage.setItem("smartpantry_supabase_url", url.trim());
       if (key) localStorage.setItem("smartpantry_supabase_key", key.trim());
       cachedConfig = {
-        url: (url || DEFAULT_PROJECT_URL).trim(),
+        url: (url || "").trim(),
         key: (key || "").trim(),
         isConfigured: Boolean(url && key && key.length > 20)
       };
@@ -125,7 +120,7 @@
     try {
       localStorage.removeItem("smartpantry_supabase_url");
       localStorage.removeItem("smartpantry_supabase_key");
-      cachedConfig = { url: DEFAULT_PROJECT_URL, key: "", isConfigured: false };
+      cachedConfig = { url: "", key: "", isConfigured: false };
     } catch (e) {}
   }
 
