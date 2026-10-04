@@ -2594,6 +2594,9 @@
       btn.disabled = true;
 
       try {
+        if (window.supabaseService) {
+          await window.supabaseService.ensureInitialized();
+        }
         if (!window.supabaseService || !window.supabaseService.isReady()) {
           showAlert('verifyAlert', 'Supabase is not connected.');
           btn.textContent = 'Verify Email';
@@ -2635,6 +2638,9 @@
       btn.textContent = 'Sending...';
 
       try {
+        if (window.supabaseService) {
+          await window.supabaseService.ensureInitialized();
+        }
         if (window.supabaseService && window.supabaseService.isReady()) {
           const res = await window.supabaseService.resendConfirmation(pendingOtpEmail);
           if (res.success) {
