@@ -2696,19 +2696,22 @@
       e.preventDefault();
       clearAlert('authAlert');
 
-      // Ensure dynamic environment configuration has finished resolving
-      let isReady = false;
+      // 1. Wait for window.SupabaseConfig.readyPromise
+      if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
+        try {
+          await window.SupabaseConfig.readyPromise;
+        } catch (e) {}
+      }
+
+      // 2. Then await window.supabaseService.ensureInitialized()
       if (window.supabaseService && typeof window.supabaseService.ensureInitialized === 'function') {
-        isReady = await window.supabaseService.ensureInitialized();
-      } else if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
-        await window.SupabaseConfig.readyPromise;
-        if (window.supabaseService && typeof window.supabaseService.ensureInitialized === 'function') {
-          isReady = await window.supabaseService.ensureInitialized();
-        }
+        try {
+          await window.supabaseService.ensureInitialized();
+        } catch (e) {}
       }
-      if (!isReady && window.supabaseService) {
-        isReady = window.supabaseService.isReady();
-      }
+
+      // 3. Then check window.supabaseService.isReady()
+      const isReady = Boolean(window.supabaseService && window.supabaseService.isReady());
 
       const email = document.getElementById('inputEmail').value.trim();
       const password = document.getElementById('inputPassword').value;
@@ -3088,23 +3091,29 @@
 
     // Initialize Page & Check URL Hash / Params
     document.addEventListener("DOMContentLoaded", async function() {
-      // 1. Wait for Supabase environment configuration and client initialization
-      let isConfigured = false;
-      if (window.supabaseService && typeof window.supabaseService.ensureInitialized === 'function') {
-        isConfigured = await window.supabaseService.ensureInitialized();
-      } else if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
-        await window.SupabaseConfig.readyPromise;
-        if (window.supabaseService && typeof window.supabaseService.ensureInitialized === 'function') {
-          isConfigured = await window.supabaseService.ensureInitialized();
+      // 1. Wait for window.SupabaseConfig.readyPromise
+      if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
+        try {
+          await window.SupabaseConfig.readyPromise;
+        } catch (e) {
+          console.warn("[Startup] SupabaseConfig.readyPromise error:", e);
         }
       }
-      if (!isConfigured && window.supabaseService) {
-        isConfigured = window.supabaseService.isReady();
+
+      // 2. Then await window.supabaseService.ensureInitialized()
+      if (window.supabaseService && typeof window.supabaseService.ensureInitialized === 'function') {
+        try {
+          await window.supabaseService.ensureInitialized();
+        } catch (e) {
+          console.warn("[Startup] supabaseService.ensureInitialized error:", e);
+        }
       }
 
-      // 2. Only show "Supabase is not connected" if /api/config actually fails or returns configured: false
-      const configObj = window.SupabaseConfig ? window.SupabaseConfig.get() : null;
-      if (!isConfigured && (!configObj || !configObj.isConfigured)) {
+      // 3. Then check window.supabaseService.isReady()
+      const isReady = Boolean(window.supabaseService && window.supabaseService.isReady());
+
+      // 4. Only show "Supabase is not connected" if initialization actually failed.
+      if (!isReady) {
         showAlert('authAlert', '⚠️ Supabase is not connected. Please set your Supabase Project URL (https://xxxx.supabase.co) in Vercel Environment Variables.');
       } else {
         clearAlert('authAlert');
