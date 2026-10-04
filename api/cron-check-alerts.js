@@ -22,11 +22,17 @@ function cleanString(val) {
   return s;
 }
 
-// Resolve Supabase Project URL safely
-function getSupabaseUrl() {
+  const DEPRECATED_PROJECT_IDS = ["sqcreimqdrlaxbykrnzy"];
+  function isDeprecatedProject(str) {
+    if (!str || typeof str !== 'string') return false;
+    return DEPRECATED_PROJECT_IDS.some(id => str.includes(id));
+  }
+
   const candidates = [
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_URL,
+    process.env.NEXT_PUBLIC_STORAGE_SUPABASE_URL,
+    process.env.STORAGE_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_PROJECT_URL,
     process.env.SUPABASE_PROJECT_URL,
     process.env.NEXT_PUBLIC_PROJECT_URL,
@@ -35,7 +41,7 @@ function getSupabaseUrl() {
 
   for (const c of candidates) {
     const raw = cleanString(c);
-    if (!raw) continue;
+    if (!raw || isDeprecatedProject(raw)) continue;
     if (raw.startsWith("sb_publishable_") || raw.startsWith("sb_secret_") || raw.startsWith("eyJ")) continue;
     if (raw.startsWith("https://") && !raw.includes("your-project")) {
       return raw.replace(/\/+$/, "");
@@ -47,8 +53,9 @@ function getSupabaseUrl() {
 
   // Fallback scan
   for (const [k, v] of Object.entries(process.env)) {
-    if (typeof v !== "string" || !v.includes(".supabase.co")) continue;
+    if (typeof v !== "string" || !v.includes(".supabase.co") || isDeprecatedProject(v)) continue;
     const raw = cleanString(v);
+    if (isDeprecatedProject(raw)) continue;
     if (raw.startsWith("https://") && !raw.includes("your-project") && !raw.includes("xyzcompany")) {
       return raw.replace(/\/+$/, "");
     }

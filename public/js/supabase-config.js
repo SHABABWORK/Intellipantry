@@ -10,8 +10,13 @@
  */
 
 (function(window) {
-  // Automatically clear stale localStorage overrides in production
+  // Automatically clear stale localStorage overrides or references to deprecated project
   try {
+    const storedUrl = localStorage.getItem("smartpantry_supabase_url") || "";
+    if (storedUrl.includes("sqcreimqdrlaxbykrnzy")) {
+      localStorage.removeItem("smartpantry_supabase_url");
+      localStorage.removeItem("smartpantry_supabase_key");
+    }
     const isLocal = typeof window !== 'undefined' && (
       window.location.hostname === 'localhost' ||
       window.location.hostname === '127.0.0.1' ||

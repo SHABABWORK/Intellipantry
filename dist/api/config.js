@@ -28,10 +28,19 @@ module.exports = function handler(req, res) {
     return s;
   }
 
+  // Blacklist deprecated/decommissioned project IDs that produce ERR_NAME_NOT_RESOLVED
+  const DEPRECATED_PROJECT_IDS = ["sqcreimqdrlaxbykrnzy"];
+  function isDeprecatedProject(str) {
+    if (!str || typeof str !== 'string') return false;
+    return DEPRECATED_PROJECT_IDS.some(id => str.includes(id));
+  }
+
   // 1. Resolve Supabase Project URL from all standard environment variable names
   const urlVarNames = [
     "NEXT_PUBLIC_SUPABASE_URL",
     "SUPABASE_URL",
+    "NEXT_PUBLIC_STORAGE_SUPABASE_URL",
+    "STORAGE_SUPABASE_URL",
     "NEXT_PUBLIC_SUPABASE_PROJECT_URL",
     "SUPABASE_PROJECT_URL",
     "NEXT_PUBLIC_PROJECT_URL",
@@ -49,8 +58,8 @@ module.exports = function handler(req, res) {
     const raw = cleanString(process.env[name]);
     if (!raw) continue;
 
-    // Skip if this is an API key (publishable or secret) or JWT
-    if (raw.startsWith("sb_publishable_") || raw.startsWith("sb_secret_") || raw.startsWith("eyJ")) {
+    // Skip deprecated projects, API keys (publishable or secret), or JWT
+    if (isDeprecatedProject(raw) || raw.startsWith("sb_publishable_") || raw.startsWith("sb_secret_") || raw.startsWith("eyJ")) {
       continue;
     }
 
@@ -86,8 +95,9 @@ module.exports = function handler(req, res) {
   // Fallback scan: check all process.env values for any containing '.supabase.co'
   if (!resolvedUrl) {
     for (const [k, v] of Object.entries(process.env)) {
-      if (typeof v !== 'string' || !v.includes('.supabase.co')) continue;
+      if (typeof v !== 'string' || !v.includes('.supabase.co') || isDeprecatedProject(v)) continue;
       const raw = cleanString(v);
+      if (isDeprecatedProject(raw)) continue;
       if (raw.startsWith('https://') && !raw.includes('your-project') && !raw.includes('xyzcompany')) {
         resolvedUrl = raw.replace(/\/+$/, '');
         urlSource = k;
