@@ -29,8 +29,47 @@ console.log('[Build] Generating Vercel production bundle in ./dist and ./public 
 });
 
 function injectPublicEnv(htmlContent) {
-  const pubUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '').trim();
-  const pubKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '').trim();
+  const DEPRECATED_IDS = ['sqcreimqdrlaxbykrnzy'];
+  function isDeprecated(val) {
+    if (!val || typeof val !== 'string') return false;
+    return DEPRECATED_IDS.some(id => val.includes(id));
+  }
+
+  const urlCandidates = [
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_URL,
+    process.env.NEXT_PUBLIC_STORAGE_SUPABASE_URL,
+    process.env.STORAGE_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_PROJECT_URL,
+    process.env.SUPABASE_PROJECT_URL
+  ];
+
+  let pubUrl = '';
+  for (const candidate of urlCandidates) {
+    const val = (candidate || '').trim();
+    if (val && !isDeprecated(val) && val.startsWith('https://')) {
+      pubUrl = val.replace(/\/+$/, '');
+      break;
+    }
+  }
+
+  const keyCandidates = [
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    process.env.SUPABASE_ANON_KEY,
+    process.env.NEXT_PUBLIC_SUPABASE_KEY,
+    process.env.SUPABASE_KEY,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    process.env.SUPABASE_PUBLISHABLE_KEY
+  ];
+
+  let pubKey = '';
+  for (const candidate of keyCandidates) {
+    const val = (candidate || '').trim();
+    if (val && !val.startsWith('sb_secret_') && val.length > 20) {
+      pubKey = val;
+      break;
+    }
+  }
 
   if (!pubUrl && !pubKey) return htmlContent;
 

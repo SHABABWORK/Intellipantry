@@ -38,7 +38,7 @@
   if (typeof window.ENV !== "undefined" && window.ENV) {
     const envUrl = (window.ENV.NEXT_PUBLIC_SUPABASE_URL || window.ENV.SUPABASE_URL || "").trim();
     const envKey = (window.ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY || window.ENV.SUPABASE_ANON_KEY || "").trim();
-    if (envUrl.startsWith("https://") && envKey.length > 20) {
+    if (envUrl.startsWith("https://") && !envUrl.includes("sqcreimqdrlaxbykrnzy") && envKey.length > 20) {
       cachedConfig = {
         url: envUrl,
         key: envKey,
@@ -57,7 +57,7 @@
           const sUrl = (data?.supabaseUrl || "").trim();
           const sKey = (data?.supabaseAnonKey || "").trim();
 
-          if (sUrl.startsWith("https://") && sKey.length > 20) {
+          if (sUrl.startsWith("https://") && !sUrl.includes("sqcreimqdrlaxbykrnzy") && sKey.length > 20) {
             cachedConfig = {
               url: sUrl,
               key: sKey,

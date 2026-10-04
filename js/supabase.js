@@ -27,6 +27,10 @@
 
     initClient(url, key) {
       if (!url || !key) return false;
+      if (url.includes("sqcreimqdrlaxbykrnzy")) {
+        console.warn("[Supabase] Rejected deprecated project URL:", url);
+        return false;
+      }
       if (!window.supabase) {
         return false;
       }
