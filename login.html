@@ -2697,15 +2697,17 @@
       clearAlert('authAlert');
 
       // Ensure dynamic environment configuration has finished resolving
-      if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
-        try {
-          await window.SupabaseConfig.readyPromise;
-        } catch (e) {}
+      let isReady = false;
+      if (window.supabaseService && typeof window.supabaseService.ensureInitialized === 'function') {
+        isReady = await window.supabaseService.ensureInitialized();
+      } else if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
+        await window.SupabaseConfig.readyPromise;
+        if (window.supabaseService && typeof window.supabaseService.ensureInitialized === 'function') {
+          isReady = await window.supabaseService.ensureInitialized();
+        }
       }
-      if (window.supabaseService && !window.supabaseService.isReady()) {
-        try {
-          window.supabaseService.init();
-        } catch (e) {}
+      if (!isReady && window.supabaseService) {
+        isReady = window.supabaseService.isReady();
       }
 
       const email = document.getElementById('inputEmail').value.trim();
@@ -2731,8 +2733,13 @@
         btn.disabled = true;
 
         try {
-          if (!window.supabaseService || !window.supabaseService.isReady()) {
-            showAlert('authAlert', '⚠️ Supabase is not connected. Please set your Supabase Project URL (https://xxxx.supabase.co) in Vercel Environment Variables.');
+          if (!isReady || !window.supabaseService || !window.supabaseService.isReady()) {
+            const cfg = window.SupabaseConfig ? window.SupabaseConfig.get() : null;
+            if (!cfg || !cfg.isConfigured) {
+              showAlert('authAlert', '⚠️ Supabase is not connected. Please set your Supabase Project URL (https://xxxx.supabase.co) in Vercel Environment Variables.');
+            } else {
+              showAlert('authAlert', '⚠️ Supabase initialization in progress. Please try again in a moment.');
+            }
             btn.textContent = 'Sign Up';
             btn.disabled = false;
             return;
@@ -2771,8 +2778,13 @@
         btn.disabled = true;
 
         try {
-          if (!window.supabaseService || !window.supabaseService.isReady()) {
-            showAlert('authAlert', '⚠️ Supabase is not connected. Please set your Supabase Project URL (https://xxxx.supabase.co) in Vercel Environment Variables.');
+          if (!isReady || !window.supabaseService || !window.supabaseService.isReady()) {
+            const cfg = window.SupabaseConfig ? window.SupabaseConfig.get() : null;
+            if (!cfg || !cfg.isConfigured) {
+              showAlert('authAlert', '⚠️ Supabase is not connected. Please set your Supabase Project URL (https://xxxx.supabase.co) in Vercel Environment Variables.');
+            } else {
+              showAlert('authAlert', '⚠️ Supabase initialization in progress. Please try again in a moment.');
+            }
             btn.textContent = 'Login';
             btn.disabled = false;
             return;
@@ -2808,6 +2820,9 @@
     // Google OAuth Login
     async function handleGoogleLogin() {
       clearAlert('authAlert');
+      if (window.supabaseService) {
+        await window.supabaseService.ensureInitialized();
+      }
       if (window.supabaseService && window.supabaseService.isReady()) {
         const res = await window.supabaseService.signInWithOAuth('google');
         if (!res.success) {
@@ -2827,6 +2842,9 @@
         return;
       }
       showAlert('authAlert', 'Sending sign-in link & code...', 'success');
+      if (window.supabaseService) {
+        await window.supabaseService.ensureInitialized();
+      }
       if (window.supabaseService && window.supabaseService.isReady()) {
         const res = await window.supabaseService.sendMagicLink(email);
         if (res.success) {
@@ -2835,6 +2853,8 @@
         } else {
           showAlert('authAlert', res.error || 'Could not send sign-in link.');
         }
+      } else {
+        showAlert('authAlert', 'Supabase service is offline. Please try again later.');
       }
     }
 
@@ -2862,6 +2882,9 @@
       btn.disabled = true;
 
       try {
+        if (window.supabaseService) {
+          await window.supabaseService.ensureInitialized();
+        }
         if (window.supabaseService && window.supabaseService.isReady()) {
           const res = await window.supabaseService.resetPassword(email);
           btn.textContent = 'Send Reset Link & Code';
@@ -2873,6 +2896,10 @@
           } else {
             showAlert('forgotAlert', res.error || 'Could not deliver password reset email.');
           }
+        } else {
+          showAlert('forgotAlert', 'Supabase service is offline. Please try again later.');
+          btn.textContent = 'Send Reset Link & Code';
+          btn.disabled = false;
         }
       } catch (err) {
         btn.textContent = 'Send Reset Link & Code';
@@ -2907,6 +2934,9 @@
       btn.disabled = true;
 
       try {
+        if (window.supabaseService) {
+          await window.supabaseService.ensureInitialized();
+        }
         if (window.supabaseService && window.supabaseService.isReady()) {
           const res = await window.supabaseService.verifyOtp(pendingOtpEmail, code, pendingOtpType);
           btn.textContent = 'Verify & Continue';
@@ -2925,6 +2955,10 @@
           } else {
             showAlert('otpModalAlert', res.error || 'Invalid or expired verification code.');
           }
+        } else {
+          showAlert('otpModalAlert', 'Supabase service is offline.');
+          btn.textContent = 'Verify & Continue';
+          btn.disabled = false;
         }
       } catch (err) {
         btn.textContent = 'Verify & Continue';
@@ -2936,6 +2970,9 @@
     async function handleResendOtp() {
       if (!pendingOtpEmail) return;
       showAlert('otpModalAlert', 'Resending confirmation email...', 'success');
+      if (window.supabaseService) {
+        await window.supabaseService.ensureInitialized();
+      }
       if (window.supabaseService && window.supabaseService.isReady()) {
         const res = await window.supabaseService.resendConfirmation(pendingOtpEmail);
         if (res.success) {
@@ -2943,6 +2980,8 @@
         } else {
           showAlert('otpModalAlert', res.error || 'Failed to resend confirmation email.');
         }
+      } else {
+        showAlert('otpModalAlert', 'Supabase service is offline.');
       }
     }
 
@@ -2963,6 +3002,9 @@
       btn.disabled = true;
 
       try {
+        if (window.supabaseService) {
+          await window.supabaseService.ensureInitialized();
+        }
         if (window.supabaseService && window.supabaseService.isReady()) {
           const res = await window.supabaseService.updatePassword(pass);
           btn.textContent = 'Save Password & Enter Pantry';
@@ -2973,6 +3015,10 @@
           } else {
             showAlert('newPassAlert', res.error || 'Failed to update password.');
           }
+        } else {
+          showAlert('newPassAlert', 'Supabase service is offline.');
+          btn.textContent = 'Save Password & Enter Pantry';
+          btn.disabled = false;
         }
       } catch (err) {
         btn.textContent = 'Save Password & Enter Pantry';
