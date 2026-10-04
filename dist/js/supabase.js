@@ -26,10 +26,13 @@
     }
 
     initClient(url, key) {
-      if (!url || !key || !window.supabase) return;
+      if (!url || !key) return false;
+      if (!window.supabase) {
+        return false;
+      }
       const cleanUrl = url.trim().replace(/\/+$/, '');
       const cleanKey = key.trim();
-      if (this.client && this.url === cleanUrl && this.key === cleanKey) return;
+      if (this.client && this.url === cleanUrl && this.key === cleanKey) return true;
       this.url = cleanUrl;
       this.key = cleanKey;
       try {
@@ -43,8 +46,10 @@
         });
         window.supabaseClient = this.client;
         console.log("[Supabase] Connected to live PostgreSQL database at:", cleanUrl);
+        return true;
       } catch (err) {
         console.error("[Supabase] Initialization error:", err);
+        return false;
       }
     }
 
@@ -60,21 +65,43 @@
 
     async ensureInitialized() {
       if (this.client) return true;
-      if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
-        try {
-          const cfg = await window.SupabaseConfig.readyPromise;
+      if (this._initPromise) return this._initPromise;
+
+      this._initPromise = (async () => {
+        // 1. Wait for Supabase JS SDK (window.supabase) if script is still loading from CDN
+        if (typeof window.supabase === 'undefined') {
+          for (let i = 0; i < 40; i++) {
+            await new Promise(r => setTimeout(r, 50));
+            if (typeof window.supabase !== 'undefined') break;
+          }
+        }
+
+        // 2. Await window.SupabaseConfig.readyPromise
+        if (window.SupabaseConfig && window.SupabaseConfig.readyPromise) {
+          try {
+            const cfg = await window.SupabaseConfig.readyPromise;
+            if (cfg && cfg.url && cfg.key) {
+              this.initClient(cfg.url, cfg.key);
+            }
+          } catch (e) {}
+        }
+
+        // 3. Fallback to cached config or build-injected ENV
+        if (!this.client && window.SupabaseConfig) {
+          const cfg = window.SupabaseConfig.get();
           if (cfg && cfg.url && cfg.key) {
             this.initClient(cfg.url, cfg.key);
           }
-        } catch (e) {}
-      }
-      if (!this.client && window.SupabaseConfig) {
-        const cfg = window.SupabaseConfig.get();
-        if (cfg && cfg.url && cfg.key) {
-          this.initClient(cfg.url, cfg.key);
         }
+
+        return Boolean(this.client);
+      })();
+
+      try {
+        return await this._initPromise;
+      } finally {
+        this._initPromise = null;
       }
-      return Boolean(this.client);
     }
 
     isReady() {

@@ -4608,7 +4608,7 @@ async function testLiveDatabaseConnection(btn) {
     }
 
     if (window.supabaseService && !window.supabaseService.isReady()) {
-      try { window.supabaseService.init(); } catch(e) {}
+      try { await window.supabaseService.ensureInitialized(); } catch(e) {}
     }
 
     const client = window.supabaseClient || (window.supabaseService ? window.supabaseService.client : null);

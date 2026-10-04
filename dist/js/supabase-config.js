@@ -46,28 +46,32 @@
 
   // 2. Asynchronous auto-discovery from Vercel environment variables via /api/config
   const readyPromise = (async function autoDiscover() {
-    try {
-      const res = await fetch("/api/config", { cache: "no-store" });
-      if (res.ok) {
-        const data = await res.json();
-        const sUrl = (data?.supabaseUrl || "").trim();
-        const sKey = (data?.supabaseAnonKey || "").trim();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await fetch("/api/config", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          const sUrl = (data?.supabaseUrl || "").trim();
+          const sKey = (data?.supabaseAnonKey || "").trim();
 
-        if (sUrl.startsWith("https://") && sKey.length > 20) {
-          cachedConfig = {
-            url: sUrl,
-            key: sKey,
-            isConfigured: true
-          };
-          // Immediately notify Supabase service to initialize with verified credentials
-          if (window.supabaseService && typeof window.supabaseService.initClient === 'function') {
-            window.supabaseService.initClient(sUrl, sKey);
+          if (sUrl.startsWith("https://") && sKey.length > 20) {
+            cachedConfig = {
+              url: sUrl,
+              key: sKey,
+              isConfigured: true
+            };
+            // Immediately notify Supabase service to initialize with verified credentials
+            if (window.supabaseService && typeof window.supabaseService.initClient === 'function') {
+              window.supabaseService.initClient(sUrl, sKey);
+            }
+            return cachedConfig;
           }
-          return cachedConfig;
+        }
+      } catch (e) {
+        if (attempt < 2) {
+          await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
         }
       }
-    } catch (e) {
-      // In offline or static preview mode, proceed with cachedConfig
     }
 
     // Local development fallback only
