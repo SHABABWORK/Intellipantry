@@ -4681,39 +4681,10 @@ async function testLiveDatabaseConnection(btn) {
 }
 window.testLiveDatabaseConnection = testLiveDatabaseConnection;
 
-// Database Settings Modal Handlers
+// Database Settings Modal Handlers (Hidden from normal frontend UI)
 function openDatabaseSettingsModal() {
-  const modal = document.getElementById('databaseSettingsModal');
-  if (!modal) return;
-  const config = window.SupabaseConfig ? window.SupabaseConfig.get() : { url: '', key: '', isConfigured: false };
-  const urlInput = document.getElementById('supabaseUrlInput');
-  const keyInput = document.getElementById('supabaseKeyInput');
-  const statusBadge = document.getElementById('supabaseConnectionStatusBadge');
-  const statusText = document.getElementById('supabaseStatusText');
-  const statusDot = document.getElementById('supabaseStatusDot');
-
-  let cleanUrl = (config && config.url && config.url.startsWith('https://')) ? config.url : '';
-  let cleanKey = (config && config.key && config.key.length > 20) ? config.key : '';
-
-  if (urlInput) urlInput.value = cleanUrl;
-  if (keyInput) keyInput.value = cleanKey;
-
-  if (statusBadge && statusText) {
-    statusBadge.style.background = '#f0fdf4';
-    statusBadge.style.color = '#166534';
-    statusBadge.style.borderColor = '#bbf7d0';
-    if (statusDot) statusDot.style.background = '#10b981';
-    statusText.textContent = 'Connected to Live PostgreSQL Database';
-  }
-
-  modal.classList.add('active');
-  const menu = document.getElementById('userMenu');
-  if (menu) menu.style.display = 'none';
-
-  // Automatically verify live connection in background
-  if (cleanUrl && cleanKey) {
-    testLiveDatabaseConnection();
-  }
+  // Access restricted: Database administration interface is managed securely via Vercel and /api/config.
+  return false;
 }
 
 function closeDatabaseSettingsModal() {
