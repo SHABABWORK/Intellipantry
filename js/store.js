@@ -638,7 +638,7 @@ class PantryStore {
       id: item.id || genId,
       name: item.name,
       brand: item.brand || "",
-      imageUrl: item.imageUrl || item.image || "",
+      imageUrl: item.imageUrl || item.image || (window.ProductImageEngine ? window.ProductImageEngine.lookupProductImage(item.name, item.category) : ""),
       minStock: minStockVal,
       lowStockThreshold: minStockVal,
       category: item.category || "Pantry",

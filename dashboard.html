@@ -635,6 +635,24 @@
           </div>
         </div>
 
+        <!-- Interactive Category Showcase Cards (All 22 Categories with Photos and Real-Time Counts) -->
+        <div class="category-showcase-container" id="categoryShowcaseContainer">
+          <div class="category-showcase-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:16px;">📂</span>
+              <h4 style="font-size:14px; font-weight:800; color:#1e392a; margin:0;">Categories</h4>
+              <span style="font-size:12px; color:#64748b; font-weight:500;">(Click to filter pantry)</span>
+            </div>
+            <div class="category-nav-controls">
+              <button type="button" class="category-nav-arrow" onclick="scrollCategoryCardsTrack(-1)" title="Scroll Left">‹</button>
+              <button type="button" class="category-nav-arrow" onclick="scrollCategoryCardsTrack(1)" title="Scroll Right">›</button>
+            </div>
+          </div>
+          <div class="category-cards-track" id="categoryCardsTrack">
+            <!-- Dynamically populated from js/components.js with all 22 categories -->
+          </div>
+        </div>
+
         <!-- Category Filter Chips with Dynamic Counts -->
         <div class="category-chips" id="inventoryCategoryChips">
           <button class="chip-btn active" data-category="All" onclick="setCategoryFilter('All')">All (<span id="chipCount_All">0</span>)</button>
@@ -2529,11 +2547,11 @@
             <label class="form-label">Item Name <span class="required-star">*</span></label>
             <div class="input-with-icon">
               <span class="input-icon">🏷️</span>
-              <input type="text" id="itemNameInput" placeholder="e.g. Fresh Strawberries, Organic Milk" required autocomplete="off" oninput="updateModalShelfLifePreview()">
+              <input type="text" id="itemNameInput" placeholder="e.g. Fresh Strawberries, Organic Milk" required autocomplete="off" oninput="handleItemNameInput(this.value); updateModalShelfLifePreview();">
             </div>
           </div>
 
-          <!-- Category Picker - Custom Animated Dropdown (Matches user Image 1) -->
+          <!-- Category Picker - Custom Animated Dropdown (All 22 Categories with Photos) -->
           <div class="category-picker-wrapper" id="categoryPickerWrapper">
             <label class="form-label">Category <span class="required-star">*</span></label>
             <button type="button" id="categorySelectTrigger" class="category-select-trigger" onclick="toggleCategoryDropdown(event)">
@@ -2555,29 +2573,85 @@
                   <img src="assets/categories/vegetables.png" alt="Vegetables" class="category-row-img">
                   <span class="category-row-text">Vegetables</span>
                 </div>
-                <div class="category-row-option" data-value="Dairy" onclick="selectCategory('Dairy', event)">
-                  <img src="assets/categories/dairy.png" alt="Dairy" class="category-row-img">
-                  <span class="category-row-text">Dairy</span>
+                <div class="category-row-option" data-value="Milk & Dairy" onclick="selectCategory('Milk & Dairy', event)">
+                  <img src="assets/categories/milk-dairy.png" alt="Milk & Dairy" class="category-row-img">
+                  <span class="category-row-text">Milk & Dairy</span>
                 </div>
-                <div class="category-row-option" data-value="Grains" onclick="selectCategory('Grains', event)">
-                  <img src="assets/categories/grains.png" alt="Grains" class="category-row-img">
-                  <span class="category-row-text">Grains</span>
+                <div class="category-row-option" data-value="Eggs" onclick="selectCategory('Eggs', event)">
+                  <img src="assets/categories/eggs.png" alt="Eggs" class="category-row-img">
+                  <span class="category-row-text">Eggs</span>
                 </div>
-                <div class="category-row-option" data-value="Meat" onclick="selectCategory('Meat', event)">
-                  <img src="assets/categories/meat.png" alt="Meat" class="category-row-img">
-                  <span class="category-row-text">Meat</span>
+                <div class="category-row-option" data-value="Rice & Grains" onclick="selectCategory('Rice & Grains', event)">
+                  <img src="assets/categories/rice-grains.png" alt="Rice & Grains" class="category-row-img">
+                  <span class="category-row-text">Rice & Grains</span>
+                </div>
+                <div class="category-row-option" data-value="Wheat & Flour" onclick="selectCategory('Wheat & Flour', event)">
+                  <img src="assets/categories/wheat-flour.png" alt="Wheat & Flour" class="category-row-img">
+                  <span class="category-row-text">Wheat & Flour</span>
+                </div>
+                <div class="category-row-option" data-value="Bread & Bakery" onclick="selectCategory('Bread & Bakery', event)">
+                  <img src="assets/categories/bread-bakery.png" alt="Bread & Bakery" class="category-row-img">
+                  <span class="category-row-text">Bread & Bakery</span>
+                </div>
+                <div class="category-row-option" data-value="Pulses, Dal & Lentils" onclick="selectCategory('Pulses, Dal & Lentils', event)">
+                  <img src="assets/categories/pulses-dal-lentils.png" alt="Pulses, Dal & Lentils" class="category-row-img">
+                  <span class="category-row-text">Pulses, Dal & Lentils</span>
+                </div>
+                <div class="category-row-option" data-value="Pasta & Noodles" onclick="selectCategory('Pasta & Noodles', event)">
+                  <img src="assets/categories/pasta-noodles.png" alt="Pasta & Noodles" class="category-row-img">
+                  <span class="category-row-text">Pasta & Noodles</span>
+                </div>
+                <div class="category-row-option" data-value="Meat & Seafood" onclick="selectCategory('Meat & Seafood', event)">
+                  <img src="assets/categories/meat-seafood.png" alt="Meat & Seafood" class="category-row-img">
+                  <span class="category-row-text">Meat & Seafood</span>
+                </div>
+                <div class="category-row-option" data-value="Snacks & Biscuits" onclick="selectCategory('Snacks & Biscuits', event)">
+                  <img src="assets/categories/snacks-biscuits.png" alt="Snacks & Biscuits" class="category-row-img">
+                  <span class="category-row-text">Snacks & Biscuits</span>
+                </div>
+                <div class="category-row-option" data-value="Cereals & Oats" onclick="selectCategory('Cereals & Oats', event)">
+                  <img src="assets/categories/cereals-oats.png" alt="Cereals & Oats" class="category-row-img">
+                  <span class="category-row-text">Cereals & Oats</span>
+                </div>
+                <div class="category-row-option" data-value="Spices & Seasonings" onclick="selectCategory('Spices & Seasonings', event)">
+                  <img src="assets/categories/spices-seasonings.png" alt="Spices & Seasonings" class="category-row-img">
+                  <span class="category-row-text">Spices & Seasonings</span>
+                </div>
+                <div class="category-row-option" data-value="Cooking Oil" onclick="selectCategory('Cooking Oil', event)">
+                  <img src="assets/categories/cooking-oil.png" alt="Cooking Oil" class="category-row-img">
+                  <span class="category-row-text">Cooking Oil</span>
+                </div>
+                <div class="category-row-option" data-value="Sauces & Condiments" onclick="selectCategory('Sauces & Condiments', event)">
+                  <img src="assets/categories/sauces-condiments.png" alt="Sauces & Condiments" class="category-row-img">
+                  <span class="category-row-text">Sauces & Condiments</span>
+                </div>
+                <div class="category-row-option" data-value="Canned Food" onclick="selectCategory('Canned Food', event)">
+                  <img src="assets/categories/canned-food.png" alt="Canned Food" class="category-row-img">
+                  <span class="category-row-text">Canned Food</span>
                 </div>
                 <div class="category-row-option" data-value="Beverages" onclick="selectCategory('Beverages', event)">
                   <img src="assets/categories/beverages.png" alt="Beverages" class="category-row-img">
                   <span class="category-row-text">Beverages</span>
                 </div>
-                <div class="category-row-option" data-value="Pantry" onclick="selectCategory('Pantry', event)">
-                  <img src="assets/categories/pantry.png" alt="Pantry" class="category-row-img">
-                  <span class="category-row-text">Pantry</span>
+                <div class="category-row-option" data-value="Tea & Coffee" onclick="selectCategory('Tea & Coffee', event)">
+                  <img src="assets/categories/tea-coffee.png" alt="Tea & Coffee" class="category-row-img">
+                  <span class="category-row-text">Tea & Coffee</span>
                 </div>
-                <div class="category-row-option" data-value="Frozen" onclick="selectCategory('Frozen', event)">
-                  <img src="assets/categories/frozen.png" alt="Frozen" class="category-row-img">
-                  <span class="category-row-text">Frozen</span>
+                <div class="category-row-option" data-value="Nuts & Dry Fruits" onclick="selectCategory('Nuts & Dry Fruits', event)">
+                  <img src="assets/categories/nuts-dry-fruits.png" alt="Nuts & Dry Fruits" class="category-row-img">
+                  <span class="category-row-text">Nuts & Dry Fruits</span>
+                </div>
+                <div class="category-row-option" data-value="Frozen Food" onclick="selectCategory('Frozen Food', event)">
+                  <img src="assets/categories/frozen-food.png" alt="Frozen Food" class="category-row-img">
+                  <span class="category-row-text">Frozen Food</span>
+                </div>
+                <div class="category-row-option" data-value="Sweets & Chocolate" onclick="selectCategory('Sweets & Chocolate', event)">
+                  <img src="assets/categories/sweets-chocolate.png" alt="Sweets & Chocolate" class="category-row-img">
+                  <span class="category-row-text">Sweets & Chocolate</span>
+                </div>
+                <div class="category-row-option" data-value="Other Pantry Items" onclick="selectCategory('Other Pantry Items', event)">
+                  <img src="assets/categories/other-pantry.png" alt="Other Pantry Items" class="category-row-img">
+                  <span class="category-row-text">Other Pantry Items</span>
                 </div>
               </div>
             </div>
@@ -3498,21 +3572,27 @@ async function handleBarcodeDetected(barcode) {
     }
   }
 
+  const catFallback = window.ProductImageEngine ? window.ProductImageEngine.getCategoryImageUrl(category) : "assets/categories/other-pantry.png";
+  const autoImg = imageUrl || (window.ProductImageEngine ? window.ProductImageEngine.lookupProductImage(productName, category) : catFallback);
+
   const imgEl = document.getElementById("barcodeProductImg");
   const emojiEl = document.getElementById("barcodeProductEmoji");
-  if (imageUrl) {
-    imgEl.src = imageUrl;
+  if (autoImg) {
+    imgEl.src = autoImg;
     imgEl.style.display = "block";
-    emojiEl.style.display = "none";
+    imgEl.onerror = function() { this.onerror = null; this.src = catFallback; };
+    if (emojiEl) emojiEl.style.display = "none";
   } else {
-    imgEl.style.display = "none";
-    emojiEl.style.display = "block";
-    emojiEl.textContent = window.store ? window.store.detectEmoji(productName, category) : "📦";
+    if (imgEl) imgEl.style.display = "none";
+    if (emojiEl) {
+      emojiEl.style.display = "block";
+      emojiEl.textContent = window.store ? window.store.detectEmoji(productName, category) : "📦";
+    }
   }
 
   // Form Inputs
   document.getElementById("barcodeFormBarcode").value = barcode;
-  document.getElementById("barcodeFormImageUrl").value = imageUrl || "";
+  document.getElementById("barcodeFormImageUrl").value = autoImg || "";
   document.getElementById("barcodeFormBrand").value = brand || "";
   document.getElementById("barcodeFormName").value = productName;
   document.getElementById("barcodeFormCategory").value = category;
@@ -4225,7 +4305,12 @@ window.addEventListener("beforeunload", () => stopCamera());
         <button class="modal-close-btn" onclick="closeProductDetailsModal()">✕</button>
       </div>
 
-      <div style="padding:16px 0 6px; display:flex; flex-direction:column; gap:12px; font-size:13.5px; color:#334155;">
+      <!-- Product Photo Hero Preview -->
+      <div id="detailModalHeroWrap" style="text-align:center; margin:10px 0 6px; background:#faf8f5; border:1px solid #eae5db; border-radius:14px; padding:12px; height:130px; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+        <img id="detailModalImg" src="" alt="Product Photo" style="max-height:114px; max-width:100%; object-fit:contain; border-radius:8px;">
+      </div>
+
+      <div style="padding:10px 0 6px; display:flex; flex-direction:column; gap:12px; font-size:13.5px; color:#334155;">
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; background:#faf8f5; border:1px solid #eae5db; border-radius:12px; padding:12px 14px;">
           <div>
             <div style="font-size:11px; font-weight:700; color:#87968c; text-transform:uppercase;">Quantity</div>
@@ -4491,6 +4576,8 @@ window.addEventListener("beforeunload", () => stopCamera());
 
 <!-- Universal Shelf-Life Reference & Expiry Prediction Engine -->
 <script src="js/shelf-life.js"></script>
+<!-- Universal Product & Category Image Engine -->
+<script src="js/product-images.js"></script>
 <!-- Central State, Components & Application Engine -->
 <script src="js/store.js"></script>
 <script src="js/components.js"></script>

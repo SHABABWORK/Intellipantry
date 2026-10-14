@@ -5,7 +5,13 @@
 let currentCategoryFilter = "All";
 let currentStatusFilter = "All";
 let currentSearchQuery = "";
-const CATEGORY_NAMES = ["Fruits", "Vegetables", "Dairy", "Grains", "Meat", "Beverages", "Pantry", "Frozen"];
+const CATEGORY_NAMES = [
+  "Milk & Dairy", "Fruits", "Vegetables", "Eggs", "Rice & Grains",
+  "Wheat & Flour", "Bread & Bakery", "Pulses, Dal & Lentils", "Pasta & Noodles", "Meat & Seafood",
+  "Snacks & Biscuits", "Cereals & Oats", "Spices & Seasonings", "Cooking Oil", "Sauces & Condiments",
+  "Canned Food", "Beverages", "Tea & Coffee", "Nuts & Dry Fruits", "Frozen Food",
+  "Sweets & Chocolate", "Other Pantry Items"
+];
 
 // Format Date nicely: "18 Sep 2026"
 function formatDate(dateStr) {
@@ -130,7 +136,10 @@ function renderInventoryTable() {
   const filtered = allItems.filter(item => {
     const itemCat = (item.category || "Pantry").toLowerCase();
     const filterCat = currentCategoryFilter.toLowerCase();
-    const matchesCategory = currentCategoryFilter === "All" || itemCat === filterCat;
+    const normItem = window.ProductImageEngine ? window.ProductImageEngine.normalizeCategory(item.category) : null;
+    const matchesCategory = currentCategoryFilter === "All" || 
+      itemCat === filterCat || 
+      (normItem && (normItem.name.toLowerCase() === filterCat || normItem.id.toLowerCase() === filterCat || normItem.slug.toLowerCase() === filterCat));
 
     const q = currentSearchQuery.toLowerCase();
     const matchesSearch = !currentSearchQuery || 
@@ -261,12 +270,9 @@ function renderInventoryTable() {
       const catName = item.category || "Pantry";
       const catLower = catName.toLowerCase();
 
-      let imgHtml = "";
-      if (item.imageUrl) {
-        imgHtml = `<img src="${escapeHTML(item.imageUrl)}" alt="${escapeHTML(item.name)}" class="grocery-card-img" onerror="this.onerror=null; this.src='assets/categories/${catLower}.png';">`;
-      } else {
-        imgHtml = `<img src="assets/categories/${catLower}.png" alt="${escapeHTML(item.name)}" class="grocery-card-img" onerror="this.onerror=null; this.outerHTML='<span style=\\'font-size:44px;\\'>${item.emoji || "📦"}</span>';">`;
-      }
+      const fallbackCatImg = window.ProductImageEngine ? window.ProductImageEngine.getCategoryImageUrl(catName) : `assets/categories/${catLower}.png`;
+      const resolvedImg = item.imageUrl || (window.ProductImageEngine ? window.ProductImageEngine.lookupProductImage(item.name, catName) : fallbackCatImg);
+      const imgHtml = `<img src="${escapeHTML(resolvedImg)}" alt="${escapeHTML(item.name)}" class="grocery-card-img" loading="lazy" onerror="this.onerror=null; this.src='${fallbackCatImg}';">`;
 
       // Prefix label based on type
       let expPrefix = "Exp: ";
@@ -349,11 +355,14 @@ function renderInventoryTable() {
       const dateFormatted = formatDate(expDate);
       const catName = item.category || "Pantry";
 
+      const fallbackCatImgRow = window.ProductImageEngine ? window.ProductImageEngine.getCategoryImageUrl(catName) : `assets/categories/${catName.toLowerCase()}.png`;
+      const resolvedImgRow = item.imageUrl || (window.ProductImageEngine ? window.ProductImageEngine.lookupProductImage(item.name, catName) : fallbackCatImgRow);
+
       return `
         <tr data-id="${item.id}">
           <td>
             <div class="item-cell">
-              <div class="item-thumb" onclick="viewProductDetails('${item.id}')" style="cursor:pointer;">${item.imageUrl ? `<img src="${escapeHTML(item.imageUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" onerror="this.outerHTML='${item.emoji || "📦"}'">` : (item.emoji || "📦")}</div>
+              <div class="item-thumb" onclick="viewProductDetails('${item.id}')" style="cursor:pointer;"><img src="${escapeHTML(resolvedImgRow)}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" loading="lazy" onerror="this.onerror=null; this.src='${fallbackCatImgRow}';"></div>
               <div>
                 <div style="display:flex; align-items:center; gap:6px;">
                   <span style="font-weight: 700; color: #0f172a; cursor:pointer;" onclick="viewProductDetails('${item.id}')">${escapeHTML(item.name)}</span>
@@ -367,7 +376,7 @@ function renderInventoryTable() {
           </td>
           <td style="color: #64748b;">
             <span style="display:inline-flex; align-items:center; gap:6px;">
-              <img src="assets/categories/${catName.toLowerCase()}.png" alt="" style="width:20px; height:18px; object-fit:contain;" onerror="this.style.display='none'">
+              <img src="${fallbackCatImgRow}" alt="" style="width:20px; height:18px; object-fit:contain;" onerror="this.style.display='none'">
               <span>${escapeHTML(catName)}</span>
             </span>
             ${item.storageLocation || item.storageType ? `<div style="font-size:10.5px; color:#94a3b8; margin-top:2px;">📍 ${escapeHTML(item.storageType || item.storageLocation)}</div>` : ''}
@@ -409,13 +418,74 @@ function renderInventoryTable() {
   setInventoryViewMode(currentInventoryViewMode);
 }
 
+// Render Interactive Category Showcase Cards (All 22 Categories)
+function renderCategoryCardsTrack() {
+  const track = document.getElementById("categoryCardsTrack");
+  if (!track || !window.ProductImageEngine) return;
+
+  const allItems = window.store ? window.store.getItems() : [];
+  const counts = { All: allItems.length };
+  allItems.forEach(i => {
+    const norm = window.ProductImageEngine.normalizeCategory(i.category);
+    counts[norm.name] = (counts[norm.name] || 0) + 1;
+    counts[norm.id] = (counts[norm.id] || 0) + 1;
+    if (i.category) counts[i.category] = (counts[i.category] || 0) + 1;
+  });
+
+  const categories = window.ProductImageEngine.getAllCategories();
+  const isAllActive = currentCategoryFilter.toLowerCase() === "all";
+
+  let cardsHtml = `
+    <div class="category-showcase-card ${isAllActive ? 'active' : ''}" data-category="All" onclick="setCategoryFilter('All')">
+      <div class="category-card-img-wrap">
+        <img src="assets/categories/other-pantry.png" alt="All Items" class="category-card-img" loading="lazy">
+      </div>
+      <div class="category-card-info">
+        <span class="category-card-name">All Items</span>
+        <span class="category-card-count">${allItems.length} ${allItems.length === 1 ? 'item' : 'items'}</span>
+      </div>
+    </div>
+  `;
+
+  cardsHtml += categories.map(cat => {
+    const isActive = currentCategoryFilter.toLowerCase() === cat.name.toLowerCase() || 
+                     currentCategoryFilter.toLowerCase() === cat.id.toLowerCase() ||
+                     currentCategoryFilter.toLowerCase() === cat.slug.toLowerCase();
+    const count = counts[cat.name] || counts[cat.id] || 0;
+    return `
+      <div class="category-showcase-card ${isActive ? 'active' : ''}" data-category="${escapeHTML(cat.name)}" onclick="setCategoryFilter('${escapeHTML(cat.name)}')">
+        <div class="category-card-img-wrap">
+          <img src="${cat.image}" alt="${escapeHTML(cat.name)}" class="category-card-img" loading="lazy" onerror="this.onerror=null; this.src='assets/categories/other-pantry.png';">
+        </div>
+        <div class="category-card-info">
+          <span class="category-card-name" title="${escapeHTML(cat.name)}">${escapeHTML(cat.name)}</span>
+          <span class="category-card-count">${count} ${count === 1 ? 'item' : 'items'}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  track.innerHTML = cardsHtml;
+}
+
+function scrollCategoryCardsTrack(dir) {
+  const track = document.getElementById("categoryCardsTrack");
+  if (!track) return;
+  track.scrollBy({ left: dir * 300, behavior: 'smooth' });
+}
+
+window.renderCategoryCardsTrack = renderCategoryCardsTrack;
+window.scrollCategoryCardsTrack = scrollCategoryCardsTrack;
+
 // Category filter chip handling with real-time count updating
 function updateCategoryPillCounts() {
   const all = window.store ? window.store.getItems() : [];
   const counts = { All: all.length };
   all.forEach(i => {
-    const cat = i.category || "Pantry";
+    const norm = window.ProductImageEngine ? window.ProductImageEngine.normalizeCategory(i.category) : null;
+    const cat = norm ? norm.name : (i.category || "Pantry");
     counts[cat] = (counts[cat] || 0) + 1;
+    if (i.category) counts[i.category] = (counts[i.category] || 0) + 1;
   });
   document.querySelectorAll(".pantry-pill, .chip-btn").forEach(btn => {
     const cat = btn.getAttribute("data-category");
@@ -430,6 +500,8 @@ function updateCategoryPillCounts() {
       btn.innerHTML = `${base} <span class="pill-count" style="opacity:0.8; font-size:12px;">(${count})</span>`;
     }
   });
+
+  renderCategoryCardsTrack();
 }
 
 // Dynamic Time Greeting & Live Date/Clock
@@ -588,10 +660,19 @@ function addItemToShoppingList(name) {
 function setCategoryFilter(category) {
   currentCategoryFilter = category;
   document.querySelectorAll(".chip-btn").forEach(btn => {
-    if (btn.getAttribute("data-category") === category) {
+    const cat = btn.getAttribute("data-category");
+    if (cat && (cat.toLowerCase() === category.toLowerCase() || (category === "All" && cat === "All"))) {
       btn.classList.add("active");
     } else {
       btn.classList.remove("active");
+    }
+  });
+  document.querySelectorAll(".category-showcase-card").forEach(card => {
+    const cat = card.getAttribute("data-category");
+    if (cat && (cat.toLowerCase() === category.toLowerCase() || (category === "All" && cat === "All"))) {
+      card.classList.add("active");
+    } else {
+      card.classList.remove("active");
     }
   });
   renderInventoryTable();
@@ -681,11 +762,20 @@ function openAddEditModal(id = null) {
       const placeholder = document.getElementById("photoPlaceholderContent");
       const removeBtn = document.getElementById("photoRemoveBtn");
       const urlInput = document.getElementById("itemPhotoUrlInput");
-      if (item.imageUrl) {
-        if (preview) { preview.src = item.imageUrl; preview.style.display = "block"; }
+      const catFallback = window.ProductImageEngine ? window.ProductImageEngine.getCategoryImageUrl(item.category) : "assets/categories/other-pantry.png";
+      const resolvedPhoto = item.imageUrl || (window.ProductImageEngine ? window.ProductImageEngine.lookupProductImage(item.name, item.category) : catFallback);
+      if (resolvedPhoto) {
+        if (preview) { 
+          preview.src = resolvedPhoto; 
+          preview.style.display = "block";
+          preview.onerror = function() { this.onerror = null; this.src = catFallback; };
+        }
         if (placeholder) placeholder.style.display = "none";
-        if (removeBtn) removeBtn.style.display = "inline-block";
-        if (urlInput) urlInput.value = item.imageUrl;
+        if (removeBtn) removeBtn.style.display = item.imageUrl ? "inline-block" : "none";
+        if (urlInput) {
+          urlInput.value = item.imageUrl || "";
+          urlInput.dataset.userUploaded = item.imageUrl ? "true" : "false";
+        }
       } else {
         if (typeof removeItemPhoto === "function") removeItemPhoto();
       }
@@ -693,7 +783,8 @@ function openAddEditModal(id = null) {
   } else {
     if (title) title.textContent = "＋ Add Item to Pantry";
     if (nameInput) nameInput.value = "";
-    setCategoryValue("Fruits");
+    const defCat = "Fruits";
+    setCategoryValue(defCat);
     if (qtyInput) qtyInput.value = "1";
     if (unitInput) unitInput.value = "pcs";
     if (expiryInput) expiryInput.value = "";
@@ -702,7 +793,23 @@ function openAddEditModal(id = null) {
     if (barcodeInput) barcodeInput.value = "";
     if (locationInput) locationInput.value = "Pantry";
     if (minStockInput) minStockInput.value = "2";
-    if (typeof removeItemPhoto === "function") removeItemPhoto();
+
+    const preview = document.getElementById("photoPreviewImg");
+    const placeholder = document.getElementById("photoPlaceholderContent");
+    const removeBtn = document.getElementById("photoRemoveBtn");
+    const urlInput = document.getElementById("itemPhotoUrlInput");
+    const defImg = window.ProductImageEngine ? window.ProductImageEngine.getCategoryImageUrl(defCat) : "assets/categories/fruits.png";
+    if (preview) {
+      preview.src = defImg;
+      preview.style.display = "block";
+      preview.onerror = function() { this.onerror = null; this.src = "assets/categories/other-pantry.png"; };
+    }
+    if (placeholder) placeholder.style.display = "none";
+    if (removeBtn) removeBtn.style.display = "none";
+    if (urlInput) {
+      urlInput.value = "";
+      urlInput.dataset.userUploaded = "false";
+    }
 
     setModalExpiryType("actual");
     setModalProductStatus("Unopened");
@@ -716,6 +823,40 @@ function openAddEditModal(id = null) {
     if (nameInput) nameInput.focus();
   }, 80);
 }
+
+// Automatically update photo preview based on typed product name
+function handleItemNameInput(name) {
+  const urlInput = document.getElementById("itemPhotoUrlInput");
+  const preview = document.getElementById("photoPreviewImg");
+  const placeholder = document.getElementById("photoPlaceholderContent");
+  const removeBtn = document.getElementById("photoRemoveBtn");
+  const catInput = document.getElementById("itemCategoryInput");
+  const fileInput = document.getElementById("itemPhotoFileInput");
+
+  // If user has manually uploaded a custom file, preserve it
+  if (fileInput && fileInput.files && fileInput.files.length > 0) return;
+  if (urlInput && urlInput.dataset.userUploaded === "true") return;
+
+  const currentCat = catInput ? catInput.value : "Fruits";
+  if (window.ProductImageEngine) {
+    const matchedImg = window.ProductImageEngine.lookupProductImage(name, currentCat);
+    const catFallback = window.ProductImageEngine.getCategoryImageUrl(currentCat);
+    if (matchedImg) {
+      if (preview) {
+        preview.src = matchedImg;
+        preview.style.display = "block";
+        preview.onerror = function() { this.onerror = null; this.src = catFallback; };
+      }
+      if (placeholder) placeholder.style.display = "none";
+      if (removeBtn) removeBtn.style.display = "none";
+      if (urlInput) {
+        urlInput.value = matchedImg;
+        urlInput.dataset.autoResolved = "true";
+      }
+    }
+  }
+}
+window.handleItemNameInput = handleItemNameInput;
 
 function setModalExpiryType(type) {
   const expiryTypeInput = document.getElementById("itemExpiryTypeInput");
@@ -821,7 +962,10 @@ async function saveItemForm(e) {
   const locationInput = document.getElementById("itemLocationInput");
   const minStockInput = document.getElementById("itemMinStockInput");
   const photoInput = document.getElementById("itemPhotoUrlInput");
-  const imageUrl = photoInput ? photoInput.value : "";
+  let imageUrl = photoInput ? photoInput.value.trim() : "";
+  if (!imageUrl && window.ProductImageEngine) {
+    imageUrl = window.ProductImageEngine.lookupProductImage(nameInput ? nameInput.value.trim() : "", catInput ? catInput.value : "Fruits");
+  }
 
   // Universal Shelf Life form values
   const expiryTypeVal = document.getElementById("itemExpiryTypeInput")?.value || (expiryInput?.value ? "actual" : "estimated");
@@ -925,6 +1069,16 @@ function viewProductDetails(id) {
 
   document.getElementById("detailModalTitle").textContent = item.name;
   document.getElementById("detailModalCategory").textContent = item.category || "Pantry";
+  
+  const catName = item.category || "Pantry";
+  const fallbackCatImg = window.ProductImageEngine ? window.ProductImageEngine.getCategoryImageUrl(catName) : "assets/categories/other-pantry.png";
+  const resolvedImg = item.imageUrl || (window.ProductImageEngine ? window.ProductImageEngine.lookupProductImage(item.name, catName) : fallbackCatImg);
+  const heroImg = document.getElementById("detailModalImg");
+  if (heroImg) {
+    heroImg.src = resolvedImg;
+    heroImg.alt = item.name;
+    heroImg.onerror = function() { this.onerror = null; this.src = fallbackCatImg; };
+  }
   document.getElementById("detailModalQuantity").textContent = `${item.quantity} ${item.unit || "pcs"}`;
   document.getElementById("detailModalLocation").textContent = item.storageLocation || item.storageType || "Pantry";
   document.getElementById("detailModalPurchase").textContent = formatDate(item.purchaseDate) || "—";
@@ -1019,19 +1173,21 @@ function closeCategoryDropdown() {
 }
 
 function setCategoryValue(categoryName) {
-  const safeName = CATEGORY_NAMES.includes(categoryName) ? categoryName : "Fruits";
+  const norm = window.ProductImageEngine ? window.ProductImageEngine.normalizeCategory(categoryName) : null;
+  const safeName = norm ? norm.name : (CATEGORY_NAMES.includes(categoryName) ? categoryName : "Fruits");
   const input = document.getElementById("itemCategoryInput");
   const triggerImg = document.getElementById("categoryTriggerImg");
   const triggerLabel = document.getElementById("categoryTriggerLabel");
   const container = document.getElementById("categoryOptionsContainer");
 
   if (input) input.value = safeName;
-  if (triggerImg) triggerImg.src = `assets/categories/${safeName.toLowerCase()}.png`;
+  if (triggerImg) triggerImg.src = norm ? norm.image : (window.ProductImageEngine ? window.ProductImageEngine.getCategoryImageUrl(safeName) : `assets/categories/${safeName.toLowerCase()}.png`);
   if (triggerLabel) triggerLabel.textContent = safeName;
 
   if (container) {
     container.querySelectorAll(".category-row-option").forEach(opt => {
-      if (opt.getAttribute("data-value") === safeName) {
+      const val = opt.getAttribute("data-value");
+      if (val === safeName || (norm && (val === norm.id || val === norm.slug))) {
         opt.classList.add("selected");
       } else {
         opt.classList.remove("selected");
@@ -1042,6 +1198,12 @@ function setCategoryValue(categoryName) {
   moveCategoryHighlight(safeName, false);
   if (typeof updateModalShelfLifePreview === "function") {
     updateModalShelfLifePreview();
+  }
+
+  // Also update photo preview if user hasn't uploaded custom photo
+  const nameVal = document.getElementById("itemNameInput")?.value || "";
+  if (typeof handleItemNameInput === "function") {
+    handleItemNameInput(nameVal);
   }
 }
 

@@ -7645,6 +7645,223 @@ body.dark-theme .mobile-menu-btn {
   }
 }
 
+/* ========================================================
+   CATEGORY SHOWCASE CARDS & ENHANCED PRODUCT IMAGES
+   ======================================================== */
+.category-showcase-container {
+  margin-top: 14px;
+  margin-bottom: 16px;
+}
+
+.category-showcase-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.category-nav-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.category-nav-arrow {
+  background: #ffffff;
+  border: 1px solid var(--border-subtle, #eae5db);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e392a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.category-nav-arrow:hover {
+  background: #1e392a;
+  color: #ffffff;
+  border-color: #1e392a;
+}
+
+.category-cards-track {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 2px 12px 2px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.category-cards-track::-webkit-scrollbar {
+  height: 6px;
+}
+
+.category-cards-track::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.category-cards-track::-webkit-scrollbar-thumb {
+  background: #e2ded5;
+  border-radius: 9999px;
+}
+
+.category-showcase-card {
+  flex: 0 0 138px;
+  background: #ffffff;
+  border: 1.5px solid var(--border-subtle, #eae5db);
+  border-radius: 16px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+  user-select: none;
+}
+
+.category-showcase-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(30,57,42,0.08);
+  border-color: #2e9e5b;
+}
+
+.category-showcase-card.active {
+  background: #f7faf8;
+  border-color: #1e392a;
+  box-shadow: 0 0 0 1.5px #1e392a, 0 4px 12px rgba(30,57,42,0.1);
+}
+
+.category-card-img-wrap {
+  width: 100%;
+  height: 84px;
+  background: #faf8f5;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 8px;
+  transition: transform 0.2s ease;
+  border: 1px solid #f2eee6;
+}
+
+.category-showcase-card:hover .category-card-img-wrap {
+  transform: scale(1.04);
+}
+
+.category-card-img {
+  max-width: 94%;
+  max-height: 94%;
+  object-fit: contain;
+  display: block;
+}
+
+.category-card-info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.category-card-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e392a;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.category-showcase-card.active .category-card-name {
+  color: #0f172a;
+}
+
+.category-card-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.category-showcase-card.active .category-card-count {
+  color: #059669;
+  font-weight: 700;
+}
+
+html.dark-theme .category-showcase-card {
+  background: #18221c;
+  border-color: rgba(255,255,255,0.08);
+}
+
+html.dark-theme .category-showcase-card:hover {
+  background: #1e2c24;
+  border-color: #2e9e5b;
+}
+
+html.dark-theme .category-showcase-card.active {
+  background: #1f3327;
+  border-color: #2e9e5b;
+}
+
+html.dark-theme .category-card-img-wrap {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.06);
+}
+
+html.dark-theme .category-card-name {
+  color: #f1f5f9;
+}
+
+html.dark-theme .category-nav-arrow {
+  background: #18221c;
+  border-color: rgba(255,255,255,0.1);
+  color: #e2e8f0;
+}
+
+.grocery-img-wrap {
+  height: 130px;
+  background: #faf8f5;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin: 6px 0 12px;
+  padding: 6px;
+  border: 1px solid #f3efe6;
+  transition: all 0.2s ease;
+}
+
+.grocery-card:hover .grocery-img-wrap {
+  background: #fdfcfa;
+  border-color: #e6dfd1;
+}
+
+.grocery-card-img {
+  width: 100%;
+  height: 100%;
+  max-height: 118px;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+}
+
+.grocery-card:hover .grocery-card-img {
+  transform: scale(1.05);
+}
+
+html.dark-theme .grocery-img-wrap {
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.06);
+}
+
+
 
 
 
