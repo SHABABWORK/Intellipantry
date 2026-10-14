@@ -945,6 +945,47 @@ ON CONFLICT (product_name) DO UPDATE SET
   updated_at = timezone('utc'::text, now());
 
 -- ==============================================================================
+-- 13. GLOBAL GROCERY CATALOG (Comprehensive Worldwide Master Database)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.global_grocery_catalog (
+  id TEXT PRIMARY KEY,
+  product_name TEXT NOT NULL,
+  normalized_name TEXT NOT NULL,
+  brand TEXT,
+  category TEXT NOT NULL,
+  subcategory TEXT,
+  barcode TEXT UNIQUE,
+  image_url TEXT NOT NULL,
+  image_source TEXT DEFAULT 'IntelliPantry Verified Master Grid',
+  description TEXT,
+  ingredients TEXT,
+  nutrition_information JSONB,
+  storage_instructions TEXT,
+  default_unit TEXT DEFAULT 'pcs',
+  regional_names TEXT[],
+  dietary_tags TEXT[],
+  shelf_life_days INTEGER DEFAULT 365,
+  opened_shelf_life_days INTEGER DEFAULT 60,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_global_catalog_category ON public.global_grocery_catalog (category);
+CREATE INDEX IF NOT EXISTS idx_global_catalog_barcode ON public.global_grocery_catalog (barcode);
+CREATE INDEX IF NOT EXISTS idx_global_catalog_normalized ON public.global_grocery_catalog (normalized_name);
+
+ALTER TABLE public.global_grocery_catalog ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Global grocery catalog is viewable by all users" ON public.global_grocery_catalog;
+CREATE POLICY "Global grocery catalog is viewable by all users"
+  ON public.global_grocery_catalog FOR SELECT TO anon, authenticated
+  USING (true);
+
+-- Ensure pantry_items has product_id column
+ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS product_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_pantry_items_product_id ON public.pantry_items (user_id, product_id);
+
+-- ==============================================================================
 -- 12. ROLE PERMISSIONS & SECURITY GRANTS
 -- Grant schema and table permissions to PostgREST roles: anon, authenticated, service_role
 -- ==============================================================================

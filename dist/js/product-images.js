@@ -468,13 +468,21 @@
       return getCategoryImageUrl(categoryName);
     }
 
+    // 2. Direct exact or prefix lookup in window.GroceryCatalog
+    if (window.GroceryCatalog && typeof window.GroceryCatalog.autocomplete === 'function') {
+      const matches = window.GroceryCatalog.autocomplete(productName, 1);
+      if (matches && matches.length > 0 && matches[0].image_url) {
+        return matches[0].image_url;
+      }
+    }
+
     // Clean product name
     const rawClean = productName.toLowerCase()
       .replace(/[^\w\s]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
 
-    // 2. Direct exact or multi-word match (e.g. "peanut butter", "olive oil", "toor dal", "green apple")
+    // 3. Direct exact or multi-word match (e.g. "peanut butter", "olive oil", "toor dal", "green apple")
     const sortedKeys = Object.keys(PRODUCT_IMAGE_MAP).sort((a, b) => b.length - a.length);
     for (const key of sortedKeys) {
       // Regex word boundary match
@@ -484,7 +492,7 @@
       }
     }
 
-    // 3. Fallback to individual tokens
+    // 4. Fallback to individual tokens
     const tokens = rawClean.split(' ').filter(t => t.length > 2);
     for (const token of tokens) {
       if (PRODUCT_IMAGE_MAP[token]) {
@@ -492,7 +500,7 @@
       }
     }
 
-    // 4. Fallback to realistic category image
+    // 5. Fallback to realistic category image
     return getCategoryImageUrl(categoryName);
   }
 

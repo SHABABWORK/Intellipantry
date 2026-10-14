@@ -294,6 +294,15 @@
           My Pantry
         </a>
 
+        <a class="nav-link" data-route="grocery-catalog" onclick="window.router.navigate('grocery-catalog')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+          Grocery Database
+        </a>
+
         <a class="nav-link" data-route="add-item" onclick="openAddEditModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
@@ -609,6 +618,9 @@
             <p class="pantry-subtitle">Manage, search, and track all your active ingredients in real time</p>
           </div>
           <div class="pantry-header-actions">
+            <button type="button" class="btn-forest-add" onclick="window.router.navigate('grocery-catalog')" style="background:#2e9e5b; color:#fff; border:none; border-radius:10px; padding:8px 14px; font-weight:700; cursor:pointer; font-size:13px; display:inline-flex; align-items:center; gap:6px;">
+              <span>🌐</span> Browse Global Database
+            </button>
             <button type="button" class="btn-forest-add" onclick="openAddEditModal()">
               <span>＋</span> Add Item
             </button>
@@ -756,6 +768,84 @@
       </section>
 
       </div><!-- /#dashboardHomeViews -->
+
+      <!-- ==========================================
+           WORLDWIDE GROCERY DATABASE & CATALOG SECTION
+           ========================================== -->
+      <section id="groceryCatalogSection" style="display:none;" class="grocery-catalog-container">
+        <!-- Catalog Hero / Top Header -->
+        <div class="catalog-header-wrap">
+          <div class="catalog-header-top">
+            <div>
+              <div class="catalog-pill-badge">🌍 Complete Worldwide Grocery Database</div>
+              <h2 class="catalog-title">Global Pantry Catalog</h2>
+              <p class="catalog-subtitle">Explore generic supermarket staples, regional international ingredients, and verified grocery products with individual photos.</p>
+            </div>
+            <div class="catalog-header-actions">
+              <button type="button" class="catalog-back-btn" onclick="window.router.navigate('dashboard')">
+                ← Back to Pantry
+              </button>
+              <button type="button" class="catalog-add-custom-btn" onclick="openAddEditModal()">
+                ＋ Add Custom Item
+              </button>
+            </div>
+          </div>
+
+          <!-- Search & Filter Controls -->
+          <div class="catalog-controls-card">
+            <div class="catalog-search-row">
+              <div class="catalog-search-input-wrap">
+                <span class="catalog-search-icon">🔍</span>
+                <input 
+                  type="text" 
+                  id="catalogSearchInput" 
+                  class="catalog-search-input" 
+                  placeholder="Search products by name, brand, barcode, or regional name (e.g. Basmati Rice, Olive Oil, Paneer, Apple, 074570020101)..." 
+                  oninput="handleCatalogSearchInput(this.value)"
+                  autocomplete="off"
+                >
+                <button type="button" id="catalogSearchClear" class="catalog-search-clear" onclick="clearCatalogSearch()" style="display:none;">✕</button>
+              </div>
+            </div>
+
+            <!-- Categories Horizontal Scroller -->
+            <div class="catalog-category-scroller-wrap">
+              <div class="catalog-category-scroller" id="catalogCategoryChipsTrack">
+                <!-- Dynamically rendered from GroceryCatalog.getAllCategories() -->
+              </div>
+            </div>
+
+            <!-- Secondary Filters: Dietary & Match Count -->
+            <div class="catalog-secondary-filters">
+              <div class="catalog-dietary-pills" id="catalogDietaryPills">
+                <button type="button" class="dietary-chip active" data-dietary="All" onclick="setCatalogDietaryFilter('All')">All Diets</button>
+                <button type="button" class="dietary-chip" data-dietary="Vegetarian" onclick="setCatalogDietaryFilter('Vegetarian')">🥦 Vegetarian</button>
+                <button type="button" class="dietary-chip" data-dietary="Vegan" onclick="setCatalogDietaryFilter('Vegan')">🌱 Vegan</button>
+                <button type="button" class="dietary-chip" data-dietary="Gluten-Free" onclick="setCatalogDietaryFilter('Gluten-Free')">🌾❌ Gluten-Free</button>
+                <button type="button" class="dietary-chip" data-dietary="Halal" onclick="setCatalogDietaryFilter('Halal')">🌙 Halal</button>
+                <button type="button" class="dietary-chip" data-dietary="Keto" onclick="setCatalogDietaryFilter('Keto')">🥑 Keto</button>
+                <button type="button" class="dietary-chip" data-dietary="Organic" onclick="setCatalogDietaryFilter('Organic')">🍃 Organic</button>
+              </div>
+              <div class="catalog-match-stats" id="catalogMatchStats">
+                Loading verified products...
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product Cards Grid -->
+        <div class="catalog-grid" id="catalogProductsGrid">
+          <!-- Dynamically populated from js/components.js + GroceryCatalog -->
+        </div>
+
+        <!-- Empty state -->
+        <div id="catalogEmptyState" style="display:none;" class="catalog-empty-state" style="text-align:center; padding:50px 20px; background:#fff; border-radius:16px; border:1px solid #eae5db; margin-top:20px;">
+          <div style="font-size:42px; margin-bottom:8px;">🔍</div>
+          <h3 style="font-size:17px; font-weight:700; color:#1e392a; margin-bottom:4px;">No matching grocery products found</h3>
+          <p style="font-size:13px; color:#64748b; margin-bottom:14px;">Try searching with a different term, clearing filters, or add your custom product to your pantry.</p>
+          <button type="button" class="catalog-add-custom-btn" onclick="openAddEditModal()">＋ Add Custom Product</button>
+        </div>
+      </section>
 
       <!-- ==========================================
            DEDICATED BILLING SCAN & RECEIPT OCR SECTION
@@ -2543,12 +2633,13 @@
         <!-- Right Column: Inputs -->
         <div class="modal-inputs-col">
           <!-- Item Name -->
-          <div class="form-field-group">
+          <div class="form-field-group" style="position:relative;">
             <label class="form-label">Item Name <span class="required-star">*</span></label>
             <div class="input-with-icon">
               <span class="input-icon">🏷️</span>
               <input type="text" id="itemNameInput" placeholder="e.g. Fresh Strawberries, Organic Milk" required autocomplete="off" oninput="handleItemNameInput(this.value); updateModalShelfLifePreview();">
             </div>
+            <div id="catalogAutocompleteDropdown" class="catalog-autocomplete-dropdown" style="display:none;"></div>
           </div>
 
           <!-- Category Picker - Custom Animated Dropdown (All 22 Categories with Photos) -->
@@ -3492,31 +3583,36 @@ async function handleBarcodeDetected(barcode) {
 
   showToast(`🔍 Searching product for barcode: ${barcode}...`);
 
-  // Check if item already exists in pantry
+  // 1. Check if item already exists in user's pantry
   const pantryItems = window.store ? window.store.getItems() : [];
   existingBarcodeItem = pantryItems.find(i => i.barcode && String(i.barcode).trim() === String(barcode).trim());
 
+  // 2. Search IntelliPantry Worldwide Grocery Database
+  const catalogItem = window.GroceryCatalog ? window.GroceryCatalog.getByBarcode(barcode) : null;
+
   let product = null;
-  try {
-    const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json`);
-    if (res.ok) {
-      const json = await res.json();
-      if (json && json.status === 1 && json.product) {
-        product = json.product;
+  if (!catalogItem) {
+    try {
+      const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.status === 1 && json.product) {
+          product = json.product;
+        }
       }
+    } catch (err) {
+      console.warn("OpenFoodFacts lookup failed:", err);
     }
-  } catch (err) {
-    console.warn("OpenFoodFacts lookup failed:", err);
   }
 
   // Derive fields
-  const productName = product?.product_name || product?.product_name_en || product?.generic_name || (existingBarcodeItem ? existingBarcodeItem.name : "Packaged Food Item");
-  const brand = product?.brands || product?.brand_owner || (existingBarcodeItem ? existingBarcodeItem.brand : "");
-  const imageUrl = product?.image_front_url || product?.image_url || (existingBarcodeItem ? existingBarcodeItem.imageUrl : "");
+  const productName = catalogItem ? catalogItem.product_name : (product?.product_name || product?.product_name_en || product?.generic_name || (existingBarcodeItem ? existingBarcodeItem.name : "Packaged Food Item"));
+  const brand = catalogItem ? (catalogItem.brand || "") : (product?.brands || product?.brand_owner || (existingBarcodeItem ? existingBarcodeItem.brand : ""));
+  const imageUrl = catalogItem ? catalogItem.image_url : (product?.image_front_url || product?.image_url || (existingBarcodeItem ? existingBarcodeItem.imageUrl : ""));
 
-  // Infer category from OpenFoodFacts tags
-  let category = existingBarcodeItem ? existingBarcodeItem.category : "Pantry";
-  if (product) {
+  // Infer category
+  let category = catalogItem ? catalogItem.category : (existingBarcodeItem ? existingBarcodeItem.category : "Pantry");
+  if (!catalogItem && product) {
     const tags = ((product.categories_tags || []).join(" ") + " " + (product.categories || "") + " " + productName).toLowerCase();
     if (tags.includes("dairy") || tags.includes("milk") || tags.includes("yogurt") || tags.includes("cheese") || tags.includes("butter")) category = "Dairy";
     else if (tags.includes("beverage") || tags.includes("drink") || tags.includes("juice") || tags.includes("soda") || tags.includes("water") || tags.includes("tea") || tags.includes("coffee")) category = "Beverages";
@@ -3528,10 +3624,10 @@ async function handleBarcodeDetected(barcode) {
     else if (tags.includes("cereal") || tags.includes("grain") || tags.includes("rice") || tags.includes("pasta") || tags.includes("flour")) category = "Grains";
   }
 
-  // Infer unit and quantity from product package string
+  // Infer unit and quantity
   let quantity = 1;
-  let unit = "pcs";
-  if (product?.quantity) {
+  let unit = catalogItem && catalogItem.default_unit ? catalogItem.default_unit : "pcs";
+  if (!catalogItem && product?.quantity) {
     const qtyMatch = product.quantity.match(/(\d+(?:\.\d+)?)\s*(kg|g|l|ml|pcs|pack|box|can|bottle)/i);
     if (qtyMatch) {
       quantity = parseFloat(qtyMatch[1]) || 1;
@@ -3541,8 +3637,8 @@ async function handleBarcodeDetected(barcode) {
 
   // Storage Location
   let location = "Pantry";
-  if (category === "Dairy" || category === "Meat") location = "Fridge";
-  else if (category === "Frozen") location = "Freezer";
+  if (category.toLowerCase().includes("dairy") || category.toLowerCase().includes("meat")) location = "Fridge";
+  else if (category.toLowerCase().includes("frozen")) location = "Freezer";
 
   // Expiry date calculation
   const todayISO = window.ShelfLife ? window.ShelfLife.getTodayLocalISO() : (window.getTodayISO ? window.getTodayISO() : new Date().toISOString().split("T")[0]);
@@ -3551,7 +3647,7 @@ async function handleBarcodeDetected(barcode) {
   const barcodeShelfText = document.getElementById("barcodeShelfLifeText");
   if (barcodeShelfText && window.ShelfLife) {
     const pred = window.ShelfLife.predictExpiry(productName, category, todayISO);
-    barcodeShelfText.textContent = `~${pred.typical_shelf_life_days} days (${pred.storage_type} storage: ${pred.storage_recommendation})`;
+    barcodeShelfText.textContent = `~${catalogItem ? catalogItem.shelf_life_days : pred.typical_shelf_life_days} days (${pred.storage_type} storage: ${pred.storage_recommendation})`;
   }
 
   // Populate Barcode Modal
@@ -3561,8 +3657,12 @@ async function handleBarcodeDetected(barcode) {
   
   const statusBadge = document.getElementById("barcodeApiStatusBadge");
   if (statusBadge) {
-    if (product) {
-      statusBadge.textContent = "✓ Verified in Global Food Database";
+    if (catalogItem) {
+      statusBadge.textContent = "✓ Verified in IntelliPantry Global Grocery Database";
+      statusBadge.style.background = "#dcfce7";
+      statusBadge.style.color = "#15803d";
+    } else if (product) {
+      statusBadge.textContent = "✓ Verified in Open Food Facts Database";
       statusBadge.style.background = "#dcfce7";
       statusBadge.style.color = "#15803d";
     } else {
@@ -4393,6 +4493,97 @@ window.addEventListener("beforeunload", () => stopCamera());
   </div>
 
   <!-- ==========================================
+       WORLDWIDE GROCERY DATABASE PRODUCT DETAILS MODAL
+       ========================================== -->
+  <div class="modal-backdrop" id="catalogDetailsModal" style="display:none;">
+    <div class="modal-card catalog-details-modal-card">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="font-size:26px;">🥫</div>
+          <div>
+            <h3 id="catDetailTitle" style="font-size:18px; font-weight:800; color:#1e392a; margin:0;">Product Title</h3>
+            <p id="catDetailBrand" style="font-size:12px; color:#64748b; margin:2px 0 0;">Brand</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="closeCatalogProductDetailsModal()">✕</button>
+      </div>
+
+      <!-- Hero Photo & Quick Overview -->
+      <div class="catalog-details-hero">
+        <img id="catDetailImg" src="" alt="Product Photo" class="catalog-details-img">
+        <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:4px;">
+            <span id="catDetailCategory" class="catalog-dietary-badge" style="background:#eaf5ee; color:#1e392a; border-color:#c7e3d0; font-size:11px;">Category</span>
+            <span id="catDetailSubcategory" class="catalog-dietary-badge" style="background:#f1ece4; color:#5c4d3c; border-color:#e2ded5; font-size:11px;">Subcategory</span>
+          </div>
+          <div id="catDetailBarcode" style="font-size:12px; color:#64748b; font-family:monospace; font-weight:600;">Barcode</div>
+          <div id="catDetailShelf" style="font-size:12px; color:#2e9e5b; font-weight:700;">Shelf Life</div>
+          <div style="margin-top:2px;">
+            <div style="font-size:11px; font-weight:700; color:#87968c; text-transform:uppercase;">Regional Names</div>
+            <div id="catDetailRegional" style="font-size:12.5px; color:#334155; font-weight:600;">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:12px; padding:6px 0;">
+        <!-- Description -->
+        <div>
+          <div style="font-size:11px; font-weight:700; color:#87968c; text-transform:uppercase; margin-bottom:2px;">Culinary Profile</div>
+          <p id="catDetailDesc" style="font-size:13px; color:#334155; line-height:1.45; margin:0;"></p>
+        </div>
+
+        <!-- Ingredients -->
+        <div>
+          <div style="font-size:11px; font-weight:700; color:#87968c; text-transform:uppercase; margin-bottom:2px;">Ingredients</div>
+          <p id="catDetailIngredients" style="font-size:12.5px; color:#475569; background:#faf8f5; border:1px solid #eae5db; border-radius:8px; padding:8px 10px; margin:0;"></p>
+        </div>
+
+        <!-- Storage Guidelines -->
+        <div>
+          <div style="font-size:11px; font-weight:700; color:#87968c; text-transform:uppercase; margin-bottom:2px;">Recommended Storage</div>
+          <p id="catDetailStorage" style="font-size:12.5px; color:#1e392a; background:#eaf5ee; border:1px solid #c7e3d0; border-radius:8px; padding:8px 10px; margin:0; font-weight:600;"></p>
+        </div>
+
+        <!-- Nutrition Overview -->
+        <div>
+          <div style="font-size:11px; font-weight:700; color:#87968c; text-transform:uppercase; margin-bottom:4px;">Nutrition Facts (Per 100g / Serving)</div>
+          <div class="catalog-nutrition-table">
+            <div class="catalog-nutri-cell">
+              <span class="catalog-nutri-label">Calories</span>
+              <span id="catNutriCal" class="catalog-nutri-val">—</span>
+            </div>
+            <div class="catalog-nutri-cell">
+              <span class="catalog-nutri-label">Protein</span>
+              <span id="catNutriProtein" class="catalog-nutri-val">—</span>
+            </div>
+            <div class="catalog-nutri-cell">
+              <span class="catalog-nutri-label">Carbs</span>
+              <span id="catNutriCarbs" class="catalog-nutri-val">—</span>
+            </div>
+            <div class="catalog-nutri-cell">
+              <span class="catalog-nutri-label">Fat</span>
+              <span id="catNutriFat" class="catalog-nutri-val">—</span>
+            </div>
+            <div class="catalog-nutri-cell">
+              <span class="catalog-nutri-label">Fiber</span>
+              <span id="catNutriFiber" class="catalog-nutri-val">—</span>
+            </div>
+            <div class="catalog-nutri-cell">
+              <span class="catalog-nutri-label">Sodium</span>
+              <span id="catNutriSodium" class="catalog-nutri-val">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px; display:flex; justify-content:space-between; gap:10px;">
+        <button type="button" class="modal-cancel-btn" onclick="closeCatalogProductDetailsModal()">Close</button>
+        <button type="button" id="catDetailAddBtn" class="modal-save-btn" style="background:#1e392a; color:#fff;">＋ Add to My Pantry</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
        SUPABASE DATABASE SETTINGS MODAL
        ========================================== -->
   <div class="modal-backdrop" id="databaseSettingsModal" style="display:none !important;" aria-hidden="true">
@@ -4578,6 +4769,8 @@ window.addEventListener("beforeunload", () => stopCamera());
 <script src="js/shelf-life.js"></script>
 <!-- Universal Product & Category Image Engine -->
 <script src="js/product-images.js"></script>
+<!-- Worldwide Grocery Database & Master Catalog Engine -->
+<script src="js/grocery-catalog.js"></script>
 <!-- Central State, Components & Application Engine -->
 <script src="js/store.js"></script>
 <script src="js/components.js"></script>

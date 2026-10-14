@@ -17,6 +17,8 @@ class AppRouter {
       "shopping-list": () => this.showShoppingList(),
       recipes: () => this.showRecipes(),
       insights: () => this.showInsights(),
+      "grocery-catalog": () => this.showGroceryCatalog(),
+      catalog: () => this.showGroceryCatalog(),
       notifications: () => { if (typeof toggleAlertCenter === 'function') toggleAlertCenter(true); },
       settings: () => this.showSettings()
     };
@@ -53,11 +55,13 @@ class AppRouter {
     const settings = document.getElementById("settingsSection");
     const billing = document.getElementById("billingScanSection");
     const scanActions = document.getElementById("scanActionsSection");
+    const catalog = document.getElementById("groceryCatalogSection");
     if (home) home.style.display = "block";
     if (insights) insights.style.display = "none";
     if (settings) settings.style.display = "none";
     if (billing) billing.style.display = "none";
     if (scanActions) scanActions.style.display = "none";
+    if (catalog) catalog.style.display = "none";
     setCategoryFilter("All");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -68,11 +72,13 @@ class AppRouter {
     const settings = document.getElementById("settingsSection");
     const billing = document.getElementById("billingScanSection");
     const scanActions = document.getElementById("scanActionsSection");
+    const catalog = document.getElementById("groceryCatalogSection");
     if (home) home.style.display = "block";
     if (insights) insights.style.display = "none";
     if (settings) settings.style.display = "none";
     if (billing) billing.style.display = "none";
     if (scanActions) scanActions.style.display = "none";
+    if (catalog) catalog.style.display = "none";
     const tableSection = document.getElementById("inventorySection");
     if (tableSection) {
       tableSection.scrollIntoView({ behavior: "smooth" });
@@ -85,11 +91,13 @@ class AppRouter {
     const settings = document.getElementById("settingsSection");
     const billing = document.getElementById("billingScanSection");
     const scanActions = document.getElementById("scanActionsSection");
+    const catalog = document.getElementById("groceryCatalogSection");
     if (home) home.style.display = "none";
     if (insights) insights.style.display = "flex";
     if (settings) settings.style.display = "none";
     if (billing) billing.style.display = "none";
     if (scanActions) scanActions.style.display = "none";
+    if (catalog) catalog.style.display = "none";
     if (typeof window.renderInsightsView === "function") {
       window.renderInsightsView();
     }
@@ -102,11 +110,13 @@ class AppRouter {
     const settings = document.getElementById("settingsSection");
     const billing = document.getElementById("billingScanSection");
     const scanActions = document.getElementById("scanActionsSection");
+    const catalog = document.getElementById("groceryCatalogSection");
     if (home) home.style.display = "none";
     if (insights) insights.style.display = "none";
     if (settings) settings.style.display = "flex";
     if (billing) billing.style.display = "none";
     if (scanActions) scanActions.style.display = "none";
+    if (catalog) catalog.style.display = "none";
     if (typeof window.renderSettingsView === "function") {
       window.renderSettingsView();
     }
@@ -119,11 +129,13 @@ class AppRouter {
     const settings = document.getElementById("settingsSection");
     const billing = document.getElementById("billingScanSection");
     const scanActions = document.getElementById("scanActionsSection");
+    const catalog = document.getElementById("groceryCatalogSection");
     if (home) home.style.display = "none";
     if (insights) insights.style.display = "none";
     if (settings) settings.style.display = "none";
     if (billing) billing.style.display = "block";
     if (scanActions) scanActions.style.display = "none";
+    if (catalog) catalog.style.display = "none";
     if (window.BillingScan && typeof window.BillingScan.init === "function") {
       window.BillingScan.init();
     }
@@ -136,11 +148,32 @@ class AppRouter {
     const settings = document.getElementById("settingsSection");
     const billing = document.getElementById("billingScanSection");
     const scanActions = document.getElementById("scanActionsSection");
+    const catalog = document.getElementById("groceryCatalogSection");
     if (home) home.style.display = "none";
     if (insights) insights.style.display = "none";
     if (settings) settings.style.display = "none";
     if (billing) billing.style.display = "none";
     if (scanActions) scanActions.style.display = "block";
+    if (catalog) catalog.style.display = "none";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  showGroceryCatalog() {
+    const home = document.getElementById("dashboardHomeViews");
+    const insights = document.getElementById("insightsSection");
+    const settings = document.getElementById("settingsSection");
+    const billing = document.getElementById("billingScanSection");
+    const scanActions = document.getElementById("scanActionsSection");
+    const catalog = document.getElementById("groceryCatalogSection");
+    if (home) home.style.display = "none";
+    if (insights) insights.style.display = "none";
+    if (settings) settings.style.display = "none";
+    if (billing) billing.style.display = "none";
+    if (scanActions) scanActions.style.display = "none";
+    if (catalog) catalog.style.display = "block";
+    if (typeof window.renderGroceryCatalogView === "function") {
+      window.renderGroceryCatalogView();
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 

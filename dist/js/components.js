@@ -824,7 +824,7 @@ function openAddEditModal(id = null) {
   }, 80);
 }
 
-// Automatically update photo preview based on typed product name
+// Automatically update photo preview and catalog autocomplete based on typed product name
 function handleItemNameInput(name) {
   const urlInput = document.getElementById("itemPhotoUrlInput");
   const preview = document.getElementById("photoPreviewImg");
@@ -832,6 +832,36 @@ function handleItemNameInput(name) {
   const removeBtn = document.getElementById("photoRemoveBtn");
   const catInput = document.getElementById("itemCategoryInput");
   const fileInput = document.getElementById("itemPhotoFileInput");
+
+  // Autocomplete dropdown container
+  const dropdown = document.getElementById("catalogAutocompleteDropdown");
+  if (dropdown && window.GroceryCatalog) {
+    const cleanName = String(name || "").trim();
+    if (cleanName.length >= 2) {
+      const suggestions = window.GroceryCatalog.autocomplete(cleanName, 5);
+      if (suggestions && suggestions.length > 0) {
+        let html = "";
+        suggestions.forEach(s => {
+          html += `
+            <div class="catalog-ac-item" onclick="selectCatalogAutocompleteItem('${s.id}')">
+              <img src="${s.image_url}" alt="" class="catalog-ac-thumb" onerror="this.onerror=null; this.src='assets/categories/other-pantry.png';">
+              <div class="catalog-ac-text">
+                <span class="catalog-ac-name">${escapeHtml(s.product_name)}</span>
+                <span class="catalog-ac-meta">${escapeHtml(s.brand || 'Generic')} • ${escapeHtml(s.category)}</span>
+              </div>
+              <span class="catalog-ac-badge">＋ Select</span>
+            </div>
+          `;
+        });
+        dropdown.innerHTML = html;
+        dropdown.style.display = "block";
+      } else {
+        dropdown.style.display = "none";
+      }
+    } else {
+      dropdown.style.display = "none";
+    }
+  }
 
   // If user has manually uploaded a custom file, preserve it
   if (fileInput && fileInput.files && fileInput.files.length > 0) return;
@@ -2598,6 +2628,373 @@ async function handleChangeEmailPrompt() {
   }
 }
 window.handleChangeEmailPrompt = handleChangeEmailPrompt;
+
+/* ==============================================================================
+   WORLDWIDE GROCERY DATABASE & CATALOG VIEW CONTROLLER
+   ============================================================================== */
+
+let catalogState = {
+  searchQuery: "",
+  selectedCategory: "All",
+  selectedDietary: "All"
+};
+
+function renderGroceryCatalogView() {
+  if (!window.GroceryCatalog) return;
+
+  // 1. Render Category Track Chips
+  const track = document.getElementById("catalogCategoryChipsTrack");
+  if (track) {
+    const categories = window.GroceryCatalog.getAllCategories();
+    const allCount = window.GroceryCatalog.getAllProducts().length;
+
+    let html = `
+      <button type="button" class="catalog-cat-chip ${catalogState.selectedCategory === 'All' ? 'active' : ''}" onclick="setCatalogCategoryFilter('All')">
+        <span class="cat-chip-icon">🌍</span>
+        <span class="cat-chip-label">All Categories</span>
+        <span class="cat-chip-count">${allCount}</span>
+      </button>
+    `;
+
+    categories.forEach(cat => {
+      const isActive = catalogState.selectedCategory === cat.name ? 'active' : '';
+      html += `
+        <button type="button" class="catalog-cat-chip ${isActive}" onclick="setCatalogCategoryFilter('${escapeHtml(cat.name)}')">
+          <span class="cat-chip-icon">${cat.emoji || '📦'}</span>
+          <span class="cat-chip-label">${escapeHtml(cat.name)}</span>
+          <span class="cat-chip-count">${cat.count}</span>
+        </button>
+      `;
+    });
+
+    track.innerHTML = html;
+  }
+
+  // 2. Render Products Grid
+  renderCatalogProductsGrid();
+}
+window.renderGroceryCatalogView = renderGroceryCatalogView;
+
+function renderCatalogProductsGrid() {
+  if (!window.GroceryCatalog) return;
+
+  const grid = document.getElementById("catalogProductsGrid");
+  const empty = document.getElementById("catalogEmptyState");
+  const stats = document.getElementById("catalogMatchStats");
+  if (!grid) return;
+
+  const results = window.GroceryCatalog.search(catalogState.searchQuery, {
+    category: catalogState.selectedCategory,
+    dietary: catalogState.selectedDietary,
+    limit: 250
+  });
+
+  if (stats) {
+    const catLabel = catalogState.selectedCategory !== 'All' ? catalogState.selectedCategory : 'All Categories';
+    const dietLabel = catalogState.selectedDietary !== 'All' ? ` (${catalogState.selectedDietary})` : '';
+    stats.textContent = `Showing ${results.items.length} of ${results.total} products in ${catLabel}${dietLabel}`;
+  }
+
+  if (results.items.length === 0) {
+    grid.innerHTML = "";
+    if (empty) empty.style.display = "block";
+    return;
+  }
+
+  if (empty) empty.style.display = "none";
+
+  let html = "";
+  results.items.forEach(item => {
+    const fallback = "assets/categories/other-pantry.png";
+    const dietaryBadges = (item.dietary_tags || []).slice(0, 2).map(tag => 
+      `<span class="catalog-dietary-badge">${escapeHtml(tag)}</span>`
+    ).join("");
+
+    html += `
+      <div class="catalog-item-card" data-product-id="${item.id}">
+        <div class="catalog-item-img-wrap" onclick="openCatalogProductDetails('${item.id}')">
+          <img 
+            src="${item.image_url}" 
+            alt="${escapeHtml(item.product_name)}" 
+            class="catalog-item-img"
+            loading="lazy"
+            onerror="this.onerror=null; this.src='${fallback}';"
+          >
+          <span class="catalog-item-cat-badge">${escapeHtml(item.category)}</span>
+        </div>
+        <div class="catalog-item-info">
+          <div class="catalog-item-brand">${escapeHtml(item.brand || 'Generic')}</div>
+          <h4 class="catalog-item-name" onclick="openCatalogProductDetails('${item.id}')" title="${escapeHtml(item.product_name)}">
+            ${escapeHtml(item.product_name)}
+          </h4>
+          <div class="catalog-item-dietary-row">
+            ${dietaryBadges}
+          </div>
+          <div class="catalog-item-shelf">
+            ⏱️ ~${item.shelf_life_days} days shelf life
+          </div>
+          <div class="catalog-item-actions">
+            <button type="button" class="catalog-btn-quick-add" onclick="quickAddCatalogItemToPantry('${item.id}')">
+              <span>＋ Add to Pantry</span>
+            </button>
+            <button type="button" class="catalog-btn-info" onclick="openCatalogProductDetails('${item.id}')" title="View details, nutrition, and ingredients">
+              ℹ️
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  grid.innerHTML = html;
+}
+window.renderCatalogProductsGrid = renderCatalogProductsGrid;
+
+let catalogSearchDebounceTimer = null;
+function handleCatalogSearchInput(val) {
+  clearTimeout(catalogSearchDebounceTimer);
+  catalogSearchDebounceTimer = setTimeout(() => {
+    catalogState.searchQuery = val || "";
+    const clearBtn = document.getElementById("catalogSearchClear");
+    if (clearBtn) {
+      clearBtn.style.display = catalogState.searchQuery ? "block" : "none";
+    }
+    renderCatalogProductsGrid();
+  }, 120);
+}
+window.handleCatalogSearchInput = handleCatalogSearchInput;
+
+function clearCatalogSearch() {
+  const input = document.getElementById("catalogSearchInput");
+  if (input) input.value = "";
+  handleCatalogSearchInput("");
+}
+window.clearCatalogSearch = clearCatalogSearch;
+
+function setCatalogCategoryFilter(catName) {
+  catalogState.selectedCategory = catName;
+  document.querySelectorAll(".catalog-cat-chip").forEach(chip => {
+    const label = chip.querySelector(".cat-chip-label")?.textContent;
+    if ((catName === "All" && label === "All Categories") || label === catName) {
+      chip.classList.add("active");
+    } else {
+      chip.classList.remove("active");
+    }
+  });
+  renderCatalogProductsGrid();
+}
+window.setCatalogCategoryFilter = setCatalogCategoryFilter;
+
+function setCatalogDietaryFilter(dietary) {
+  catalogState.selectedDietary = dietary;
+  document.querySelectorAll(".dietary-chip").forEach(chip => {
+    if (chip.getAttribute("data-dietary") === dietary) {
+      chip.classList.add("active");
+    } else {
+      chip.classList.remove("active");
+    }
+  });
+  renderCatalogProductsGrid();
+}
+window.setCatalogDietaryFilter = setCatalogDietaryFilter;
+
+function openCatalogProductDetails(productId) {
+  if (!window.GroceryCatalog) return;
+  const item = window.GroceryCatalog.getById(productId);
+  if (!item) return;
+
+  const modal = document.getElementById("catalogDetailsModal");
+  if (!modal) return;
+
+  document.getElementById("catDetailTitle").textContent = item.product_name;
+  document.getElementById("catDetailBrand").textContent = item.brand ? `Brand: ${item.brand}` : "Generic / Unbranded";
+  document.getElementById("catDetailCategory").textContent = item.category;
+  document.getElementById("catDetailSubcategory").textContent = item.subcategory || item.category;
+  document.getElementById("catDetailBarcode").textContent = item.barcode ? `Barcode: ${item.barcode}` : "Universal";
+
+  const img = document.getElementById("catDetailImg");
+  if (img) {
+    img.src = item.image_url;
+    img.alt = item.product_name;
+    img.onerror = function() { this.onerror = null; this.src = "assets/categories/other-pantry.png"; };
+  }
+
+  document.getElementById("catDetailDesc").textContent = item.description || "";
+  document.getElementById("catDetailIngredients").textContent = item.ingredients || "Standard culinary grade ingredient.";
+  document.getElementById("catDetailStorage").textContent = item.storage_instructions || "Store in airtight container in a cool, dry place.";
+  document.getElementById("catDetailShelf").textContent = `~${item.shelf_life_days} days (unopened) / ~${item.opened_shelf_life_days} days (after opening)`;
+
+  const regEl = document.getElementById("catDetailRegional");
+  if (regEl) {
+    if (item.regional_names && item.regional_names.length > 0) {
+      regEl.textContent = item.regional_names.join(" • ");
+      regEl.parentElement.style.display = "block";
+    } else {
+      regEl.parentElement.style.display = "none";
+    }
+  }
+
+  // Nutrition Facts
+  const n = item.nutrition_information || {};
+  document.getElementById("catNutriCal").textContent = n.calories ? `${n.calories} kcal` : "—";
+  document.getElementById("catNutriProtein").textContent = n.protein || "—";
+  document.getElementById("catNutriCarbs").textContent = n.carbs || "—";
+  document.getElementById("catNutriFat").textContent = n.fat || "—";
+  document.getElementById("catNutriFiber").textContent = n.fiber || "—";
+  document.getElementById("catNutriSodium").textContent = n.sodium || "—";
+
+  // Action button to add
+  const addBtn = document.getElementById("catDetailAddBtn");
+  if (addBtn) {
+    addBtn.onclick = function() {
+      closeCatalogProductDetailsModal();
+      quickAddCatalogItemToPantry(item.id);
+    };
+  }
+
+  modal.style.display = "flex";
+}
+window.openCatalogProductDetails = openCatalogProductDetails;
+
+function closeCatalogProductDetailsModal() {
+  const modal = document.getElementById("catalogDetailsModal");
+  if (modal) modal.style.display = "none";
+}
+window.closeCatalogProductDetailsModal = closeCatalogProductDetailsModal;
+
+function quickAddCatalogItemToPantry(productId) {
+  if (!window.GroceryCatalog) return;
+  const item = window.GroceryCatalog.getById(productId);
+  if (!item) return;
+
+  // Open existing Add Item Modal prefilled
+  openAddEditModal();
+
+  const nameInput = document.getElementById("itemNameInput");
+  const brandInput = document.getElementById("itemBrandInput");
+  const barcodeInput = document.getElementById("itemBarcodeInput");
+  const qtyInput = document.getElementById("itemQuantityInput");
+  const unitSelect = document.getElementById("itemUnitSelect");
+  const locationInput = document.getElementById("itemLocationInput");
+  const preview = document.getElementById("photoPreviewImg");
+  const placeholder = document.getElementById("photoPlaceholderContent");
+  const urlInput = document.getElementById("itemPhotoUrlInput");
+  const expiryInput = document.getElementById("itemExpiryInput");
+
+  if (nameInput) nameInput.value = item.product_name;
+  if (brandInput) brandInput.value = item.brand || "";
+  if (barcodeInput) barcodeInput.value = item.barcode || "";
+  if (qtyInput) qtyInput.value = "1";
+  if (unitSelect && item.default_unit) unitSelect.value = item.default_unit;
+
+  // Set category dropdown
+  if (typeof setCategoryValue === "function") {
+    setCategoryValue(item.category);
+  }
+
+  // Set photo
+  if (urlInput) {
+    urlInput.value = item.image_url;
+    urlInput.dataset.userUploaded = "false";
+  }
+  if (preview) {
+    preview.src = item.image_url;
+    preview.style.display = "block";
+    preview.onerror = function() { this.onerror = null; this.src = "assets/categories/other-pantry.png"; };
+  }
+  if (placeholder) placeholder.style.display = "none";
+
+  // Calculate suggested expiry from shelf_life_days
+  if (item.shelf_life_days && expiryInput) {
+    const expDate = new Date();
+    expDate.setDate(expDate.getDate() + parseInt(item.shelf_life_days, 10));
+    expiryInput.value = expDate.toISOString().split("T")[0];
+  }
+
+  // Location recommendation
+  if (locationInput) {
+    const catLower = (item.category || "").toLowerCase();
+    if (catLower.includes("dairy") || catLower.includes("meat") || catLower.includes("egg")) {
+      locationInput.value = "Fridge";
+    } else if (catLower.includes("frozen")) {
+      locationInput.value = "Freezer";
+    } else {
+      locationInput.value = "Pantry";
+    }
+  }
+
+  if (typeof updateModalShelfLifePreview === "function") {
+    updateModalShelfLifePreview();
+  }
+}
+window.quickAddCatalogItemToPantry = quickAddCatalogItemToPantry;
+
+// Autocomplete suggestions for Add Item modal
+function selectCatalogAutocompleteItem(productId) {
+  if (!window.GroceryCatalog) return;
+  const item = window.GroceryCatalog.getById(productId);
+  if (!item) return;
+
+  const nameInput = document.getElementById("itemNameInput");
+  const brandInput = document.getElementById("itemBrandInput");
+  const barcodeInput = document.getElementById("itemBarcodeInput");
+  const unitSelect = document.getElementById("itemUnitSelect");
+  const preview = document.getElementById("photoPreviewImg");
+  const placeholder = document.getElementById("photoPlaceholderContent");
+  const urlInput = document.getElementById("itemPhotoUrlInput");
+  const expiryInput = document.getElementById("itemExpiryInput");
+
+  if (nameInput) nameInput.value = item.product_name;
+  if (brandInput) brandInput.value = item.brand || "";
+  if (barcodeInput && item.barcode) barcodeInput.value = item.barcode;
+  if (unitSelect && item.default_unit) unitSelect.value = item.default_unit;
+
+  if (typeof setCategoryValue === "function") {
+    setCategoryValue(item.category);
+  }
+
+  if (urlInput) {
+    urlInput.value = item.image_url;
+    urlInput.dataset.userUploaded = "false";
+  }
+  if (preview) {
+    preview.src = item.image_url;
+    preview.style.display = "block";
+    preview.onerror = function() { this.onerror = null; this.src = "assets/categories/other-pantry.png"; };
+  }
+  if (placeholder) placeholder.style.display = "none";
+
+  if (item.shelf_life_days && expiryInput) {
+    const expDate = new Date();
+    expDate.setDate(expDate.getDate() + parseInt(item.shelf_life_days, 10));
+    expiryInput.value = expDate.toISOString().split("T")[0];
+  }
+
+  hideCatalogAutocomplete();
+
+  if (typeof updateModalShelfLifePreview === "function") {
+    updateModalShelfLifePreview();
+  }
+}
+window.selectCatalogAutocompleteItem = selectCatalogAutocompleteItem;
+
+function hideCatalogAutocomplete() {
+  const dropdown = document.getElementById("catalogAutocompleteDropdown");
+  if (dropdown) dropdown.style.display = "none";
+}
+window.hideCatalogAutocomplete = hideCatalogAutocomplete;
+
+// Hide autocomplete on click outside
+document.addEventListener("click", function (e) {
+  const dropdown = document.getElementById("catalogAutocompleteDropdown");
+  const nameInput = document.getElementById("itemNameInput");
+  if (dropdown && dropdown.style.display !== "none") {
+    if (!dropdown.contains(e.target) && e.target !== nameInput) {
+      dropdown.style.display = "none";
+    }
+  }
+});
+
 
 
 
