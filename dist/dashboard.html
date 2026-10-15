@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -761,8 +761,13 @@
           Loading recipes...
         </div>
 
-        <!-- Recipe Cards Grid -->
-        <div class="recipes-grid" id="recipesGrid">
+        <!-- 15 Curated Cuisine Section Panels (Mockup Grid) -->
+        <div class="cuisine-sections-grid" id="cuisineSectionsContainer">
+          <!-- Dynamically populated from recipes.js -->
+        </div>
+
+        <!-- Recipe Cards Grid (Flat Grid / Filtered View) -->
+        <div class="recipes-grid" id="recipesGrid" style="display:none;">
           <!-- Dynamically populated from recipes.js -->
         </div>
       </section>
@@ -4344,8 +4349,8 @@ window.addEventListener("beforeunload", () => stopCamera());
 
         <!-- Modal Footer Actions -->
         <div class="detail-footer-actions">
-          <button type="button" class="detail-btn cook" onclick="window.RecipeEngine.cookCurrentRecipe()">
-            🍳 Cook This
+          <button type="button" class="detail-btn cook" onclick="window.RecipeEngine.openCookingMode()">
+            🍳 Start Cooking Mode
           </button>
           <button type="button" class="detail-btn shopping" onclick="window.RecipeEngine.addCurrentMissingToShopping()">
             🛒 Add Missing Items
@@ -4357,6 +4362,53 @@ window.addEventListener("beforeunload", () => stopCamera());
             📤 Share
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       INTERACTIVE FULL-SCREEN COOKING MODE MODAL
+       ========================================== -->
+  <div class="modal-overlay cooking-modal-overlay" id="cookingModeModal">
+    <div class="modal-card cooking-modal-card">
+      <div class="cooking-modal-header">
+        <div class="cooking-header-left">
+          <span class="cooking-badge">🍳 Live Cooking Mode</span>
+          <h3 id="cookingModalTitle" class="cooking-recipe-title">Recipe Name</h3>
+        </div>
+        <button type="button" class="cooking-close-btn" onclick="window.RecipeEngine.closeCookingMode()" aria-label="Exit Cooking Mode">✕ Exit</button>
+      </div>
+
+      <!-- Step Progress Bar & Counter -->
+      <div class="cooking-progress-wrap">
+        <div class="cooking-progress-meta">
+          <span id="cookingStepCounter" style="font-weight:700; color:#1e392a; font-size:14px;">Step 1 of 4</span>
+        </div>
+        <div class="cooking-progress-track">
+          <div class="cooking-progress-bar" id="cookingProgressBar" style="width: 25%;"></div>
+        </div>
+      </div>
+
+      <!-- Main Step Instruction -->
+      <div class="cooking-step-container">
+        <p id="cookingStepInstruction" class="cooking-step-instruction">Step instructions will appear here...</p>
+        <div id="cookingStepTimerBox" class="cooking-timer-box" style="display:none; margin-top:20px;"></div>
+      </div>
+
+      <!-- Ingredients Reference Drawer -->
+      <details class="cooking-ing-details">
+        <summary>📋 Scaled Ingredients Reference</summary>
+        <ul id="cookingIngredientsDrawer" class="cooking-ing-drawer"></ul>
+      </details>
+
+      <!-- Navigation Footer -->
+      <div class="cooking-modal-footer">
+        <button type="button" id="cookingPrevBtn" class="cooking-nav-btn prev" onclick="window.RecipeEngine.prevCookingStep()">
+          ⬅ Previous
+        </button>
+        <button type="button" id="cookingNextBtn" class="cooking-nav-btn next" onclick="window.RecipeEngine.nextCookingStep()">
+          Next Step ➔
+        </button>
       </div>
     </div>
   </div>
@@ -5395,4 +5447,3 @@ setTimeout(function() {
 
 </body>
 </html>
-

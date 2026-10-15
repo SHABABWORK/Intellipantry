@@ -1,21 +1,32 @@
 /**
  * Smart Pantry - Real-Time Recipe Recommendation & Matching Engine
  * 100% Free • Real-Time Pantry Synchronization • Zero Paywalls
+ * Worldwide Recipe Library • Verified Food Photos • Step-by-Step Cooking Mode
  */
 
 class RecipeEngineManager {
   constructor() {
     this.recipes = window.MASTER_RECIPES || [];
+    this.sections = window.CUISINE_SECTIONS || [];
     this.activeCategory = "all";
     this.searchQuery = "";
-    this.pantryMatchesOnly = false;
-    this.expiringOnly = false;
-    this.favoritesOnly = false;
+    this.viewMode = "sections"; // "sections" (Screenshot mockup) or "grid" (Full cards)
     this.currentDetailRecipe = null;
+    this.originalServings = 4;
+    this.currentServings = 4;
+    this.cookingStepIndex = 0;
+    this.cookingTimerInterval = null;
+    this.cookingTimerSeconds = 0;
     this.init();
   }
 
   init() {
+    // If recipes-data.js loads asynchronously, sync recipes
+    if ((!this.recipes || this.recipes.length === 0) && window.MASTER_RECIPES) {
+      this.recipes = window.MASTER_RECIPES;
+      this.sections = window.CUISINE_SECTIONS || [];
+    }
+
     // Listen for pantry inventory changes to update recipes automatically
     if (window.store && typeof window.store.subscribe === "function") {
       window.store.subscribe(() => {
@@ -23,6 +34,21 @@ class RecipeEngineManager {
         this.renderRecipeKitchen();
         this.updateExpiringBanner();
       });
+    }
+
+    // Initial render when DOM is ready
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => {
+        this.renderCategoryChips();
+        this.renderRecipeKitchen();
+        this.updateExpiringBanner();
+      });
+    } else {
+      setTimeout(() => {
+        this.renderCategoryChips();
+        this.renderRecipeKitchen();
+        this.updateExpiringBanner();
+      }, 50);
     }
   }
 
@@ -45,6 +71,10 @@ class RecipeEngineManager {
     return `smart_pantry_shopping_${this.getUserKey()}`;
   }
 
+  getCookingHistoryKey() {
+    return `smart_pantry_cooking_history_${this.getUserKey()}`;
+  }
+
   getFavorites() {
     try {
       const raw = localStorage.getItem(this.getFavoritesKey());
@@ -59,19 +89,45 @@ class RecipeEngineManager {
     return favs.includes(recipeId);
   }
 
-  toggleFavorite(recipeId) {
+  async toggleFavorite(recipeId) {
     let favs = this.getFavorites();
+    let isNowFav = false;
     if (favs.includes(recipeId)) {
       favs = favs.filter(id => id !== recipeId);
       if (window.showToast) window.showToast("Removed recipe from favorites ❤️");
     } else {
       favs.push(recipeId);
+      isNowFav = true;
       if (window.showToast) window.showToast("Saved to My Favorites! ❤️");
     }
     localStorage.setItem(this.getFavoritesKey(), JSON.stringify(favs));
     this.renderRecipeKitchen();
+
     if (this.currentDetailRecipe && this.currentDetailRecipe.id === recipeId) {
       this.updateDetailFavoriteBtn();
+    }
+
+    // Sync to Supabase if authenticated
+    try {
+      if (window.supabaseClient && window.supabaseClient.auth) {
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        if (session && session.user) {
+          if (isNowFav) {
+            await window.supabaseClient.from("user_recipe_favorites").upsert({
+              user_id: session.user.id,
+              recipe_id: recipeId,
+              created_at: new Date().toISOString()
+            }, { onConflict: "user_id, recipe_id" });
+          } else {
+            await window.supabaseClient.from("user_recipe_favorites")
+              .delete()
+              .eq("user_id", session.user.id)
+              .eq("recipe_id", recipeId);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[Recipe Engine] Supabase favorites sync skipped:", err.message);
     }
   }
 
@@ -89,14 +145,14 @@ class RecipeEngineManager {
     const toAdd = Array.isArray(itemNames) ? itemNames : [itemNames];
     let addedCount = 0;
 
-    toAdd.forEach(name => {
-      const trimmed = name.trim();
-      if (!trimmed) return;
-      const exists = list.some(i => (typeof i === "string" ? i : i.name).toLowerCase() === trimmed.toLowerCase());
+    toAdd.forEach(item => {
+      const name = (typeof item === "string" ? item : (item.name || "")).trim();
+      if (!name) return;
+      const exists = list.some(i => (typeof i === "string" ? i : i.name).toLowerCase() === name.toLowerCase());
       if (!exists) {
         list.push({
           id: "shop_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-          name: trimmed,
+          name: name,
           addedAt: new Date().toISOString(),
           checked: false
         });
@@ -124,22 +180,92 @@ class RecipeEngineManager {
     if (window.showToast) window.showToast("Shopping list cleared.");
   }
 
-  // Smart Ingredient Matching
+  // ==========================================
+  // SMART INGREDIENT MATCHING ALGORITHM
+  // ==========================================
   normalizeString(str) {
     if (!str) return "";
     return str.toLowerCase().replace(/[^a-z0-9]/g, "");
+  }
+
+  stemIngredientWord(word) {
+    let w = word.toLowerCase().trim();
+    if (w.endsWith("ies")) return w.slice(0, -3) + "y";
+    if (w.endsWith("es") && (w.endsWith("toes") || w.endsWith("ches") || w.endsWith("shes") || w.endsWith("xes"))) {
+      return w.slice(0, -2);
+    }
+    if (w.endsWith("s") && !w.endsWith("ss") && !w.endsWith("us") && !w.endsWith("is")) {
+      return w.slice(0, -1);
+    }
+    return w;
+  }
+
+  getSynonyms(term) {
+    const synonymsMap = {
+      "curd": ["yogurt", "yoghurt", "dahi"],
+      "yogurt": ["curd", "dahi"],
+      "atta": ["wheat", "flour", "wheatflour"],
+      "maida": ["flour", "allpurposeflour", "refinedflour"],
+      "flour": ["atta", "maida", "wheat"],
+      "paneer": ["cottagecheese", "cheese"],
+      "cottagecheese": ["paneer"],
+      "soyasauce": ["soysauce"],
+      "soysauce": ["soyasauce"],
+      "ghee": ["butter", "clarifiedbutter"],
+      "butter": ["ghee"],
+      "coriander": ["cilantro", "dhania"],
+      "cilantro": ["coriander"],
+      "capsicum": ["bellpepper", "pepper"],
+      "bellpepper": ["capsicum"],
+      "brinjal": ["eggplant", "aubergine"],
+      "eggplant": ["brinjal", "aubergine"],
+      "prawns": ["shrimp"],
+      "shrimp": ["prawns"],
+      "chicken": ["poultry", "chickenthighs", "chickenbreast"],
+      "potato": ["potatoes", "aloo"],
+      "tomato": ["tomatoes", "tamatar"],
+      "onion": ["onions", "pyaz", "shallot", "shallots"]
+    };
+    return synonymsMap[term] || [];
+  }
+
+  matchIngredientWithPantry(ingName, pantryItems) {
+    if (!ingName) return null;
+    const cleanName = ingName.toLowerCase();
+    const cleanTokens = cleanName.split(/[\s,()\/]+/).map(t => this.stemIngredientWord(t)).filter(t => t.length > 2);
+    const normIng = this.normalizeString(cleanName);
+
+    for (const item of pantryItems) {
+      const pName = (item.name || "").toLowerCase();
+      const normPantry = this.normalizeString(pName);
+
+      // Direct substring match
+      if (normPantry.includes(normIng) || normIng.includes(normPantry)) {
+        return item;
+      }
+
+      // Token word-stem match
+      const pTokens = pName.split(/[\s,()\/]+/).map(t => this.stemIngredientWord(t)).filter(t => t.length > 2);
+      for (const t of cleanTokens) {
+        if (pTokens.includes(t)) {
+          return item;
+        }
+        // Check synonyms
+        const syns = this.getSynonyms(t);
+        for (const s of syns) {
+          if (pTokens.includes(s) || normPantry.includes(s)) {
+            return item;
+          }
+        }
+      }
+    }
+    return null;
   }
 
   calculateRecipeMatch(recipe) {
     const pantryItems = (window.store && typeof window.store.getItems === "function") 
       ? window.store.getItems() 
       : [];
-
-    const normalizedPantry = pantryItems.map(item => ({
-      raw: item,
-      nameNorm: this.normalizeString(item.name),
-      isExpiring: (item.status === "Expiring Soon" || item.status === "Expired")
-    }));
 
     const available = [];
     const missing = [];
@@ -148,14 +274,15 @@ class RecipeEngineManager {
     const recipeIngredients = recipe.ingredients || [];
 
     recipeIngredients.forEach(ing => {
-      const ingNorm = this.normalizeString(ing);
-      const match = normalizedPantry.find(p => 
-        p.nameNorm.includes(ingNorm) || ingNorm.includes(p.nameNorm)
-      );
+      const ingName = typeof ing === "string" ? ing : (ing.name || "");
+      const matchedPantryItem = this.matchIngredientWithPantry(ingName, pantryItems);
 
-      if (match) {
+      if (matchedPantryItem) {
         available.push(ing);
-        if (match.isExpiring) {
+        const isExp = matchedPantryItem.status === "Expiring Soon" || 
+                      matchedPantryItem.status === "Expired" || 
+                      (window.getDaysDifference && window.getDaysDifference(matchedPantryItem.expiryDate) <= 3);
+        if (isExp) {
           expiring.push(ing);
         }
       } else {
@@ -177,7 +304,7 @@ class RecipeEngineManager {
   }
 
   getMatchedRecipes() {
-    const all = this.recipes.map(recipe => {
+    const all = (this.recipes || []).map(recipe => {
       const matchData = this.calculateRecipeMatch(recipe);
       return {
         ...recipe,
@@ -190,19 +317,25 @@ class RecipeEngineManager {
 
     if (this.activeCategory && this.activeCategory !== "all") {
       if (this.activeCategory === "pantry") {
-        filtered = filtered.filter(r => r.matchPercent >= 40);
+        filtered = filtered.filter(r => r.matchPercent >= 30);
       } else if (this.activeCategory === "expiring") {
         filtered = filtered.filter(r => r.hasExpiringIngredient);
       } else if (this.activeCategory === "favorites") {
         const favs = this.getFavorites();
         filtered = filtered.filter(r => favs.includes(r.id));
+      } else if (this.activeCategory === "quick-meals") {
+        filtered = filtered.filter(r => (r.totalMinutes || 30) <= 30);
+      } else if (this.activeCategory === "vegetarian") {
+        filtered = filtered.filter(r => r.isVegetarian);
+      } else if (this.activeCategory === "vegan") {
+        filtered = filtered.filter(r => r.isVegan);
       } else {
+        const catKey = this.activeCategory.toLowerCase().replace(/-/g, " ");
         filtered = filtered.filter(r => {
-          const cat = this.activeCategory.toLowerCase().replace("-", " ");
-          const mainCatMatch = (r.category || "").toLowerCase() === cat;
-          const multiCatMatch = (r.categories || []).some(c => c.toLowerCase() === cat);
-          const cuisineMatch = (r.cuisine || "").toLowerCase() === cat;
-          return mainCatMatch || multiCatMatch || cuisineMatch;
+          const mainCat = (r.category || "").toLowerCase();
+          const cuisine = (r.cuisine || "").toLowerCase();
+          const cats = (r.categories || []).map(c => c.toLowerCase());
+          return mainCat === catKey || cuisine === catKey || cats.includes(catKey);
         });
       }
     }
@@ -211,16 +344,20 @@ class RecipeEngineManager {
     if (this.searchQuery && this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase().trim();
       filtered = filtered.filter(r => {
-        const nameMatch = r.name.toLowerCase().includes(q);
+        const nameMatch = (r.name || "").toLowerCase().includes(q);
+        const localMatch = (r.localName || "").toLowerCase().includes(q);
         const cuisineMatch = (r.cuisine || "").toLowerCase().includes(q);
         const catMatch = (r.category || "").toLowerCase().includes(q);
-        const ingMatch = (r.ingredients || []).some(i => i.toLowerCase().includes(q));
-        return nameMatch || cuisineMatch || catMatch || ingMatch;
+        const ingMatch = (r.ingredients || []).some(i => {
+          const n = typeof i === "string" ? i : (i.name || "");
+          return n.toLowerCase().includes(q);
+        });
+        return nameMatch || localMatch || cuisineMatch || catMatch || ingMatch;
       });
     }
 
     // Smart Priority Sort:
-    // 1. Recipes using expiring ingredients first
+    // 1. Recipes with expiring ingredients first
     // 2. Highest Match %
     // 3. Quickest cooking time
     filtered.sort((a, b) => {
@@ -233,19 +370,32 @@ class RecipeEngineManager {
     return filtered;
   }
 
+  setViewMode(mode) {
+    this.viewMode = mode;
+    this.renderRecipeKitchen();
+  }
+
   setCategory(catId) {
     this.activeCategory = catId;
+    if (catId !== "all") {
+      this.viewMode = "grid";
+    }
     this.renderCategoryChips();
     this.renderRecipeKitchen();
+    this.scrollToRecipeKitchen();
   }
 
   setSearchQuery(query) {
     this.searchQuery = query;
+    if (query && query.trim()) {
+      this.viewMode = "grid";
+    }
     this.renderRecipeKitchen();
   }
 
   showPantryMatches() {
     this.activeCategory = "pantry";
+    this.viewMode = "grid";
     this.renderCategoryChips();
     this.renderRecipeKitchen();
     this.scrollToRecipeKitchen();
@@ -253,6 +403,7 @@ class RecipeEngineManager {
 
   showExpiringRecipes() {
     this.activeCategory = "expiring";
+    this.viewMode = "grid";
     this.renderCategoryChips();
     this.renderRecipeKitchen();
     this.scrollToRecipeKitchen();
@@ -260,6 +411,7 @@ class RecipeEngineManager {
 
   showFavorites() {
     this.activeCategory = "favorites";
+    this.viewMode = "grid";
     this.renderCategoryChips();
     this.renderRecipeKitchen();
     this.scrollToRecipeKitchen();
@@ -321,19 +473,26 @@ class RecipeEngineManager {
     `;
   }
 
+  // ==========================================
+  // MASTER RENDERER: CUISINE SECTIONS & GRID
+  // ==========================================
   renderRecipeKitchen() {
     const grid = document.getElementById("recipesGrid");
     const countEl = document.getElementById("recipesMatchCount");
+    const sectionsContainer = document.getElementById("cuisineSectionsContainer");
     if (!grid) return;
 
     const pantryItems = (window.store && typeof window.store.getItems === "function") 
       ? window.store.getItems() 
       : [];
 
+    // Empty pantry state
     if (pantryItems.length === 0) {
       if (countEl) {
         countEl.innerHTML = `Pantry is empty • Add products to unlock real-time recipe matching`;
       }
+      if (sectionsContainer) sectionsContainer.style.display = "none";
+      grid.style.display = "grid";
       grid.innerHTML = `
         <div class="no-recipes-card" style="grid-column: 1 / -1; text-align: center; padding: 48px 20px; background: #ffffff; border-radius: 20px; border: 1.5px dashed #e2e8f0;">
           <div style="font-size: 44px; margin-bottom: 12px;">🍳</div>
@@ -348,9 +507,42 @@ class RecipeEngineManager {
     const recipes = this.getMatchedRecipes();
     const readyToCookCount = recipes.filter(r => r.matchPercent >= 80).length;
 
+    // View Switcher Buttons Header
+    const viewSwitchHtml = `
+      <div class="recipe-view-mode-toggle">
+        <button type="button" class="view-toggle-btn ${this.viewMode === 'sections' ? 'active' : ''}" onclick="window.RecipeEngine.setViewMode('sections')">
+          📑 Browse by Cuisine
+        </button>
+        <button type="button" class="view-toggle-btn ${this.viewMode === 'grid' ? 'active' : ''}" onclick="window.RecipeEngine.setViewMode('grid')">
+          🗂️ All Recipe Cards (${recipes.length})
+        </button>
+      </div>
+    `;
+
     if (countEl) {
-      countEl.innerHTML = `Showing <strong>${recipes.length}</strong> recipes • <strong>${readyToCookCount}</strong> ready to cook with your pantry`;
+      countEl.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; width:100%;">
+          <span>Showing <strong>${recipes.length}</strong> recipes • <strong>${readyToCookCount}</strong> ready to cook with your pantry</span>
+          ${viewSwitchHtml}
+        </div>
+      `;
     }
+
+    // Condition to show 15 Cuisine Section Panels matching user mockup
+    const shouldShowSections = (this.viewMode === "sections" && this.activeCategory === "all" && !this.searchQuery);
+
+    if (shouldShowSections) {
+      if (sectionsContainer) {
+        sectionsContainer.style.display = "grid";
+        this.renderCuisineSectionPanels();
+      }
+      grid.style.display = "none";
+      return;
+    }
+
+    // Otherwise render the full Recipe Grid
+    if (sectionsContainer) sectionsContainer.style.display = "none";
+    grid.style.display = "grid";
 
     if (recipes.length === 0) {
       grid.innerHTML = `
@@ -358,7 +550,7 @@ class RecipeEngineManager {
           <div style="font-size: 42px; margin-bottom: 12px;">🍳</div>
           <h3 style="font-size: 18px; font-weight: 800; color: #1e392a; margin-bottom: 6px;">No matching recipes found</h3>
           <p style="font-size: 13.5px; color: #64748b; margin-bottom: 18px;">Try searching for a different ingredient or select "All Recipes".</p>
-          <button class="recipe-action-btn primary" onclick="window.RecipeEngine.setCategory('all')" style="padding: 10px 20px; font-size: 13px;">View All 185+ Free Recipes</button>
+          <button class="recipe-action-btn primary" onclick="window.RecipeEngine.setCategory('all')" style="padding: 10px 20px; font-size: 13px;">View All 175+ Free Recipes</button>
         </div>
       `;
       return;
@@ -377,7 +569,7 @@ class RecipeEngineManager {
       return `
         <div class="recipe-card" onclick="window.RecipeEngine.openRecipeDetail('${recipe.id}')">
           <div class="recipe-img-container">
-            <img src="${recipe.image}" alt="${escapeHTML(recipe.name)}" class="recipe-card-img" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80'">
+            <img src="${recipe.image}" alt="${escapeHTML(recipe.name)}" class="recipe-card-img" loading="lazy" onerror="this.src='${recipe.fallbackImage || 'assets/categories/other-pantry.png'}'">
             
             <div class="recipe-card-badges">
               <span class="match-badge ${matchBadgeClass}">${recipe.matchPercent}% Match</span>
@@ -430,64 +622,115 @@ class RecipeEngineManager {
     }).join("");
   }
 
-  // Recipe Detail Modal
+  // ==========================================
+  // 15 CUISINE SECTION PANELS (Mockup 1:1)
+  // ==========================================
+  renderCuisineSectionPanels() {
+    const container = document.getElementById("cuisineSectionsContainer");
+    if (!container) return;
+
+    const sections = window.CUISINE_SECTIONS || [];
+    const recipeMap = new Map();
+    (this.recipes || []).forEach(r => recipeMap.set(r.id, r));
+
+    container.innerHTML = sections.map(sec => {
+      const sectionRecipes = (sec.recipeIds || []).map(id => {
+        const r = recipeMap.get(id);
+        if (!r) return null;
+        return {
+          ...r,
+          ...this.calculateRecipeMatch(r)
+        };
+      }).filter(Boolean);
+
+      const rowsHtml = sectionRecipes.map(recipe => {
+        const dietDot = recipe.isVegetarian ? "🟢" : "🔴";
+        let matchPill = "";
+        if (recipe.matchPercent >= 80) {
+          matchPill = `<span class="sec-match-pill ready">✓ In Pantry</span>`;
+        } else if (recipe.matchPercent > 0) {
+          matchPill = `<span class="sec-match-pill partial">${recipe.matchPercent}% Match</span>`;
+        }
+
+        return `
+          <div class="cuisine-panel-item" onclick="window.RecipeEngine.openRecipeDetail('${recipe.id}')">
+            <div class="cuisine-item-thumb-wrap">
+              <img src="${recipe.image}" alt="${escapeHTML(recipe.name)}" class="cuisine-item-thumb" loading="lazy" onerror="this.src='${recipe.fallbackImage || 'assets/categories/other-pantry.png'}'">
+            </div>
+            <div class="cuisine-item-info">
+              <div class="cuisine-item-title-row">
+                <span class="diet-dot">${dietDot}</span>
+                <span class="cuisine-item-name">${escapeHTML(recipe.name)}</span>
+              </div>
+              <div class="cuisine-item-sub-row">
+                <span class="cuisine-item-time">⏱ ${recipe.totalMinutes || 25} min</span>
+                ${matchPill}
+              </div>
+            </div>
+            <div class="cuisine-item-arrow">➔</div>
+          </div>
+        `;
+      }).join("");
+
+      return `
+        <div class="cuisine-panel-card" id="panel_${sec.id}">
+          <div class="cuisine-panel-header">
+            <div class="cuisine-panel-title">
+              <span class="cuisine-panel-icon">${sec.icon}</span>
+              <h3>${escapeHTML(sec.title)}</h3>
+            </div>
+            <button type="button" class="cuisine-panel-viewall-btn" onclick="window.RecipeEngine.setCategory('${sec.filter}')">
+              View All ➔
+            </button>
+          </div>
+          <div class="cuisine-panel-list">
+            ${rowsHtml}
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  // ==========================================
+  // RECIPE DETAIL MODAL & DYNAMIC SERVINGS
+  // ==========================================
   openRecipeDetail(recipeId) {
-    const recipe = this.recipes.find(r => r.id === recipeId);
+    const recipe = (this.recipes || []).find(r => r.id === recipeId);
     if (!recipe) return;
 
     const matchData = this.calculateRecipeMatch(recipe);
     this.currentDetailRecipe = { ...recipe, ...matchData };
+    this.originalServings = Number(recipe.servings) || 4;
+    this.currentServings = this.originalServings;
 
     const modal = document.getElementById("recipeDetailModal");
     if (!modal) return;
 
-    document.getElementById("detailRecipeImg").src = recipe.image;
+    // Top Header & Hero Image
+    const imgEl = document.getElementById("detailRecipeImg");
+    if (imgEl) {
+      imgEl.src = recipe.image;
+      imgEl.onerror = () => { imgEl.src = recipe.fallbackImage || 'assets/categories/other-pantry.png'; };
+    }
+
     document.getElementById("detailRecipeTitle").textContent = recipe.name;
     document.getElementById("detailRecipeDesc").textContent = recipe.description;
     document.getElementById("detailCuisineTag").textContent = `${recipe.cuisine || recipe.category} • ${recipe.isVegetarian ? '🥦 Vegetarian' : '🍗 Non-Vegetarian'}`;
     document.getElementById("detailPrepTime").textContent = recipe.prepTime || "10 mins";
     document.getElementById("detailCookTime").textContent = recipe.cookTime || "15 mins";
-    document.getElementById("detailServings").textContent = `${recipe.servings || 4} Servings`;
     document.getElementById("detailDifficulty").textContent = recipe.difficulty || "Easy";
 
-    // Nutrition
-    const nut = recipe.nutrition || { calories: 350, protein: "18g", carbs: "45g", fat: "12g" };
-    document.getElementById("detailCalories").textContent = `${nut.calories} kcal`;
-    document.getElementById("detailProtein").textContent = nut.protein;
-    document.getElementById("detailCarbs").textContent = nut.carbs;
-    document.getElementById("detailFat").textContent = nut.fat;
+    // Servings Stepper
+    this.renderDetailServingsAndNutrition();
 
-    // Match %
+    // Match Progress Bar
     const matchBar = document.getElementById("detailMatchBar");
     const matchText = document.getElementById("detailMatchText");
     if (matchBar) matchBar.style.width = `${matchData.matchPercent}%`;
     if (matchText) matchText.textContent = `${matchData.matchPercent}% Match (${matchData.available.length} of ${recipe.ingredients.length} available)`;
 
-    // Ingredients List
-    const ingContainer = document.getElementById("detailIngredientsList");
-    if (ingContainer) {
-      ingContainer.innerHTML = recipe.ingredients.map(ing => {
-        const isHave = matchData.available.includes(ing);
-        const isExp = matchData.expiring.includes(ing);
-
-        let statusHtml = `<span class="ing-status have">✓ In Pantry</span>`;
-        if (isExp) {
-          statusHtml = `<span class="ing-status expiring">🔥 Expiring Soon</span>`;
-        } else if (!isHave) {
-          statusHtml = `<span class="ing-status missing">○ Missing</span>`;
-        }
-
-        return `
-          <div class="detail-ing-item ${isHave ? 'available' : 'missing'}">
-            <div class="detail-ing-name">
-              <span class="ing-bullet">${isHave ? '✓' : '○'}</span>
-              <span>${escapeHTML(ing)}</span>
-            </div>
-            ${statusHtml}
-          </div>
-        `;
-      }).join("");
-    }
+    // Render Scaled Ingredients Checklist
+    this.renderDetailIngredients();
 
     // Step-by-Step Instructions
     const instContainer = document.getElementById("detailInstructionsList");
@@ -500,8 +743,152 @@ class RecipeEngineManager {
       `).join("");
     }
 
+    // Extra details: Allergens, Equipment, Storage
+    this.renderDetailMetaExtras(recipe);
+
     this.updateDetailFavoriteBtn();
     modal.classList.add("active");
+  }
+
+  changeDetailServings(delta) {
+    if (!this.currentDetailRecipe) return;
+    const next = this.currentServings + delta;
+    if (next >= 1 && next <= 24) {
+      this.currentServings = next;
+      this.renderDetailServingsAndNutrition();
+      this.renderDetailIngredients();
+    }
+  }
+
+  renderDetailServingsAndNutrition() {
+    const recipe = this.currentDetailRecipe;
+    if (!recipe) return;
+
+    const servingsEl = document.getElementById("detailServings");
+    if (servingsEl) {
+      servingsEl.innerHTML = `
+        <div class="servings-stepper">
+          <button type="button" class="servings-btn" onclick="window.RecipeEngine.changeDetailServings(-1)" title="Decrease Servings">-</button>
+          <span class="servings-count">${this.currentServings} Servings</span>
+          <button type="button" class="servings-btn" onclick="window.RecipeEngine.changeDetailServings(1)" title="Increase Servings">+</button>
+        </div>
+      `;
+    }
+
+    // Scale Nutrition
+    const nut = recipe.nutrition || { calories: 350, protein: "18g", carbs: "45g", fat: "12g" };
+    const factor = this.currentServings / this.originalServings;
+    const scaledCalories = Math.round(nut.calories * factor);
+
+    const calEl = document.getElementById("detailCalories");
+    if (calEl) calEl.innerHTML = `${scaledCalories} kcal <small style="display:block; font-size:10px; color:#64748b;">(${nut.calories}/serv)</small>`;
+
+    const protEl = document.getElementById("detailProtein");
+    if (protEl) protEl.textContent = nut.protein || "--";
+
+    const carbsEl = document.getElementById("detailCarbs");
+    if (carbsEl) carbsEl.textContent = nut.carbs || "--";
+
+    const fatEl = document.getElementById("detailFat");
+    if (fatEl) fatEl.textContent = nut.fat || "--";
+  }
+
+  formatAmount(val) {
+    if (!val || isNaN(val)) return "";
+    const rounded = Math.round(val * 100) / 100;
+    if (rounded === 0.5) return "1/2";
+    if (rounded === 0.25) return "1/4";
+    if (rounded === 0.75) return "3/4";
+    if (rounded === 0.33) return "1/3";
+    if (rounded === 0.67) return "2/3";
+    if (rounded === 1.5) return "1 1/2";
+    if (rounded === 2.5) return "2 1/2";
+    return rounded.toString();
+  }
+
+  renderDetailIngredients() {
+    const ingContainer = document.getElementById("detailIngredientsList");
+    if (!ingContainer || !this.currentDetailRecipe) return;
+
+    const recipe = this.currentDetailRecipe;
+    const factor = this.currentServings / this.originalServings;
+    const matchData = this.calculateRecipeMatch(recipe);
+
+    ingContainer.innerHTML = (recipe.ingredients || []).map(ing => {
+      const ingName = typeof ing === "string" ? ing : (ing.name || "");
+      const isHave = matchData.available.some(a => (typeof a === "string" ? a : a.name) === ingName);
+      const isExp = matchData.expiring.some(e => (typeof e === "string" ? e : e.name) === ingName);
+
+      let amountText = "";
+      if (typeof ing === "object" && ing.amount) {
+        const scaled = Number(ing.amount) * factor;
+        amountText = `<strong class="ing-amount">${this.formatAmount(scaled)} ${ing.unit || ''}</strong> `;
+      }
+
+      let statusHtml = `<span class="ing-status have">✓ In Pantry</span>`;
+      if (isExp) {
+        statusHtml = `<span class="ing-status expiring">🔥 Expiring Soon</span>`;
+      } else if (!isHave) {
+        statusHtml = `
+          <button type="button" class="ing-status missing-add-btn" onclick="window.RecipeEngine.addSingleIngredientToShopping('${escapeHTML(ingName)}')" title="Add to Shopping List">
+            + Shopping List
+          </button>
+        `;
+      }
+
+      return `
+        <div class="detail-ing-item ${isHave ? 'available' : 'missing'}">
+          <div class="detail-ing-name">
+            <span class="ing-bullet">${isHave ? '✓' : '○'}</span>
+            <span>${amountText}${escapeHTML(ingName)}</span>
+          </div>
+          ${statusHtml}
+        </div>
+      `;
+    }).join("");
+  }
+
+  renderDetailMetaExtras(recipe) {
+    let extraWrap = document.getElementById("detailMetaExtrasWrap");
+    if (!extraWrap) {
+      extraWrap = document.createElement("div");
+      extraWrap.id = "detailMetaExtrasWrap";
+      extraWrap.className = "detail-meta-extras-container";
+      const instList = document.getElementById("detailInstructionsList");
+      if (instList && instList.parentNode) {
+        instList.parentNode.insertBefore(extraWrap, instList.nextSibling);
+      }
+    }
+
+    const allergensList = (recipe.allergens && recipe.allergens.length) ? recipe.allergens.join(", ") : "None reported";
+    const equipList = (recipe.equipment && recipe.equipment.length) ? recipe.equipment.join(", ") : "Standard Cookware";
+    const storageText = recipe.storage || "Refrigerate leftovers in airtight container.";
+
+    extraWrap.innerHTML = `
+      <div class="detail-extra-cards-grid">
+        <div class="extra-card">
+          <span class="extra-icon">⚠️</span>
+          <div>
+            <strong>Allergens</strong>
+            <p>${escapeHTML(allergensList)}</p>
+          </div>
+        </div>
+        <div class="extra-card">
+          <span class="extra-icon">🍳</span>
+          <div>
+            <strong>Equipment</strong>
+            <p>${escapeHTML(equipList)}</p>
+          </div>
+        </div>
+        <div class="extra-card">
+          <span class="extra-icon">❄️</span>
+          <div>
+            <strong>Storage & Leftovers</strong>
+            <p>${escapeHTML(storageText)}</p>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   closeRecipeDetail() {
@@ -522,9 +909,17 @@ class RecipeEngineManager {
     this.updateDetailFavoriteBtn();
   }
 
+  addSingleIngredientToShopping(name) {
+    if (!name) return;
+    const count = this.addToShoppingList(name);
+    if (window.showToast) {
+      window.showToast(count > 0 ? `Added "${name}" to your Shopping List! 🛒` : `"${name}" is already in your Shopping List!`);
+    }
+  }
+
   addCurrentMissingToShopping() {
     if (!this.currentDetailRecipe) return;
-    const missing = this.currentDetailRecipe.missing || [];
+    const missing = (this.currentDetailRecipe.missing || []).map(i => typeof i === "string" ? i : (i.name || ""));
     if (missing.length === 0) {
       if (window.showToast) window.showToast("You already have all ingredients in your pantry! 🎉");
       return;
@@ -533,33 +928,10 @@ class RecipeEngineManager {
     if (window.showToast) window.showToast(`Added ${count} missing item(s) to your Shopping List! 🛒`);
   }
 
-  cookCurrentRecipe() {
-    if (!this.currentDetailRecipe) return;
-    const recipe = this.currentDetailRecipe;
-    
-    // Reduce matching items in pantry by 1 with Supabase database persistence
-    if (window.store && typeof window.store.getItems === "function") {
-      const items = window.store.getItems();
-      recipe.ingredients.forEach(async ing => {
-        const ingNorm = this.normalizeString(ing);
-        const match = items.find(i => this.normalizeString(i.name).includes(ingNorm) || ingNorm.includes(this.normalizeString(i.name)));
-        if (match && Number(match.quantity) > 0) {
-          const newQty = Math.max(0, Number(match.quantity) - 1);
-          await window.store.updateItem(match.id, { quantity: newQty });
-        }
-      });
-    }
-
-    this.closeRecipeDetail();
-    if (window.showToast) {
-      window.showToast(`🍳 Enjoy cooking ${recipe.name}! Pantry ingredients updated.`);
-    }
-  }
-
   shareCurrentRecipe() {
     if (!this.currentDetailRecipe) return;
     const recipe = this.currentDetailRecipe;
-    const text = `Check out this delicious recipe: ${recipe.name} (${recipe.cuisine} • ${recipe.totalMinutes} min) on Smart Pantry!`;
+    const text = `Check out this delicious recipe: ${recipe.name} (${recipe.cuisine} • ${recipe.totalMinutes} min) on IntelliPantry!`;
     if (navigator.share) {
       navigator.share({
         title: recipe.name,
@@ -573,7 +945,189 @@ class RecipeEngineManager {
     }
   }
 
-  // Shopping List Modal
+  // ==========================================
+  // FULL-SCREEN INTERACTIVE COOKING MODE
+  // ==========================================
+  openCookingMode() {
+    if (!this.currentDetailRecipe) return;
+    this.cookingStepIndex = 0;
+    const modal = document.getElementById("cookingModeModal");
+    if (!modal) return;
+
+    this.renderCookingModeStep();
+    modal.classList.add("active");
+  }
+
+  closeCookingMode() {
+    const modal = document.getElementById("cookingModeModal");
+    if (modal) modal.classList.remove("active");
+    if (this.cookingTimerInterval) {
+      clearInterval(this.cookingTimerInterval);
+      this.cookingTimerInterval = null;
+    }
+  }
+
+  renderCookingModeStep() {
+    const recipe = this.currentDetailRecipe;
+    if (!recipe) return;
+
+    const instructions = recipe.instructions || [];
+    const totalSteps = instructions.length || 1;
+    const stepText = instructions[this.cookingStepIndex] || "Ready to serve!";
+
+    document.getElementById("cookingModalTitle").textContent = recipe.name;
+    document.getElementById("cookingStepCounter").textContent = `Step ${this.cookingStepIndex + 1} of ${totalSteps}`;
+
+    const progressPct = Math.round(((this.cookingStepIndex + 1) / totalSteps) * 100);
+    const progBar = document.getElementById("cookingProgressBar");
+    if (progBar) progBar.style.width = `${progressPct}%`;
+
+    const textEl = document.getElementById("cookingStepInstruction");
+    if (textEl) textEl.textContent = stepText;
+
+    // Detect minutes in step for one-tap timer
+    const timerBox = document.getElementById("cookingStepTimerBox");
+    if (timerBox) {
+      const matchMin = stepText.match(/(\d+)\s*(?:mins|min|minutes)/i);
+      if (matchMin && matchMin[1]) {
+        const mins = parseInt(matchMin[1], 10);
+        timerBox.style.display = "block";
+        timerBox.innerHTML = `
+          <button type="button" class="cooking-timer-btn" onclick="window.RecipeEngine.startCookingTimer(${mins})">
+            ⏱ Start ${mins} Minute Timer
+          </button>
+          <span id="cookingTimerCountdown" style="display:none; margin-left:12px; font-weight:700; color:#059669; font-size:16px;"></span>
+        `;
+      } else {
+        timerBox.style.display = "none";
+      }
+    }
+
+    // Previous / Next Buttons
+    const prevBtn = document.getElementById("cookingPrevBtn");
+    const nextBtn = document.getElementById("cookingNextBtn");
+    if (prevBtn) prevBtn.disabled = (this.cookingStepIndex === 0);
+    if (nextBtn) {
+      if (this.cookingStepIndex === totalSteps - 1) {
+        nextBtn.innerHTML = "🎉 Complete & Deduct Stock";
+        nextBtn.onclick = () => this.finishCooking();
+      } else {
+        nextBtn.innerHTML = "Next Step ➔";
+        nextBtn.onclick = () => this.nextCookingStep();
+      }
+    }
+
+    // Scaled Ingredients Reference drawer
+    const ingDrawer = document.getElementById("cookingIngredientsDrawer");
+    if (ingDrawer) {
+      const factor = this.currentServings / this.originalServings;
+      ingDrawer.innerHTML = (recipe.ingredients || []).map(ing => {
+        const n = typeof ing === "string" ? ing : (ing.name || "");
+        let amt = "";
+        if (typeof ing === "object" && ing.amount) {
+          amt = `<strong>${this.formatAmount(ing.amount * factor)} ${ing.unit || ''}</strong> `;
+        }
+        return `<li>${amt}${escapeHTML(n)}</li>`;
+      }).join("");
+    }
+  }
+
+  prevCookingStep() {
+    if (this.cookingStepIndex > 0) {
+      this.cookingStepIndex--;
+      this.renderCookingModeStep();
+    }
+  }
+
+  nextCookingStep() {
+    const totalSteps = (this.currentDetailRecipe.instructions || []).length;
+    if (this.cookingStepIndex < totalSteps - 1) {
+      this.cookingStepIndex++;
+      this.renderCookingModeStep();
+    }
+  }
+
+  startCookingTimer(mins) {
+    if (this.cookingTimerInterval) clearInterval(this.cookingTimerInterval);
+    this.cookingTimerSeconds = mins * 60;
+    const countEl = document.getElementById("cookingTimerCountdown");
+    if (countEl) countEl.style.display = "inline-block";
+
+    this.cookingTimerInterval = setInterval(() => {
+      if (this.cookingTimerSeconds <= 0) {
+        clearInterval(this.cookingTimerInterval);
+        this.cookingTimerInterval = null;
+        if (countEl) countEl.textContent = "⏰ Time's up!";
+        if (window.showToast) window.showToast("⏰ Timer finished for step!");
+        return;
+      }
+      this.cookingTimerSeconds--;
+      const m = Math.floor(this.cookingTimerSeconds / 60);
+      const s = this.cookingTimerSeconds % 60;
+      if (countEl) countEl.textContent = `⏱ ${m}:${s < 10 ? '0' : ''}${s}`;
+    }, 1000);
+  }
+
+  async finishCooking() {
+    const recipe = this.currentDetailRecipe;
+    if (!recipe) return;
+
+    // Deduct available matching pantry items by 1
+    if (window.store && typeof window.store.getItems === "function") {
+      const pantry = window.store.getItems();
+      for (const ing of (recipe.ingredients || [])) {
+        const ingName = typeof ing === "string" ? ing : (ing.name || "");
+        const matched = this.matchIngredientWithPantry(ingName, pantry);
+        if (matched && Number(matched.quantity) > 0) {
+          const newQty = Math.max(0, Number(matched.quantity) - 1);
+          await window.store.updateItem(matched.id, { quantity: newQty });
+        }
+      }
+    }
+
+    // Save to cooking history
+    const historyItem = {
+      id: "cook_" + Date.now(),
+      recipeId: recipe.id,
+      recipeName: recipe.name,
+      cuisine: recipe.cuisine,
+      servings: this.currentServings,
+      cookedAt: new Date().toISOString()
+    };
+
+    try {
+      const existing = JSON.parse(localStorage.getItem(this.getCookingHistoryKey()) || "[]");
+      existing.unshift(historyItem);
+      localStorage.setItem(this.getCookingHistoryKey(), JSON.stringify(existing.slice(0, 50)));
+
+      // Sync to Supabase if authenticated
+      if (window.supabaseClient && window.supabaseClient.auth) {
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        if (session && session.user) {
+          await window.supabaseClient.from("user_cooking_history").insert({
+            user_id: session.user.id,
+            recipe_id: recipe.id,
+            recipe_name: recipe.name,
+            servings: this.currentServings,
+            cooked_at: historyItem.cookedAt
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("[Recipe Engine] Cooking history record skipped:", e.message);
+    }
+
+    this.closeCookingMode();
+    this.closeRecipeDetail();
+
+    if (window.showToast) {
+      window.showToast(`🎉 Delicious! You cooked ${recipe.name}! Pantry inventory updated.`);
+    }
+  }
+
+  // ==========================================
+  // SHOPPING LIST MODAL
+  // ==========================================
   openShoppingListModal() {
     const modal = document.getElementById("shoppingListModal");
     if (!modal) return;

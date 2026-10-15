@@ -8479,6 +8479,557 @@ html.dark-theme .catalog-nutri-val {
   color: #f1f5f9;
 }
 
+/* ==============================================================================
+   15 CUISINE SECTION PANELS (1:1 with User Master Visual media_1792020580134_ef67e8b0.jpg)
+   ============================================================================== */
+.recipe-view-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f5f2eb;
+  padding: 3px;
+  border-radius: 20px;
+  border: 1px solid #e7e2d8;
+}
+
+.view-toggle-btn {
+  background: transparent;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-toggle-btn.active {
+  background: #1e392a;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(30, 57, 42, 0.2);
+}
+
+.cuisine-sections-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 10px;
+}
+
+@media (max-width: 1100px) {
+  .cuisine-sections-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .cuisine-sections-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cuisine-panel-card {
+  background: #ffffff;
+  border: 1px solid #ebe7df;
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.cuisine-panel-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+  border-color: #dcd6cb;
+}
+
+.cuisine-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f1ece4;
+}
+
+.cuisine-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cuisine-panel-icon {
+  font-size: 18px;
+}
+
+.cuisine-panel-title h3 {
+  font-size: 15px;
+  font-weight: 800;
+  color: #2c1810;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.cuisine-panel-viewall-btn {
+  background: transparent;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: #059669;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.cuisine-panel-viewall-btn:hover {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.cuisine-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cuisine-panel-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.cuisine-panel-item:hover {
+  background: #faf8f5;
+  transform: translateX(2px);
+}
+
+.cuisine-item-thumb-wrap {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #f1f5f9;
+  border: 1px solid #eae5db;
+}
+
+.cuisine-item-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cuisine-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cuisine-item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.diet-dot {
+  font-size: 8px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.cuisine-item-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cuisine-item-sub-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.sec-match-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+.sec-match-pill.ready {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.sec-match-pill.partial {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.cuisine-item-arrow {
+  font-size: 11px;
+  color: #94a3b8;
+  padding-right: 4px;
+}
+
+/* ==============================================================================
+   SERVINGS STEPPER & DETAILED INGREDIENT SCALING
+   ============================================================================== */
+.servings-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 2px 6px;
+}
+
+.servings-btn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #1e392a;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.servings-btn:hover {
+  background: #1e392a;
+  color: #ffffff;
+}
+
+.servings-count {
+  font-weight: 800;
+  font-size: 12px;
+  color: #1e392a;
+}
+
+.ing-status.missing-add-btn {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #059669;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ing-status.missing-add-btn:hover {
+  background: #059669;
+  color: #ffffff;
+}
+
+.detail-extra-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.extra-card {
+  background: #faf8f5;
+  border: 1px solid #ece7de;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.extra-card .extra-icon {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.extra-card strong {
+  display: block;
+  font-size: 12px;
+  color: #1e392a;
+  margin-bottom: 2px;
+}
+
+.extra-card p {
+  margin: 0;
+  font-size: 11.5px;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+/* ==============================================================================
+   INTERACTIVE STEP-BY-STEP COOKING MODE
+   ============================================================================== */
+.cooking-modal-overlay {
+  z-index: 10000;
+}
+
+.cooking-modal-card {
+  max-width: 680px;
+  width: 95%;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+}
+
+.cooking-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.cooking-badge {
+  display: inline-block;
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 12px;
+  margin-bottom: 6px;
+}
+
+.cooking-recipe-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1e392a;
+  margin: 0;
+}
+
+.cooking-close-btn {
+  background: #f1f5f9;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.cooking-progress-wrap {
+  margin-bottom: 24px;
+}
+
+.cooking-progress-meta {
+  margin-bottom: 6px;
+}
+
+.cooking-progress-track {
+  width: 100%;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.cooking-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #059669);
+  transition: width 0.3s ease;
+}
+
+.cooking-step-container {
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: #faf8f5;
+  border: 1px solid #ece7de;
+  border-left: 5px solid #059669;
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.cooking-step-instruction {
+  font-size: 19px;
+  line-height: 1.6;
+  color: #1e293b;
+  font-weight: 600;
+  margin: 0;
+}
+
+.cooking-timer-btn {
+  background: #059669;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cooking-timer-btn:hover {
+  background: #047857;
+}
+
+.cooking-ing-details {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+
+.cooking-ing-details summary {
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+}
+
+.cooking-ing-drawer {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 6px;
+  color: #475569;
+  font-size: 12.5px;
+}
+
+.cooking-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid #f1ece4;
+  padding-top: 18px;
+}
+
+.cooking-nav-btn {
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.cooking-nav-btn.prev {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.cooking-nav-btn.prev:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cooking-nav-btn.next {
+  background: #059669;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+}
+
+.cooking-nav-btn.next:hover {
+  background: #047857;
+}
+
+/* Dark Theme Overrides for Cuisine Panels and Cooking Mode */
+html.dark-theme .cuisine-panel-card {
+  background: #18221c;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark-theme .cuisine-panel-header {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark-theme .cuisine-panel-title h3 {
+  color: #f1f5f9;
+}
+
+html.dark-theme .cuisine-item-name {
+  color: #e2e8f0;
+}
+
+html.dark-theme .cuisine-panel-item:hover {
+  background: #1e2c24;
+}
+
+html.dark-theme .cuisine-item-thumb-wrap {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #101713;
+}
+
+html.dark-theme .recipe-view-mode-toggle {
+  background: #18221c;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark-theme .view-toggle-btn {
+  color: #94a3b8;
+}
+
+html.dark-theme .view-toggle-btn.active {
+  background: #2e9e5b;
+  color: #ffffff;
+}
+
+html.dark-theme .cooking-modal-card {
+  background: #18221c;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+html.dark-theme .cooking-recipe-title {
+  color: #f1f5f9;
+}
+
+html.dark-theme .cooking-step-container {
+  background: #101713;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark-theme .cooking-step-instruction {
+  color: #e2e8f0;
+}
+
+html.dark-theme .cooking-ing-details {
+  background: #101713;
+  color: #94a3b8;
+}
+
+html.dark-theme .extra-card {
+  background: #18221c;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark-theme .extra-card strong {
+  color: #f1f5f9;
+}
+
+
 
 
 

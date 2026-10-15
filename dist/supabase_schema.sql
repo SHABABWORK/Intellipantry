@@ -986,6 +986,61 @@ ALTER TABLE public.pantry_items ADD COLUMN IF NOT EXISTS product_id TEXT;
 CREATE INDEX IF NOT EXISTS idx_pantry_items_product_id ON public.pantry_items (user_id, product_id);
 
 -- ==============================================================================
+-- 11. RECIPES, USER FAVORITES & COOKING HISTORY
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.user_recipe_favorites (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  recipe_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  UNIQUE(user_id, recipe_id)
+);
+
+ALTER TABLE public.user_recipe_favorites ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view their own recipe favorites" ON public.user_recipe_favorites;
+DROP POLICY IF EXISTS "Users can insert their own recipe favorites" ON public.user_recipe_favorites;
+DROP POLICY IF EXISTS "Users can delete their own recipe favorites" ON public.user_recipe_favorites;
+
+CREATE POLICY "Users can view their own recipe favorites"
+  ON public.user_recipe_favorites FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own recipe favorites"
+  ON public.user_recipe_favorites FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own recipe favorites"
+  ON public.user_recipe_favorites FOR DELETE TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_recipe_favs_user ON public.user_recipe_favorites (user_id);
+
+CREATE TABLE IF NOT EXISTS public.user_cooking_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  recipe_id TEXT NOT NULL,
+  recipe_name TEXT NOT NULL,
+  servings INTEGER DEFAULT 4,
+  cooked_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.user_cooking_history ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view their own cooking history" ON public.user_cooking_history;
+DROP POLICY IF EXISTS "Users can insert their own cooking history" ON public.user_cooking_history;
+
+CREATE POLICY "Users can view their own cooking history"
+  ON public.user_cooking_history FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own cooking history"
+  ON public.user_cooking_history FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_cooking_history_user ON public.user_cooking_history (user_id, cooked_at DESC);
+
+-- ==============================================================================
 -- 12. ROLE PERMISSIONS & SECURITY GRANTS
 -- Grant schema and table permissions to PostgREST roles: anon, authenticated, service_role
 -- ==============================================================================
